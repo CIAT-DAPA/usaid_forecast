@@ -6,11 +6,11 @@ library(rasterVis)
 library(maptools)
 library(rgeos)
 library(gridExtra)
-library(cowplot)
+library(cowplot) %>% 
 
 ### Directorio de trabajo
 setwd("C:/Users/AESQUIVEL/Desktop/Salidas_corrida_DEF/salidas/")
-
+#prueba
 
 
 ### Transformar un archivo .tsv(CPT) en raster 
