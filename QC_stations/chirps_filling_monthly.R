@@ -3,7 +3,7 @@ library(raster)
 chirps_all = stack("D:/Tobackup/CIAT/Projects/USAID/Data_clima/data_filling/stack_chirps.grd")
 
 setwd("D:\\Tobackup\\CIAT\\Projects\\USAID\\Data_clima\\data_filling\\")
-dpto="tolima"
+dpto="santander"
 dir.create(dpto)
     
 station_data = read.csv(file = paste0(dpto,"_precip_filter.csv"),header=T)
@@ -13,7 +13,7 @@ station_chirps.b = raster::extract(x=chirps_all, y=station_coord[-1], method = '
 station_chirps.b = as.data.frame(t(station_chirps.b))[1:nrow(station_data),]
 names(station_chirps.b)=names(station_data)
 
-dates=seq(as.Date("1981/01/01"),as.Date("2013/12/31"),"month")
+dates=seq(as.Date("1981/01/01"),as.Date("2014/12/31"),"month")
 months=months.Date(dates)
 names_st=names(station_chirps.b)
 
@@ -41,8 +41,9 @@ for (i in 1:ncol(station_chirps.b)){
   eqn <- bquote(italic(y) == .(b0) + .(b1)*italic(x) * "," ~~ 
                   R^2 == .(r2) * "," ~~ RMSE == .(rmse))
   
-   
-  data_model = predict(model,as.data.frame(station_chirps.b[,i]))
+  to_predict = as.data.frame(station_chirps.b[,i])
+  names(to_predict)="x"
+  data_model = predict(model,to_predict)
   data_model[data_model<0] = 0
   tiff(paste0(names_st[i],".tiff"),compression = 'lzw',height = 10,width = 10,units="in", res=200)
   par(mfrow=c(2,1))
@@ -57,7 +58,7 @@ for (i in 1:ncol(station_chirps.b)){
   legend('bottomright', legend = eqn, bty = 'n')
   
   add_legend("topright",c("Observed","CHIRPS","Model"),
-             horiz=T, bty='n', cex=0.9,lty=c(1,2,2),lwd=c(1.5,1,1),col=c("black","blue","red")) 
+             horiz=T, bty='n', cex=0.9,lty=c(1,2,2),lwd=c(1.5,1,1),col=c("black","red","blue")) 
   
   dev.off()
   
