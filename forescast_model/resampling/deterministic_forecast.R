@@ -1,8 +1,8 @@
 
-require(lubridate)
-require(reshape)
+library(lubridate)
+library(reshape)
 #require(ggplot2)
-require(stringr)
+library(stringr)
 
 
 
@@ -62,15 +62,13 @@ insumo=function(data,prob,añoshistorico){
   
 }
 
-path_prob =  "C:\\Users\\lllanos\\Desktop\\datos_prueba\\prob_prueba.csv"
-path_data_d =  "C:\\Users\\lllanos\\Desktop\\datos_prueba\\LaUnion.csv"
 
 
 #---------------------------------------------------------------------------------#
 #-----------------Función para generar escenarios diarios-------------------------#
 #---------------------------------------------------------------------------------#
 
-pronosticos=function(path_prob,path_data_d,path_output){
+pronosticos=function(prob,data_d,path_output){
   
    
   #---------------------------------------------------------------------------------#
@@ -78,8 +76,7 @@ pronosticos=function(path_prob,path_data_d,path_output){
   #---------------------------------------------------------------------------------#
   
   data_d=read.csv(path_data_d,header=T,dec=".")
-  data_prob=read.csv(path_prob,header=T,dec=".")
-  
+   
   
   #attach(data_d,warn.conflicts =F)
   
@@ -257,7 +254,7 @@ pronosticos=function(path_prob,path_data_d,path_output){
   #---------------------------------------------------------------------------------#
   #---------------------------------------------------------------------------------#
   print("Generando escenarios")
-  if(exists("data_d")){
+  
     esc_final_diarios=list()
     
     if(any(names(a)=="January")){ esc_diario_Ene=list()}
@@ -303,7 +300,8 @@ pronosticos=function(path_prob,path_data_d,path_output){
     #-----------------Exporta los escenarios a nivel diario a .csv--------------------#
     #---------------------------------------------------------------------------------#
     
-    dir.create(paste(path_output,"/Escenarios",sep=""),showWarnings=F)
+    dir.create(paste(path_output,format.Date(Sys.Date(),"%Y%m%d"),sep="/"),showWarnings=F)
+    dir.create(paste(path_output,format.Date(Sys.Date(),"%Y%m%d"),"Escenarios",sep="/"),showWarnings=F)
     
     for(k in 1:nrow(escenarios_final)){
       write.csv(esc_final_diarios[[k]],paste(path_output,"/Escenarios/escenario_",nom[k],".csv",sep=""),row.names=F)
@@ -313,4 +311,20 @@ pronosticos=function(path_prob,path_data_d,path_output){
   
   print("Proceso finalizado exitosamente")
 
+ 
 }
+
+
+#---------------------------------------------------------------------------------#
+#---------------------------RUN para todas las estaciones-------------------------#
+#---------------------------------------------------------------------------------#
+path_output = "Y:/USAID_Project/Product_1_web_interface/test/clima/resampling/" 
+path_prob =  "Y:/USAID_Project/Product_1_web_interface/test/clima/prob_forecast/20170120_prob.csv"
+path_data_d =  "C:\\Users\\lllanos\\Desktop\\datos_prueba\\LaUnion.csv"
+
+data_prob_all=read.csv(path_prob,header=T,dec=".")
+station_names = unique(data_prob$id)
+data_prob = data_prob_all[which(data_prob_all$id==station_names[1]),]
+
+data_d_all = list.files("Y:/USAID_Project/Product_3_agro-climatic_forecast/climate/weather_stations/daily_preliminar/stations",full.names = T)
+
