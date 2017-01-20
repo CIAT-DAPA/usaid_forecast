@@ -28,10 +28,18 @@ sapply_pb <- function(X, FUN, ...) {
 
 
 #---------------------------------------------------------------------------------#
-#-------------------Función para generar años analogos----------------------------#
+#----------------Función para generar años más frecuentes-------------------------#
 #---------------------------------------------------------------------------------#
+# INPUT
+# data: Datos acumulados mensuales para la precipitación del mes a pronosticar
+# organizados de forma ascendente
+# añoshistorico: Tabla de años ordenados de forma ascendente de acuerdo a la precipitación
+# acumulada del mes de interés
 
-insumo=function(data,prob,añoshistorico){
+# OUTPUT
+# Remuestreo de los años mas frecuentes del mes de interés de acuerdo a las probabilidades ingresadas
+
+resampling <- function(data,prob,añoshistorico){
   matrizcombinaciones=0
   vectorprobabilidades=prob
   datas=0
@@ -67,15 +75,24 @@ insumo=function(data,prob,añoshistorico){
 #---------------------------------------------------------------------------------#
 #-----------------Función para generar escenarios diarios-------------------------#
 #---------------------------------------------------------------------------------#
+# INPUT
+# prob: Tabla de probabilidades de la estación de interés para los siguientes 6 meses
+# data_d: Tabla con datos diarios de la estación de interés
+# path_output: Ruta donde se guardarán las salidas
+# station: Nombre de la estación de interés
 
-pronosticos=function(prob,data_d,path_output){
+#OUTPUT
+# Al correr esta función se generarán los 100 escenarios (en formato .csv) de datos diarios 
+# para la estaciónde interés
+
+gen_esc_daily <- function(prob,data_d,path_output,station){
   
    
   #---------------------------------------------------------------------------------#
   #-------------------------------Lectura de datos----------------------------------#
   #---------------------------------------------------------------------------------#
   
-  data_d=read.csv(path_data_d,header=T,dec=".")
+  data_d=read.csv(data_d,header=T,dec=".")
    
   
   #attach(data_d,warn.conflicts =F)
@@ -128,7 +145,7 @@ pronosticos=function(prob,data_d,path_output){
   
   masprobable=matrix(0,nrow=100,ncol=dim(probabilidades)[2])
   
-  
+  print("Generando años más frecuentes...")
   masprobable=sapply_pb(1:100,
                         function(j){
                           esc1=sapply(1:dim(probabilidades)[2], function(i) insumo(prec_sort[,i],probabilidades[i,4:6],year_sort[,i]))
@@ -253,7 +270,7 @@ pronosticos=function(prob,data_d,path_output){
   #----------------------Creación de escenarios a nivel diario----------------------#
   #---------------------------------------------------------------------------------#
   #---------------------------------------------------------------------------------#
-  print("Generando escenarios")
+  print("Generando escenarios...")
   
     esc_final_diarios=list()
     
@@ -301,14 +318,12 @@ pronosticos=function(prob,data_d,path_output){
     #---------------------------------------------------------------------------------#
     
     dir.create(paste(path_output,format.Date(Sys.Date(),"%Y%m%d"),sep="/"),showWarnings=F)
-    dir.create(paste(path_output,format.Date(Sys.Date(),"%Y%m%d"),"Escenarios",sep="/"),showWarnings=F)
+    dir.create(paste(path_output,"/",format.Date(Sys.Date(),"%Y%m%d"),"/Escenarios_",station,sep=""),showWarnings=F)
     
     for(k in 1:nrow(escenarios_final)){
-      write.csv(esc_final_diarios[[k]],paste(path_output,"/Escenarios/escenario_",nom[k],".csv",sep=""),row.names=F)
+      write.csv(esc_final_diarios[[k]],paste(path_output,"/",format.Date(Sys.Date(),"%Y%m%d"),"/Escenarios_",station,"/escenario_",nom[k],".csv",sep=""),row.names=F)
     }
     
-   
-  
   print("Proceso finalizado exitosamente")
 
  
@@ -318,13 +333,22 @@ pronosticos=function(prob,data_d,path_output){
 #---------------------------------------------------------------------------------#
 #---------------------------RUN para todas las estaciones-------------------------#
 #---------------------------------------------------------------------------------#
+
 path_output = "Y:/USAID_Project/Product_1_web_interface/test/clima/resampling/" 
-path_prob =  "Y:/USAID_Project/Product_1_web_interface/test/clima/prob_forecast/20170120_prob.csv"
-path_data_d =  "C:\\Users\\lllanos\\Desktop\\datos_prueba\\LaUnion.csv"
+path_prob = "Y:/USAID_Project/Product_1_web_interface/test/clima/prob_forecast/20170120_prob_test.csv"
+path_data_d = "Y:/USAID_Project/Product_1_web_interface/test/clima/daily_data/"
+
+data_d_all = list.files(path_data_d,full.names = T)
 
 data_prob_all=read.csv(path_prob,header=T,dec=".")
-station_names = unique(data_prob$id)
-data_prob = data_prob_all[which(data_prob_all$id==station_names[1]),]
+station_names = unique(data_prob_all$id)
 
-data_d_all = list.files("Y:/USAID_Project/Product_3_agro-climatic_forecast/climate/weather_stations/daily_preliminar/stations",full.names = T)
+start.time <- Sys.time()
+sapply(1:length(data_d_all),function(x) {
+  data_prob = data_prob_all[which(data_prob_all$id==station_names[x]),]
+  gen_esc_daily(prob = data_prob,data_d = data_d_all[x],path_output,station = station_names[x]
+                )})
 
+end.time <- Sys.time()
+time.taken <- end.time - start.time
+time.taken
