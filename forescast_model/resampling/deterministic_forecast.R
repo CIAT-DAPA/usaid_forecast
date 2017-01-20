@@ -335,7 +335,7 @@ gen_esc_daily <- function(prob,data_d,path_output,station){
 #---------------------------------------------------------------------------------#
 
 path_output = "Y:/USAID_Project/Product_1_web_interface/test/clima/resampling/" 
-path_prob = "Y:/USAID_Project/Product_1_web_interface/test/clima/prob_forecast/20170120_prob_test.csv"
+path_prob = "Y:/USAID_Project/Product_1_web_interface/test/clima/prob_forecast/20170120_prob.csv"
 path_data_d = "Y:/USAID_Project/Product_1_web_interface/test/clima/daily_data/"
 
 data_d_all = list.files(path_data_d,full.names = T)
