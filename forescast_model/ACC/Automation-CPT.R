@@ -1,17 +1,23 @@
-
 ####### Functions #########
 ###########################
 
-download.cpt=function(dir_save){ ### En la funcion se ingresa la fecha del sistema Sys.Date()
 
-  month=as.numeric(format(Sys.Date(),"%m"))### Se extrae el mes de la fecha actual  
-  year=format(Sys.Date(),"%Y")
+#####Input download.cpt#####
+##(dir_save) Ruta para guardar los archivos.
+##(month) Mes antes del inicio de las predicciones.
+##(year) Año en el cual se generan las predicciones.
+#####Outoput download.cpt#####
+## Archivos de la TSM de los siguientes 6 meses
+## guardados en la ruta suministrada en el input.
+
+download.cpt=function(dir_save,month,year){ 
+  
   w=(month)+(0:7)
   if(sum(w>12)>0)w[which(w>12)]=w[which(w>12)]-12
   if(sum(w<1)>0)w[which(w<1)]=w[which(w<1)]+12
   
   for(i in 1:6){
-
+    
     l=month-1
     if(l<=0)l=l+12
     ensemble="M/1/24/RANGE"
@@ -29,6 +35,13 @@ download.cpt=function(dir_save){ ### En la funcion se ingresa la fecha del siste
   
 }
 
+#####Input data_table#####
+##### (dates) Datos cargados en R en formato data frame con 
+##### read.table(x,sep="\t",dec=".",skip =2,fill=TRUE,na.strings =-999))
+#####Output Data_table#####
+## (all_output) Una lista [1]los datos de la tsm donde en las filas 
+## estan los años y en las columnas los pixeles 
+## [2] los años disponibles de la informacion 
 
 data_table=function(dates){
   
@@ -49,12 +62,18 @@ data_table=function(dates){
   
 }
 
+#####Input quarterly_data#####
+## (data) Datos de las estaciones en el formato definido.
+## (y) Mes antes del inicio de las predicciones.
+#####Output quartely_data#####
+## (all_output) Una lista [[1]] los datos de las estaciones 
+## en forma trimestral [[2]] Años disponibles de la información.
 
-quarterly_data=function(data){
+quarterly_data=function(data,sy_month){
+  
   names_months=0
   data_out=list()
   year_out=list()
-  sy_month=as.numeric(format(Sys.Date(),"%m"))
   l=(sy_month)+(0:7)
   if(sum(l>12)>0)l[which(l>12)]=l[which(l>12)]-12
   if(sum(l<1)>0)l[which(l<1)]=l[which(l<1)]+12
@@ -77,6 +96,12 @@ quarterly_data=function(data){
   return(all_output)
 } 
 
+#####Input nipals#####
+## (X) Matrix de datos para calcular el PCA.
+## (modos) Numero de componentes a calcular.
+#####Output nipals#####
+## (resul) Una lista donde el [[1]] Componentes principales, [[2]] Vectores propios 
+## [[3]] Valores propios
 
 nipals<-function(X,modos){
   
@@ -110,6 +135,12 @@ nipals<-function(X,modos){
   
 }
 
+#####Input selection_area#####
+## (x) datos de la tsm en filas años y columnas pixeles.
+## (y) datos de las estaciones en el formato predefinido.
+#####Output selection_area#####
+## (data_x_selec) datos de la tsm seleccionados para el 
+## modelo CCA, en las filas años y en las columnas pixeles.
 
 selection_area=function(x,y){
   
@@ -150,6 +181,13 @@ selection_area=function(x,y){
   return(data_x_selec)
 }
 
+#####Input cross_val#####
+## (x) datos de la tsm seleccionado para correr en el modelo
+## (Y) datos de las estaciones en el formato predefinido.
+#####Otuput cross_val#####
+## (all_out) Una lista donde el [[1]] es el resultado de la validacion.
+## cruzada con el modelo que arrojo los mejores resultados [[2]] Modos de x.
+## ,modos de y, goodness index del mejor modelo.
 
 cross_val=function(x,y){
   
@@ -191,7 +229,7 @@ cross_val=function(x,y){
         
         
         y_est[p]=(R[1]*xiz_com)
-        y_last[p,]=(y_est[p]%*%solve(canonico$ycoef)[1,]) + canonico$ycenter
+        y_last[p,]=(y_est[p]*solve(canonico$ycoef)[1,,drop=FALSE]) + canonico$ycenter
         
         
       }
@@ -207,6 +245,7 @@ cross_val=function(x,y){
       count=count+1
       
       all_stimation[[count]]=data_y_stimated
+      colnames(all_stimation[[count]])=colnames(y)
       output[count,1]=i
       output[count,2]=j
       output[count,3]=mean(diag(cor(data_y_stimated,y,method = "kendall")))
@@ -230,7 +269,9 @@ cross_val=function(x,y){
 
 start.time <- Sys.time()
 dir_save="C:/Users/dagudelo/Desktop/Ejemplo_descarga"
-y=download.cpt(dir_save)
+month=as.numeric(format(Sys.Date(),"%m"))
+year=format(Sys.Date(),"%Y")
+y=download.cpt(dir_save,month,year)
 end.time <- Sys.time()
 time.taken <- end.time - start.time
 time.taken
@@ -255,7 +296,11 @@ data_y=lapply(dir_res,function(x)read.table(x,dec=".",sep = ",",header = T))
 names(data_y)=basename(dir_res)
 
 
-data_quar=lapply(data_y,quarterly_data)
+dir_stations="Y:/USAID_Project/Product_1_web_interface/test/clima/daily_data"
+stations_selec=substr(list.files(dir_stations),1,nchar(list.files(dir_stations))-4)
+
+
+data_quar=lapply(data_y,quarterly_data,month)
 data_quartely=unlist(lapply(data_quar,"[", 1),recursive=FALSE)
 year_response=unlist(lapply(data_quar,"[", 2),recursive=FALSE)
 
@@ -277,5 +322,11 @@ data_tsm_selec=Map(function(x,y) Map(selection_area,x,y),data_tsm_final,data_res
 
 cross_all=Map(function(x,y) Map(cross_val,x,y),data_tsm_selec,data_res_final)
 
+######### Generate probabilities #######
+########################################
 
+mon=month+0:5
+prob=expand.grid(year,mon,stations_selec,33.333,33.333,33.333)
+names(prob)=c("year","month","id","below","normal","above")
 
+write.csv(prob,paste0("Y:/USAID_Project/Product_1_web_interface/test/clima/prob_forecast","/",format(Sys.Date(),"%Y%m%d"),"_prob.csv"),row.names = F)
