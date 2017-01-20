@@ -6,11 +6,12 @@ library(rasterVis)
 library(maptools)
 library(rgeos)
 library(gridExtra)
-library(cowplot) %>% 
+library(cowplot)
 
 ### Directorio de trabajo
-setwd("C:/Users/AESQUIVEL/Desktop/Salidas_corrida_DEF/salidas/")
-#prueba
+setwd("C:/Users/AESQUIVEL/Google Drive/Experimento_1/Salidas_corrida_DEF/salidas/Salidas_tropico")
+getwd()
+
 
 
 ### Transformar un archivo .tsv(CPT) en raster 
@@ -70,10 +71,11 @@ data_trim=function(Estaciones_C, a){ #Los argumentos son el conjunto de las esta
 
 
 ## Ruta principal donde se encuentran las carpetas con los archivos  
-ruta="C:/Users/AESQUIVEL/Desktop/Salidas_corrida_DEF/salidas/"
+ruta="C:/Users/AESQUIVEL/Google Drive/Experimento_1/Salidas_corrida_DEF/salidas/Salidas_tropico"
 
+ruta1="C:/Users/AESQUIVEL/Google Drive/Experimento_1/Salidas_corrida_DEF/salidas/"
 ### Lectura del shp
-colombia=shapefile(paste(ruta,"/colombia/colombia_depts.shp",sep=""))
+colombia=shapefile(paste(ruta1,"/colombia/colombia_depts.shp",sep=""))
 
 
 
@@ -123,8 +125,8 @@ cca_maps<-function(var_ocanoAt, yserie, Estaciones_C, xserie, names_file, ruta, 
   
   # La organización de la información se hace de acuerdo al mes de estudio.
   if(a == 12){ 
-    data<-data[data$years_y!=1982&data$years_y!=1983,]
-  } else  data<-data[data$years_y!=1981&data$years_y!=1982,]
+    data<-data[data$years_y!=1982,]
+  } else  data<-data[data$years_y!=1981,]
   
   correl_y=0 # inicialice las correlaciones con x
   for(i in 2:length(data)){ # realice las correlaciones para todas las estaciones
@@ -188,7 +190,7 @@ cca_maps<-function(var_ocanoAt, yserie, Estaciones_C, xserie, names_file, ruta, 
 
   
   #  Guarde los cca_maps de correlaciones
-  tiff(paste(ruta,"/cca_maps_",names_file,".tif",sep=""), height=300,width=1600,res=100,
+  tiff(paste(ruta,"/santander/cca_maps_",names_file,".tif",sep=""), height=300,width=1600,res=100,
        compression="lzw") # height=1280, width=2048, pointsize=2, res=200,
   grid.arrange(Map_x,modos,p,ncol=5, layout_matrix = rbind(c(1,1,2,3,3)))
   #grid.arrange(Map_x,p,modos, layout_matrix = rbind(c(1,1),c(2,3)))
@@ -197,23 +199,33 @@ cca_maps<-function(var_ocanoAt, yserie, Estaciones_C, xserie, names_file, ruta, 
 
 
 
+ruta_c<-paste(ruta, "/Cross_validated/",sep="")
 
-###  Corrida de la función para todos los archivos 
-colombia=shapefile(paste(ruta,"/colombia/colombia_depts.shp",sep=""))
+dep= "santander" # variar el departamento
 
-ruta_c<-paste(ruta, "Cross_validated/",sep="")
-# "casanare"    "cordoba"    "tolima"    "valle"
-## Coordenadas casanare (xmin<- -73.5, xmax<- -71, ymin<-  4, ymax<-  6)
-## Coordenadas cordoba (xmin<- -76.6, xmax<- -74.6, ymin<-  7, ymax<-  10)
-## Coordenadas tolima (xmin<- -76.2 , xmax<- -74, ymin<-  2.8, ymax<-  5.5)
-## Coordenadas valle (xmin<- -77.5, xmax<- -75.6, ymin<-  3, ymax<-  5)
-dep= "cordoba" # variar el departamento
-## Lectura de las coordenadas de las estaciones para el graph 
-xmin<- -76.6
-xmax<- -74.6
-ymin<-  7
-ymax<-  10
-length_periodo=c(rep(31,9), rep(30,3)) # Ancho del periodo de estudio para cada trimestre
+
+
+# "casanare"    "cordoba"    "tolima"    "valle" "santander"
+# Determinación de los limites departamentales y estaciones a dibular en el cap >.<
+if(dep=="casanare"){
+  xmin<- -73.5; xmax<- -71; ymin<-  4; ymax<-  6
+  estaciones_in=data.frame(name="Yopal", Long=-72.388, Lat = 	5.320)
+}else if(dep=="cordoba"){
+  xmin<- -76.6; xmax<- -74.6; ymin<-  7; ymax<-  10
+  estaciones_in=data.frame(name=c("Lorica","Cereté"), Long=c(-75.913,-75.802), Lat = c(9.302,8.840))
+}else if(dep=="tolima"){
+  xmin<- -76.2; xmax<- -74; ymin<-  2.8; ymax<-  5.5
+  estaciones_in=data.frame(name=c("Ibagué","Espinal"), Long=c(-75.148,-74.960), Lat = c(4.430,4.188))
+}else if(dep=="valle"){
+  xmin<- -77.5; xmax<- -75.6; ymin<-  3; ymax<-  5
+  estaciones_in=data.frame(name="La Unión", Long=-76.062, Lat = 4.531)
+}else if(dep=="santander"){
+  xmin<- -75; xmax<- -72; ymin<- 5; ymax<- 8
+  estaciones_in=data.frame(name="Villanueva", Long=-73.21, Lat = 6.64)
+}
+
+
+length_periodo=c(rep(32,9), rep(31,3)) # Ancho del periodo de estudio para cada trimestre
 # Lead times (nombres)
 lead<-c("MAM",	"Feb", "Nov", "JJA",	"May",	"Feb", "SON", "Aug",	"May", "DEF",	"Nov",	"Aug")
 # Timestre
@@ -221,18 +233,9 @@ a<- c(rep(3,3),rep(6,3),rep(9,3),rep(12,3))
 
 ## Para cada estación lea las estaciones de interes. 
 
-#Para "casanare"
-#estaciones_in=data.frame(name="Yopal", Long=-72.388, Lat = 	5.320)
-# cordoba
-estaciones_in=data.frame(name=c("Lorica","Cereté"), Long=c(-75.913,-75.802), Lat = c(9.302,8.840))
-# tolima
-#estaciones_in=data.frame(name=c("Ibagué","Espinal"), Long=c(-75.148,-74.960), Lat = c(4.430,4.188))
-# Para valle
-#estaciones_in=data.frame(name="La Unión", Long=-76.062, Lat = 4.531)
-
 
 # Lectura d eas estaciones para cada departamento.
-Estaciones_C <- read.delim(paste(ruta,"dep/precip_",dep,".txt",sep=""),skip =3, header=T, sep="")
+Estaciones_C <- read.delim(paste(ruta1,"dep/precip_",dep,".txt",sep=""),skip =3, header=T, sep="")
 
 # Lea los archivos y las estaciones necesarias para todas las corridas del departamento. 
 for(i in 1:12){
@@ -241,7 +244,7 @@ for(i in 1:12){
   names_file <- paste(a[i],"_",lead[i],"_", dep,sep="")
   
   
-  SST<-read.table(paste(ruta,"ERSST_CPT/",lead[i],".tsv",sep=""),sep="\t",dec=".",skip =3,fill=TRUE,na.strings =-999)
+  SST<-read.table(paste(ruta1,"ERSST_CPT/",lead[i],".tsv",sep=""),sep="\t",dec=".",skip =3,fill=TRUE,na.strings =-999)
   ## Conversión a raster
   SST=rasterize(SST)
   var_ocanoAt <-SST[[1:length_periodo[i]]]
@@ -270,7 +273,7 @@ for(i in 1:12){
 
 
 ## Esta función devuelve las gráficas del goodness index, 
-## ruta_c ruta donde se encuentran los archivps
+## ruta_c ruta donde se encuentran los archivos
 ## dep_f son los departamentos que se van a gráficar
 GoodnessIndex <- function(ruta_c,dep_f){
   #### Lead times para cada trimestre
@@ -319,10 +322,16 @@ GoodnessIndex <- function(ruta_c,dep_f){
     graph_dep  <-graph_dep  + theme_bw() + theme(legend.position = "none") 
     
     
-    tiff(paste(ruta,"/GoodnessIndex_dep_",dep_f[i],".tif",sep=""), height=720,width=1280,res=200,
+    tiff(paste(ruta,"/santander/GoodnessIndex_dep_",dep_f[i],".tif",sep=""), height=720,width=1280,res=200,
          pointsize=2,compression="lzw")
     print(graph_dep  )
     dev.off()
+    
+    
+    
+    
+    
+    
   }
   
   
@@ -331,7 +340,7 @@ GoodnessIndex <- function(ruta_c,dep_f){
   ### modificando la función 
   Sim=GoodnessIndex[GoodnessIndex$lead_time==0,]
   names(Sim)[1]="Departamento"
-  levels(Sim$Departamento)<-c("Casanare", "Cordoba", "Tolima",  "Valle")
+  levels(Sim$Departamento)<-c("Casanare", "Cordoba", "Tolima",  "Valle", "Santander")
   graph_line  <- ggplot(Sim, aes(x =a, y = GoodnessIndex, color=Departamento))
   graph_line  <- graph_line + geom_line(aes(linetype=Departamento), size=1) + ylim(-0.01,0.5)
   graph_line  <- graph_line + geom_point(aes(shape=Departamento), size=2)
@@ -343,18 +352,45 @@ GoodnessIndex <- function(ruta_c,dep_f){
   
 
 # Guarde el graph
-  tiff(paste(ruta,"/GoodnessIndex_line.tif",sep=""), height=720,width=1280,res=200,
+  tiff(paste(ruta,"/santander/GoodnessIndex_line.tif",sep=""), height=720,width=1280,res=200,
        pointsize=2,compression="lzw")
   print(graph_line)
   dev.off()
-}
+  
+return(GoodnessIndex)}
 
 
 
 ## Corrida para todos los archivos
-ruta_c<-"C:/Users/AESQUIVEL/Desktop/Salidas_corrida_DEF/salidas/Cross_validated/"
-dep_f<-c("casanare",    "cordoba",    "tolima",    "valle")
-GoodnessIndex(ruta_c = ruta_c, dep_f = dep_f)
+dep_f<-c("casanare",    "cordoba",    "tolima",    "valle", "santander")
+table<-GoodnessIndex(ruta_c = ruta_c, dep_f = dep_f)
+
+max_G<-aggregate(table$GoodnessIndex,list(table$dep, table$a), FUN = "max")
+
+
+### Grafico de Linea puede para los maximos
+### modificando la función 
+names(max_G)[1]="Departamento"
+levels(max_G$Departamento)<-c("Casanare", "Cordoba", "Tolima",  "Valle", "Santander")
+graph_line  <- ggplot(max_G, aes(x = Group.2 , y = x, color=Departamento))
+graph_line  <- graph_line + geom_line(aes(linetype=Departamento), size=1) + ylim(-0.01,0.5)
+graph_line  <- graph_line + geom_point(aes(shape=Departamento), size=2)
+graph_line  <- graph_line + theme_bw()  + labs(x="", y="Goodness Index") 
+graph_line  <- graph_line +  scale_x_continuous(breaks = c(0,3,6,9), labels = c("DEF","MAM", "JJA", "SON"))
+graph_line  <- graph_line + theme(legend.title = element_text(size = 10.5),
+                                  legend.key.height=unit(0.5,"cm"),
+                                  legend.key.width=unit(0.8,"cm"))
+
+
+# Guarde el graph
+tiff(paste(ruta,"/santander/Max_line.tif",sep=""), height=720,width=1280,res=200,
+     pointsize=2,compression="lzw")
+print(graph_line)
+dev.off()
+
+
+
+
 
 
 
@@ -370,16 +406,18 @@ grahs_indicador <- function(ruta_c, tipo){
   mes_inicio=seq(3,12,3) # Meses de inicio de los trimestres 
   lead_0=c("MAM", "JJA", "SON", "DEF") # trimestres simultaneos 
   
+  
+ 
   names=list() # cree una lista con los nombres
   for(i in 1:4){ # itere el número de trimestres y liste los archivos
     names[[i]]=list.files(ruta_c,pattern=paste(tipo,"_", mes_inicio[i], "_", lead_0[i], sep=""))  
   }
   
   names=unlist(names) # convierta los nombres de los archivos de lista a vector
-  lead_1=c(rep("MAM",4), rep("JJA",4), rep("SON",4), rep("DEF",3)) # trimestres 
-  numeral=c(rep(3,4), rep(6,4), rep(9,4), rep(1,4)) # trimestres 
+  lead_1=c(rep("MAM",5), rep("JJA",5), rep("SON",5), rep("DEF",5)) # trimestres 
+  numeral=c(rep(3,5), rep(6,5), rep(9,5), rep(1,5)) # trimestres 
   #(el número de repeticiones depende del número de departamentos)
-  dep=rep(c("casanare",    "cordoba",    "tolima",    "valle"),4) # Esto se tiene que modificar de acuerdo al número de departamentos
+  dep=rep(c("casanare",    "cordoba",   "santander",   "tolima",   "valle"),4) # Esto se tiene que modificar de acuerdo al número de departamentos
   #(el número de repeticiones depende del número de trimestres)
   datos<-NA # datos
   ## Cree la tabla variando por departamento
@@ -395,7 +433,7 @@ grahs_indicador <- function(ruta_c, tipo){
   datos$Indicador=round(datos$Indicador,3) # Redondear el número de decimales de la curva
   datos2=datos[datos$Indicador!=-999,] # Eliminar los datos faltantes
   
-  levels(datos2$Departamento) <- c("Casanare", "Cordoba", "Tolima",  "Valle")
+  levels(datos2$Departamento) <- c("Casanare", "Cordoba", "Santander", "Tolima",  "Valle")
   
 ### Condicionante que depende del tipo de indicador que se esta gráficando. 
   if(tipo=="Pearsons_correlation"){
@@ -431,14 +469,15 @@ grahs_indicador <- function(ruta_c, tipo){
   
   
   # Guarde el gráfico en la ruta de salidas (ruta)
-  tiff(paste(ruta,"/",tipo,"_sim",".tif",sep=""), height=600,width=1280,res=200,
+  tiff(paste(ruta,"/santander/",tipo,"_sim",".tif",sep=""), height=600,width=1280,res=200,
        pointsize=2,compression="lzw") # height=720,
   print(box)
   dev.off()
   return(datos2)} # la función devuelve la trama de datos en caso de ser necesaria
 
 
-ruta_c <-paste(ruta, "Cross_validated/",sep="")
+ruta_c<-paste(ruta, "/Cross_validated/",sep="")
+
 tipo <- c("Pearsons_correlation","k_2AFC_Score",
           "Hit_Skill_Score","ROC_below","ROC_above")
 
@@ -455,8 +494,6 @@ for(i in  1:length(tipo)){
 
 ### Gráfico Indicadores 
 
-ruta_c<- "C:/Users/AESQUIVEL/Desktop/Salidas_corrida_DEF/salidas/Cross_validated/"
-
 ### Este gráfico realiza un resumen de un indicador por sitos
 ### Gráficando todos los lead times y trimestres de estudio. 
 ### Tipo = indicador que se desea gráficar
@@ -466,8 +503,12 @@ summary_ind<-function(ruta_c, tipo){
   lead<-c("MAM",	"Feb", "Nov", "JJA",	"May",	"Feb", "SON", "Aug",	"May", "DEF",	"Nov",	"Aug")
   lead_num<-rep(c("sim",0,3),4) # número de los archivos
   a<- c(rep(3,3),rep(6,3),rep(9,3),rep(12,3)) # trimestres de estudio
+  
+  
+  
   # nombre de los sitios d eestudios (como apareceran en el gráfico)
-  estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima","Turipana")
+  estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima"
+                ,"Turipana", "StaIsabel")
   
 
   datos<-NA # Creación de una trama de datos
@@ -475,11 +516,13 @@ summary_ind<-function(ruta_c, tipo){
   # lea los datos y apilelos en una tabla de datos
   for(j in 1:12){
     names_below<-list.files(ruta_c, pattern = paste(tipo, "_", a[j], "_", lead[j], sep=""))
-    for(i in 1:4){
+    for(i in 1:5){
       # Ciclo for que barre el número de departamentos que existan 
       # En caso de desear más departamentos modificar este argumento
-      data_p<-read.table(paste(ruta_c,names_below[i],sep=""), sep="",  skip=3,colClasses=c("character","numeric","numeric","numeric") )
-      data_p<-data.frame(Trimestre=rep(a[j], dim(data_p)[1]),  lead_num=rep(lead_num[j], dim(data_p)[1]), data_p)
+      data_p<-read.table(paste(ruta_c,names_below[i],sep=""), sep="",  skip=3,
+                         colClasses=c("character","numeric","numeric","numeric") )
+      data_p<-data.frame(Trimestre=rep(a[j], dim(data_p)[1]),  lead_num=rep(lead_num[j],
+                         dim(data_p)[1]), data_p)
       datos<-rbind(datos, data_p) # Lectura de los datos y creación de la tabla global
     }
   } 
@@ -500,7 +543,7 @@ summary_ind<-function(ruta_c, tipo){
   
   ## Ahora depure toda la información solo para los sitios de estudio
   res.shape2<-NA
-  for(i in 1:6){
+  for(i in 1:7){  #numero de estaciones
     datos_t<-datos[datos$Estacion == estaciones[i],]
     res.shape2<-rbind(datos_t,res.shape2)
   }
@@ -510,7 +553,7 @@ summary_ind<-function(ruta_c, tipo){
   
   # Shape
   # Cree una nueva variable 
-  res.shape2 <- cbind(res.shape2,f1=rep(1:24,each=3)) # 24 equivale a # de trimestre * sitios
+  res.shape2 <- cbind(res.shape2,f1=rep(1:28,each=3)) # 28 equivale a # de trimestre * sitios
   
   ##  Cree los limites del gráfico y el titulo del eje de acuerdo al indicador
   if(tipo=="Pearsons_correlation"){
@@ -531,7 +574,7 @@ summary_ind<-function(ruta_c, tipo){
   }
 
  
-  tiff(paste(ruta,"/a_",tipo,".tif",sep=""), height=800,width=1800,res=150,
+  tiff(paste(ruta,"/santander/a_",tipo,".tif",sep=""), height=800,width=1800,res=150,
        compression="lzw")
 
   # Cree el gráfico condicionando por la nueva variable
@@ -540,26 +583,27 @@ summary_ind<-function(ruta_c, tipo){
   
   #abline(h=0.95,col=2,lty=2)
   
-  axis(side=1,labels=rep(c("DEF","MAM","JJA","SON"),6),at=1:24,las=2) # dibuje el eje x
+  axis(side=1,labels=rep(c("DEF","MAM","JJA","SON"),7),at=1:28,las=2) # dibuje el eje x
   
-  abline(v=seq(4.5,24,4),lty=2)# grafique las lineas que dividan lso sitios
+  abline(v=seq(4.5,28,4),lty=2)# grafique las lineas que dividan lso sitios
   
   #sitios = unique(res.shape2$Estacion)
-  sitios<-c("Cereté","Espinal","La Unión","Ibagué","Yopal","Lorica") # Orden en que se grafican lso sitios
+  sitios<-c("Cereté","Espinal","La Unión","Ibagué","Yopal","Lorica", "Villanueva") # Orden en que se grafican lso sitios
   # Ponga los titulos
-  text(sitios[1],y=lim[2],x=2.5)
-  text(sitios[2],y=lim[2],x=6.5)
-  text(sitios[3],y=lim[2],x=10.4)
-  text(sitios[4],y=lim[2],x=14.5)
-  text(sitios[5],y=lim[2],x=18.5)
-  text(sitios[6],y=lim[2],x=22.5)
-  
+  text(sitios[7],y=lim[2],x=2.5)
+  text(sitios[1],y=lim[2],x=6.5)
+  text(sitios[2],y=lim[2],x=10.4)
+  text(sitios[3],y=lim[2],x=14.5)
+  text(sitios[4],y=lim[2],x=18.5)
+  text(sitios[5],y=lim[2],x=22.5)
+  text(sitios[6],y=lim[2],x=26.5)
   
   # Gráfique los puntos para cada lead time
   points(ROC_B~f1,data=res.shape2,subset= lead_num=="sim",pch=1,col=2)
   points(ROC_B~f1,data=res.shape2,subset= lead_num=="0",pch=20)
   points(ROC_B~f1,data=res.shape2,subset= lead_num=="3", col=1)
   
+
   ## Cree la leyenda por separado 
   #plot(1, type = "n", axes = FALSE, ann = FALSE)
   #legend("center", "(x,y)",unique(res.shape2$lead_num),
@@ -570,7 +614,6 @@ summary_ind<-function(ruta_c, tipo){
 
 
 # Shape
-ruta_c <-paste(ruta, "Cross_validated/",sep="")
 tipo <- c("Pearsons_correlation","k_2AFC_Score",
           "Hit_Skill_Score","ROC_below","ROC_above")
 # Corra la función para todos los indicadores
@@ -624,7 +667,7 @@ for(i in  1:length(tipo)){
 
 
 
-ruta_r="C:/Users/AESQUIVEL/Desktop/Salidas_corrida_DEF/salidas/retroactive/"
+ruta_r="C:/Users/AESQUIVEL/Google Drive/Experimento_1/Salidas_corrida_DEF/salidas/Salidas_tropico/retroactive/"
 
 
 # Boxplot comparando Indicadores por departamento 
@@ -643,10 +686,12 @@ grahs_indicador_r <- function(ruta_r, tipo){
   }
   
   names=unlist(names) # convierta los nombres de los archivos de lista a vector
-  lead_1=c(rep("MAM",4), rep("JJA",4), rep("SON",4), rep("DEF",3)) # trimestres 
-  numeral=c(rep(3,4), rep(6,4), rep(9,4), rep(1,4)) # trimestres 
+  
+  
+  lead_1=c(rep("MAM",5), rep("JJA",5), rep("SON",5), rep("DEF",5)) # trimestres 
+  numeral=c(rep(3,5), rep(6,5), rep(9,5), rep(1,5)) # trimestres 
   #(el número de repeticiones depende del número de departamentos)
-  dep=rep(c("casanare",    "cordoba",    "tolima",    "valle"),4) # Esto se tiene que modificar de acuerdo al número de departamentos
+  dep=rep(c("casanare",    "cordoba",   "santander",   "tolima",   "valle"),4) # Esto se tiene que modificar de acuerdo al número de departamentos
   #(el número de repeticiones depende del número de trimestres)
   datos<-NA # datos
   
@@ -662,7 +707,7 @@ grahs_indicador_r <- function(ruta_r, tipo){
   datos$Indicador=round(datos$Indicador,3) # Redondear el número de decimales de la curva
   datos2=datos[datos$Indicador!=-999,] # Eliminar los datos faltantes
   
-  levels(datos2$Departamento) <- c("Casanare", "Cordoba", "Tolima",  "Valle")
+  levels(datos2$Departamento) <- c("Casanare", "Cordoba", "Santander", "Tolima",  "Valle")
   
   
   if(tipo=="Pearsons_correlation"){
@@ -695,14 +740,12 @@ grahs_indicador_r <- function(ruta_r, tipo){
   
   
   # Guarde el gráfico en la ruta de salidas (ruta)
-  tiff(paste(ruta,"/retro_",tipo,"_sim",".tif",sep=""), height=600,width=1280,res=200,
+  tiff(paste(ruta,"/santander/retro_",tipo,"_sim",".tif",sep=""), height=600,width=1280,res=200,
        pointsize=2,compression="lzw") # height=720,
   print(box)
   dev.off()
   return(datos2)} # la función devuelve la trama de datos en caso de ser necesaria
 
-
-ruta_c <-paste(ruta, "Cross_validated/",sep="")
 tipo <- c("Pearsons_correlation",
           "Hit_Skill_Score","ROC_below","ROC_above")
 
@@ -733,22 +776,22 @@ for(i in  1:length(tipo)){
 
 ### Gráfico Indicadores 
 
-ruta_r="C:/Users/AESQUIVEL/Desktop/Salidas_corrida_DEF/salidas/retroactive/"
-
 
 summary_ind_r<-function(ruta_r, tipo){
   
   lead<-c("MAM",	"Feb", "Nov", "JJA",	"May",	"Feb", "SON", "Aug",	"May", "DEF",	"Nov",	"Aug")
   lead_num<-rep(c("sim",0,3),4)
   a<- c(rep(3,3),rep(6,3),rep(9,3),rep(12,3))
-  estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima","Turipana")
+  # nombre de los sitios d eestudios (como apareceran en el gráfico)
+  estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima"
+                ,"Turipana", "StaIsabel")
   
   
   datos<-NA # Creación de una trama de datos
   
   for(j in 1:12){
     names_below<-list.files(ruta_r, pattern = paste(tipo, "_", a[j], "_", lead[j], sep=""))
-    for(i in 1:4){
+    for(i in 1:5){
       # Ciclo for que barre el número de departamentos que existan 
       # En caso de desear más departamentos modificar este argumento
       data_p<-read.table(paste(ruta_r,names_below[i],sep=""), sep="",  skip=3,colClasses=c("character","numeric","numeric","numeric") )
@@ -773,7 +816,7 @@ summary_ind_r<-function(ruta_r, tipo){
   
   
   res.shape2<-NA
-  for(i in 1:6){
+  for(i in 1:7){
     datos_t<-datos[datos$Estacion == estaciones[i],]
     res.shape2<-rbind(datos_t,res.shape2)
   }
@@ -783,7 +826,7 @@ summary_ind_r<-function(ruta_r, tipo){
   
   # Shape
   
-  res.shape2 <- cbind(res.shape2,f1=rep(1:24,each=3))
+  res.shape2 <- cbind(res.shape2,f1=rep(1:28,each=3))
   
   if(tipo=="Pearsons_correlation"){
     tit="Pearsons correlation"
@@ -800,7 +843,7 @@ summary_ind_r<-function(ruta_r, tipo){
   }
   
   
-  tiff(paste(ruta,"/retroa_",tipo,".tif",sep=""), height=800,width=1800,res=150,
+  tiff(paste(ruta,"/santander/retroa_",tipo,".tif",sep=""), height=800,width=1800,res=150,
        compression="lzw")
   # layout(matrix(c(1,1,1,1,1,1,1,1,2), 1,9, byrow = TRUE))
   plot(ROC_B~f1,data=res.shape2,type="n",xlab=" ",
@@ -808,19 +851,20 @@ summary_ind_r<-function(ruta_r, tipo){
   
   #abline(h=0.95,col=2,lty=2)
   
-  axis(side=1,labels=rep(c("DEF","MAM","JJA","SON"),6),at=1:24,las=2)
+  axis(side=1,labels=rep(c("DEF","MAM","JJA","SON"),7),at=1:28,las=2) # dibuje el eje x
   
-  abline(v=seq(4.5,24,4),lty=2)
+  abline(v=seq(4.5,28,4),lty=2)# grafique las lineas que dividan lso sitios
   
   #sitios = unique(res.shape2$Estacion)
-  sitios<-c("Cereté","Espinal","La Unión","Ibagué","Yopal","Lorica")
-  
-  text(sitios[1],y=lim[2],x=2.5)
-  text(sitios[2],y=lim[2],x=6.5)
-  text(sitios[3],y=lim[2],x=10.4)
-  text(sitios[4],y=lim[2],x=14.5)
-  text(sitios[5],y=lim[2],x=18.5)
-  text(sitios[6],y=lim[2],x=22.5)
+  sitios<-c("Cereté","Espinal","La Unión","Ibagué","Yopal","Lorica", "Villanueva") # Orden en que se grafican lso sitios
+  # Ponga los titulos
+  text(sitios[7],y=lim[2],x=2.5)
+  text(sitios[1],y=lim[2],x=6.5)
+  text(sitios[2],y=lim[2],x=10.4)
+  text(sitios[3],y=lim[2],x=14.5)
+  text(sitios[4],y=lim[2],x=18.5)
+  text(sitios[5],y=lim[2],x=22.5)
+  text(sitios[6],y=lim[2],x=26.5)
   
   
   points(ROC_B~f1,data=res.shape2,subset= lead_num=="sim",pch=1,col=2)
@@ -837,12 +881,11 @@ summary_ind_r<-function(ruta_r, tipo){
 
 # Shape
 
-ruta_r ="C:/Users/AESQUIVEL/Desktop/Salidas_corrida_DEF/salidas/retroactive/"
 tipo <- c("Pearsons_correlation",
           "Hit_Skill_Score","ROC_below","ROC_above")
 
 for(i in  1:length(tipo)){
-  summary_ind_r("C:/Users/AESQUIVEL/Desktop/Salidas_corrida_DEF/salidas/retroactive/", tipo = tipo[i])  
+  summary_ind_r(ruta_r, tipo = tipo[i])  
 }
 
 
@@ -1010,24 +1053,16 @@ categorias<-function(Estaciones_C,ruta_r,lead,dep, estacion,a){
 
 
 
-
-
-ruta_r="C:/Users/AESQUIVEL/Desktop/Salidas_corrida_DEF/salidas/retroactive/"
-dep="valle"
+dep="santander"
 a=12
-Estaciones_C <- read.delim(paste(ruta,"dep/precip_",dep,".txt",sep=""),skip =3, header=T, sep="")
-estacion="CentAdmoLaUnion"
+Estaciones_C <- read.delim(paste(ruta1,"dep/precip_",dep,".txt",sep=""),skip =3, header=T, sep="")
+estacion="StaIsabel"
 lead="DEF"
 
 
 categorias(Estaciones_C,ruta_r,lead,dep, estacion,a) 
 
 categorias(Estaciones_C,ruta_r,"SON",dep, estacion,9) 
-
-
-
-#ruta_r="C:/Users/AESQUIVEL/Desktop/Salidas_corrida_DEF/salidas/retroactive/"
-
 
 
 
