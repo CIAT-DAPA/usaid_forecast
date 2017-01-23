@@ -889,193 +889,11 @@ for(i in  1:length(tipo)){
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#### Calculo de indicadores con las categorías para una estación en especifico
-
-
-
-# Estaciones_C = archivo que contiene todas las estaciones de x departamento
-# ruta_r = ruta donde se encuentran los archivos retrospectivos
-# lead = lead time (ejemplo "MAM")
-# dep = departamento en el cual se encuentran las estaciones
-# estacion = estación que se va pronosticar
-# a= mes de inicio del periodo pronosticado
-## La función categorias entrega el porcentaje de veces que la 
-## categori observada concuerda con la pronosticada y la trama de datos
-categorias<-function(Estaciones_C,ruta_r,lead,dep, estacion,a){
-  # Lea los datos de las estaciones
-  data<-data_trim(Estaciones_C, a)  
-  
-  if(a == 12){
-    ## Si a = 12
-    
-    ### Organizarlo puede ser a partir de un condicionante para que 
-    # lea la tabla de datos de below (pronosticada)
-    probabilities_1<-read.table(paste(ruta_r,"Retroactive_Forecast_Probabilities_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=3, nrows = 9)
-    probabilities_1e<-probabilities_1[-1:-2,estacion]
-    # lea la tabla de datos de normal (pronosticada)
-    probabilities_2<-read.table(paste(ruta_r,"Retroactive_Forecast_Probabilities_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=14, nrows = 9)
-    probabilities_2e<-probabilities_2[-1:-2, estacion]
-    # lea la tabla de datos de above (pronosticada)
-    probabilities_3<-read.table(paste(ruta_r,"Retroactive_Forecast_Probabilities_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=25, nrows = 9)
-    probabilities_3e<-probabilities_3[-1:-2, estacion]
-    # cree un data frame con la información filtada solo para la estación deseada
-    categorias<-data.frame(year=2006:2012, below=probabilities_1e, normal=probabilities_2e,above=probabilities_3e)
-    
-    # Encuentre los quantiles observados 
-    
-    cat_pron<-0
-    
-    for (i in 1:length(2006:2012)) { # repita esto por el número de años 
-      # cree el vector de categorías pronosticadas
-      # tomando como base la categoría más probable 
-      if(categorias$below[i]>categorias$normal[i]&categorias$below[i]>categorias$above[i]){
-        cat_pron[i] <-1 
-      } else if (categorias$above[i]>categorias$normal[i]&categorias$above[i]>categorias$below[i]) {
-        cat_pron[i] <-3
-      } else cat_pron[i] <-2
-    }
-    #cree un data frame con todos los datos 
-    categorias<-data.frame(categorias, cat_pron=cat_pron)
-    # retorne el porcentaje y la trama de datos 
-    
-    
-    
-    data<-data[data$years_y!=1981&data$years_y!=1982,]
-    
-    
-    
-    obs<-data[data$years_y>2005&data$years_y<=2012,estacion]
-    
-    quantiles<-matrix(1:14, byrow = TRUE, ncol=2)  
-    cat_obs<-0
-    for(i in 1:length(2006:2012)){
-      quantiles[i,]<-quantile(data[data$years_y<(i+2005),estacion],  probs = c(0.33,0.66))
-      cbind(data$years_y[data$years_y<(i+2005)],  data[data$years_y<(i+2005),estacion])
-      
-      if(obs[i]<quantiles[i,1]){
-        cat_obs[i]<-1
-      } else if(obs[i]>quantiles[i,2]){
-        cat_obs[i]<-3
-      } else  cat_obs[i]<-2
-      print(i)
-      print(max(data$years_y[data$years_y<(i+2005)]))
-    }  
-    
-    observaciones<-data.frame(years = 2006:2012, quantile_33=quantiles[,1], quantile_66=quantiles[,2], obs = obs, cat_obs)
-    
-    
-    Cat_estacion<-data.frame(observaciones, categorias)
-    
-    por_cat_est<-sum(Cat_estacion$cat_obs==Cat_estacion$cat_pron)/length(2006:2012) *100
-    
-    aciertos<-list(Cat_estacion,por_cat_est) 
-    names(aciertos)<-c("data", "por_cat_est")
-  } else  if(a != 12){
-    ### Si a != 12
-    
-    ### Organizarlo puede ser a partir de un condicionante para que 
-    # lea la tabla de datos de below (pronosticada)
-    probabilities_1<-read.table(paste(ruta_r,"Retroactive_Forecast_Probabilities_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=3, nrows = 10)
-    probabilities_1e<-probabilities_1[-1:-2,estacion ]
-    # lea la tabla de datos de normal (pronosticada)
-    probabilities_2<-read.table(paste(ruta_r,"Retroactive_Forecast_Probabilities_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=15, nrows = 10)
-    probabilities_2e<-probabilities_2[-1:-2, estacion]
-    # lea la tabla de datos de above (pronosticada)
-    probabilities_3<-read.table(paste(ruta_r,"Retroactive_Forecast_Probabilities_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=27, nrows = 10)
-    probabilities_3e<-probabilities_3[-1:-2, estacion]
-    # cree un data frame con la información filtada solo para la estación deseada
-    categorias<-data.frame(year=2006:2013, below=probabilities_1e, normal=probabilities_2e,above=probabilities_3e)
-    
-    # Encuentre los quantiles observados 
-    
-    cat_pron<-0
-    
-    for (i in 1:length(2006:2013)) { # repita esto por el número de años 
-      # cree el vector de categorías pronosticadas
-      # tomando como base la categoría más probable 
-      if(categorias$below[i]>categorias$normal[i]&categorias$below[i]>categorias$above[i]){
-        cat_pron[i] <-1 
-      } else if (categorias$above[i]>categorias$normal[i]&categorias$above[i]>categorias$below[i]) {
-        cat_pron[i] <-3
-      } else cat_pron[i] <-2
-    }
-    #cree un data frame con todos los datos 
-    categorias<-data.frame(categorias, cat_pron=cat_pron)
-    # retorne el porcentaje y la trama de datos 
-    
-    
-    
-    data<-data[data$years_y!=1981,]
-    
-    
-    obs<-data[data$years_y>2005&data$years_y<=2013,estacion]
-    quantiles<-matrix(1:16, byrow = TRUE, ncol=2)  
-    cat_obs<-0
-    for(i in 1:length(2006:2013)){
-      quantiles[i,]<-quantile(data[data$years_y<(i+2005),estacion],  probs = c(0.33,0.66))
-      cbind(data$years_y[data$years_y<(i+2005)],  data[data$years_y<(i+2005),estacion])
-      
-      if(obs[i]<quantiles[i,1]){
-        cat_obs[i]<-1
-      } else if(obs[i]>quantiles[i,2]){
-        cat_obs[i]<-3
-      } else  cat_obs[i]<-2
-      print(i)
-      print(max(data$years_y[data$years_y<(i+2005)]))
-    }  
-    
-    observaciones<-data.frame(years = 2006:2013, quantile_33=quantiles[,1], quantile_66=quantiles[,2], obs = obs, cat_obs)
-    
-    
-    Cat_estacion<-data.frame(observaciones, categorias)
-    
-    por_cat_est<-sum(Cat_estacion$cat_obs==Cat_estacion$cat_pron)/length(2006:2013) *100
-    
-    aciertos<-list(Cat_estacion,por_cat_est) 
-    names(aciertos)<-c("data", "por_cat_est")
-  }  
-
-  return(aciertos)}
-
-
-
-dep="santander"
-a=12
-Estaciones_C <- read.delim(paste(ruta1,"dep/precip_",dep,".txt",sep=""),skip =3, header=T, sep="")
-estacion="StaIsabel"
-lead="DEF"
-
-
-categorias(Estaciones_C,ruta_r,lead,dep, estacion,a) 
-
-categorias(Estaciones_C,ruta_r,"SON",dep, estacion,9) 
-
-
-
-
-
-
-
-
-
-
-
-
-######
+####################################################################################
+####################################################################################
+####################################################################################
+####################################################################################
+####################################################################################
 
 #### Calculo de indicadores con las categorías para un departamento
 
@@ -1091,74 +909,19 @@ categorias_dep<-function(Estaciones_C,ruta_r,lead,dep,a){
    for(j in 1:(length(data)-1)){
       ### Organizarlo puede ser a partir de un condicionante para que 
       # lea la tabla de datos de below (pronosticada)
-      probabilities_1<-read.table(paste(ruta_r,"Retroactive_Forecast_Probabilities_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=3, nrows = 9)
-      probabilities_1e<-probabilities_1[-1:-2,j]
-      # lea la tabla de datos de normal (pronosticada)
-      probabilities_2<-read.table(paste(ruta_r,"Retroactive_Forecast_Probabilities_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=14, nrows = 9)
-      probabilities_2e<-probabilities_2[-1:-2, j]
-      # lea la tabla de datos de above (pronosticada)
-      probabilities_3<-read.table(paste(ruta_r,"Retroactive_Forecast_Probabilities_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=25, nrows = 9)
-      probabilities_3e<-probabilities_3[-1:-2, j]
-      # cree un data frame con la información filtada solo para la estación deseada
-      categorias<-data.frame(year=2006:2012, below=probabilities_1e, normal=probabilities_2e,above=probabilities_3e)
-      
-      # Encuentre los quantiles observados 
-
-      cat_pron<-0
-      
-      for (i in 1:length(2006:2012)) { # repita esto por el número de años 
-        # cree el vector de categorías pronosticadas
-        # tomando como base la categoría más probable 
-        if(categorias$below[i]>categorias$normal[i]&categorias$below[i]>categorias$above[i]){
-          cat_pron[i] <-1 
-        } else if (categorias$above[i]>categorias$normal[i]&categorias$above[i]>categorias$below[i]) {
-          cat_pron[i] <-3
-        } else cat_pron[i] <-2
-      }
-      #cree un data frame con todos los datos 
-      categorias<-data.frame(categorias, cat_pron=cat_pron)
-      # retorne el porcentaje y la trama de datos 
-
-      data<-data[data$years_y!=1981&data$years_y!=1982,]
-      obs<-data[data$years_y>2005&data$years_y<=2012,j+1]
-      
-      quantiles<-matrix(1:14, byrow = TRUE, ncol=2)  
-      cat_obs<-0
-      for(i in 1:length(2006:2012)){
-        quantiles[i,]<-quantile(data[data$years_y<(i+2005),j+1],  probs = c(0.33,0.66))
-        cbind(data$years_y[data$years_y<(i+2005)],  data[data$years_y<(i+2005),j+1])
-        
-        if(obs[i]<quantiles[i,1]){
-          cat_obs[i]<-1
-        } else if(obs[i]>quantiles[i,2]){
-          cat_obs[i]<-3
-        } else  cat_obs[i]<-2
-      }  
-      
-      observaciones<-data.frame(years = 2006:2012, quantile_33=quantiles[,1], quantile_66=quantiles[,2], obs = obs, cat_obs)
-     Cat_estacion<-data.frame(observaciones, categorias)
-      
-      por_cat_est[j,1]<-sum(Cat_estacion$cat_obs==Cat_estacion$cat_pron)/length(2006:2012) *100
-      por_cat_est[j,2]<-sum(Cat_estacion$cat_obs==Cat_estacion$cat_pron)
-    }
-  } else  if(a != 12){
-    ### Si a != 12
-    for(j in 1:(length(data)-1)){
-      ### Organizarlo puede ser a partir de un condicionante para que 
-      # lea la tabla de datos de below (pronosticada)
       probabilities_1<-read.table(paste(ruta_r,"Retroactive_Forecast_Probabilities_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=3, nrows = 10)
       probabilities_1e<-probabilities_1[-1:-2,j]
       # lea la tabla de datos de normal (pronosticada)
       probabilities_2<-read.table(paste(ruta_r,"Retroactive_Forecast_Probabilities_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=15, nrows = 10)
-      probabilities_2e<-probabilities_2[-1:-2,j]
+      probabilities_2e<-probabilities_2[-1:-2, j]
       # lea la tabla de datos de above (pronosticada)
       probabilities_3<-read.table(paste(ruta_r,"Retroactive_Forecast_Probabilities_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=27, nrows = 10)
-      probabilities_3e<-probabilities_3[-1:-2,j]
+      probabilities_3e<-probabilities_3[-1:-2, j]
       # cree un data frame con la información filtada solo para la estación deseada
       categorias<-data.frame(year=2006:2013, below=probabilities_1e, normal=probabilities_2e,above=probabilities_3e)
       
       # Encuentre los quantiles observados 
-      
+
       cat_pron<-0
       
       for (i in 1:length(2006:2013)) { # repita esto por el número de años 
@@ -1173,13 +936,10 @@ categorias_dep<-function(Estaciones_C,ruta_r,lead,dep,a){
       #cree un data frame con todos los datos 
       categorias<-data.frame(categorias, cat_pron=cat_pron)
       # retorne el porcentaje y la trama de datos 
-      
-      
-      
-      data<-data[data$years_y!=1981,]
-      
-      
+
+      data<-data[data$years_y!=1981&data$years_y!=1982,]
       obs<-data[data$years_y>2005&data$years_y<=2013,j+1]
+      
       quantiles<-matrix(1:16, byrow = TRUE, ncol=2)  
       cat_obs<-0
       for(i in 1:length(2006:2013)){
@@ -1199,6 +959,64 @@ categorias_dep<-function(Estaciones_C,ruta_r,lead,dep,a){
       por_cat_est[j,1]<-sum(Cat_estacion$cat_obs==Cat_estacion$cat_pron)/length(2006:2013) *100
       por_cat_est[j,2]<-sum(Cat_estacion$cat_obs==Cat_estacion$cat_pron)
     }
+  } else  if(a != 12){
+    ### Si a != 12
+    for(j in 1:(length(data)-1)){
+      ### Organizarlo puede ser a partir de un condicionante para que 
+      # lea la tabla de datos de below (pronosticada)
+      probabilities_1<-read.table(paste(ruta_r,"Retroactive_Forecast_Probabilities_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=3, nrows = 11)
+      probabilities_1e<-probabilities_1[-1:-2,j]
+      # lea la tabla de datos de normal (pronosticada)
+      probabilities_2<-read.table(paste(ruta_r,"Retroactive_Forecast_Probabilities_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=16, nrows = 11)
+      probabilities_2e<-probabilities_2[-1:-2,j]
+      # lea la tabla de datos de above (pronosticada)
+      probabilities_3<-read.table(paste(ruta_r,"Retroactive_Forecast_Probabilities_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=29, nrows = 11)
+      probabilities_3e<-probabilities_3[-1:-2,j]
+      # cree un data frame con la información filtada solo para la estación deseada
+      categorias<-data.frame(year=2005:2013, below=probabilities_1e, normal=probabilities_2e,above=probabilities_3e)
+      
+      # Encuentre los quantiles observados 
+      
+      cat_pron<-0
+      
+      for (i in 1:length(2005:2013)) { # repita esto por el número de años 
+        # cree el vector de categorías pronosticadas
+        # tomando como base la categoría más probable 
+        if(categorias$below[i]>categorias$normal[i]&categorias$below[i]>categorias$above[i]){
+          cat_pron[i] <-1 
+        } else if (categorias$above[i]>categorias$normal[i]&categorias$above[i]>categorias$below[i]) {
+          cat_pron[i] <-3
+        } else cat_pron[i] <-2
+      }
+      #cree un data frame con todos los datos 
+      categorias<-data.frame(categorias, cat_pron=cat_pron)
+      # retorne el porcentaje y la trama de datos 
+      
+      
+      
+      data<-data[data$years_y!=1981,]
+      
+      
+      obs<-data[data$years_y>2004&data$years_y<=2013,j+1]
+      quantiles<-matrix(1:18, byrow = TRUE, ncol=2)  
+      cat_obs<-0
+      for(i in 1:length(2005:2013)){
+        quantiles[i,]<-quantile(data[data$years_y<(i+2004),j+1],  probs = c(0.33,0.66))
+        cbind(data$years_y[data$years_y<(i+2004)],  data[data$years_y<(i+2004),j+1])
+        
+        if(obs[i]<quantiles[i,1]){
+          cat_obs[i]<-1
+        } else if(obs[i]>quantiles[i,2]){
+          cat_obs[i]<-3
+        } else  cat_obs[i]<-2
+      }  
+      
+      observaciones<-data.frame(years = 2005:2013, quantile_33=quantiles[,1], quantile_66=quantiles[,2], obs = obs, cat_obs)
+      Cat_estacion<-data.frame(observaciones, categorias)
+      
+      por_cat_est[j,1]<-sum(Cat_estacion$cat_obs==Cat_estacion$cat_pron)/length(2005:2013) *100
+      por_cat_est[j,2]<-sum(Cat_estacion$cat_obs==Cat_estacion$cat_pron)
+    }
   }  
   dimnames(por_cat_est) <- list(names(data)[-1], c("porc","numero"))
   
@@ -1206,18 +1024,14 @@ return(por_cat_est)}
 
 
 
-
-
-
-ruta_r="C:/Users/AESQUIVEL/Desktop/Salidas_corrida_DEF/salidas/retroactive/"
 dep=c("casanare",    "cordoba",    "tolima",    "valle")
 lead<-c("MAM",	"Feb", "Nov", "JJA",	"May",	"Feb", "SON", "Aug",	"May", "DEF",	"Nov",	"Aug")
 a<- c(rep(3,3),rep(6,3),rep(9,3),rep(12,3))
 lead_num<-rep(c("sim",0,3),4)
 
 
-  dep="valle"
-  Estaciones_C <- read.delim(paste(ruta,"dep/precip_",dep,".txt",sep=""),skip =3, header=T, sep="")
+  dep="santander"
+  Estaciones_C <- read.delim(paste(ruta1,"dep/precip_",dep,".txt",sep=""),skip =3, header=T, sep="")
   
   data<-NA
   for(i in 1:12){
@@ -1235,10 +1049,10 @@ lead_num<-rep(c("sim",0,3),4)
   
   
 
-if(a ==12){
-  cat_prob_p<-(sum(cat_prob[,2])/(length(2006:2012)*length(Estaciones_C)))*100  
-} else  cat_prob_p<-(sum(cat_prob[,2])/(length(2006:2013)*length(Estaciones_C)))*100 
-cat_prob_p
+#if(a ==12){
+#  cat_prob_p<-(sum(cat_prob[,2])/(length(2006:2012)*length(Estaciones_C)))*100  
+#} else  cat_prob_p<-(sum(cat_prob[,2])/(length(2006:2013)*length(Estaciones_C)))*100 
+#cat_prob_p
 
 
 
@@ -1272,20 +1086,20 @@ dep_aciertosD <- function(ruta_r, a, Estaciones_C, lead){
     if(a == 12){ # Condicione esto dependiendo del mes de incio del trimestre
       year=2012 # year cambia de acuerdo a la condición de a
       # Lea los limites de los pronosticos deterministicos y extraigalos solo para la estación
-      lower<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=3, nrows = 9)
-      lower<-lower[-1:-2,i]
-      upper<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=14, nrows = 9)
-      upper<-upper[-1:-2,i]
-    } else if(a != 12){
-      year=2013
-      # Lea los limites de los pronosticos deterministicos y extraigalos solo para la estación
       lower<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=3, nrows = 10)
       lower<-lower[-1:-2,i]
       upper<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=15, nrows = 10)
       upper<-upper[-1:-2,i]
+    } else if(a != 12){
+      year=2013
+      # Lea los limites de los pronosticos deterministicos y extraigalos solo para la estación
+      lower<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=3, nrows = 11)
+      lower<-lower[-1:-2,i]
+      upper<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=16, nrows = 11)
+      upper<-upper[-1:-2,i]
     }
     # solo deje los datos observados para el periodo de interes 
-    position<-which(data$years_y>2005&data$years_y<=year)
+    position<-which(data$years_y>2004&data$years_y<=year)
     obs_1<-data[position,]
     obs<-obs_1[,(i+1)]
     # lea la información del pronosticos y elimine las coordenadas de la estación
@@ -1293,7 +1107,7 @@ dep_aciertosD <- function(ruta_r, a, Estaciones_C, lead){
     predictions<-predictions[-1:-2,i]
     
     ## Cree un data frame para el periodo de retrospectivo y la estación deseada
-    estacion_data <- data.frame(year=2006:year, predictions = predictions, lower= lower, upper=upper, obs = obs)
+    estacion_data <- data.frame(year=2005:year, predictions = predictions, lower= lower, upper=upper, obs = obs)
     
     # Identifique si se cumple que la observación cae en el intervalo
     # si cumple la condición asignele un valor de 1
@@ -1317,15 +1131,14 @@ dep_aciertosD <- function(ruta_r, a, Estaciones_C, lead){
 ### Corra la función con toda la información 
 
 
-ruta_r="C:/Users/AESQUIVEL/Desktop/Salidas_corrida_DEF/salidas/retroactive/"
-dep=c("casanare",    "cordoba",    "tolima",    "valle")
+#dep=c("casanare",    "cordoba",    "tolima",    "valle")
 lead<-c("MAM",	"Feb", "Nov", "JJA",	"May",	"Feb", "SON", "Aug",	"May", "DEF",	"Nov",	"Aug")
 a<- c(rep(3,3),rep(6,3),rep(9,3),rep(12,3))
 lead_num<-rep(c("sim",0,3),4)
 
 
-dep="tolima"
-Estaciones_C <- read.delim(paste(ruta,"dep/precip_",dep,".txt",sep=""),skip =3, header=T, sep="")
+dep="santander"
+Estaciones_C <- read.delim(paste(ruta1,"/dep/precip_",dep,".txt",sep=""),skip =3, header=T, sep="")
 
 
 dato<-NA
@@ -1346,6 +1159,172 @@ names(dato)<-c("Trimestre", "Lead", "Estacion", "num_det_ac", "RMSE")
 total<-data.frame(dato, num_cat_a=data$num_cat_ac,num_cat_ac=data$prob_cat_ac, row.names = NULL)
 # Ahora almacene esta trama de datos en un rachivo .csv
 write.csv(x = total, file = paste("Tabla_", dep, ".csv", sep=""))
+
+
+
+
+
+
+
+
+#### Calculo de indicadores con las categorías para una estación en especifico
+
+
+
+# Estaciones_C = archivo que contiene todas las estaciones de x departamento
+# ruta_r = ruta donde se encuentran los archivos retrospectivos
+# lead = lead time (ejemplo "MAM")
+# dep = departamento en el cual se encuentran las estaciones
+# estacion = estación que se va pronosticar
+# a= mes de inicio del periodo pronosticado
+## La función categorias entrega el porcentaje de veces que la 
+## categoria observada concuerda con la pronosticada y la trama de datos
+#categorias<-function(Estaciones_C,ruta_r,lead,dep, estacion,a){
+  # Lea los datos de las estaciones
+#  data<-data_trim(Estaciones_C, a)  
+  
+#  if(a == 12){
+    ## Si a = 12
+    
+    ### Organizarlo puede ser a partir de un condicionante para que 
+    # lea la tabla de datos de below (pronosticada)
+#    probabilities_1<-read.table(paste(ruta_r,"Retroactive_Forecast_Probabilities_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=3, nrows = 9)
+#    probabilities_1e<-probabilities_1[-1:-2,estacion]
+    # lea la tabla de datos de normal (pronosticada)
+#    probabilities_2<-read.table(paste(ruta_r,"Retroactive_Forecast_Probabilities_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=14, nrows = 9)
+#    probabilities_2e<-probabilities_2[-1:-2, estacion]
+    # lea la tabla de datos de above (pronosticada)
+#    probabilities_3<-read.table(paste(ruta_r,"Retroactive_Forecast_Probabilities_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=25, nrows = 9)
+#    probabilities_3e<-probabilities_3[-1:-2, estacion]
+    # cree un data frame con la información filtada solo para la estación deseada
+#    categorias<-data.frame(year=2006:2012, below=probabilities_1e, normal=probabilities_2e,above=probabilities_3e)
+    
+    # Encuentre los quantiles observados 
+    
+#    cat_pron<-0
+    
+#    for (i in 1:length(2006:2012)) { # repita esto por el número de años 
+      # cree el vector de categorías pronosticadas
+      # tomando como base la categoría más probable 
+#      if(categorias$below[i]>categorias$normal[i]&categorias$below[i]>categorias$above[i]){
+#        cat_pron[i] <-1 
+#      } else if (categorias$above[i]>categorias$normal[i]&categorias$above[i]>categorias$below[i]) {
+#        cat_pron[i] <-3
+#      } else cat_pron[i] <-2
+#    }
+    #cree un data frame con todos los datos 
+#    categorias<-data.frame(categorias, cat_pron=cat_pron)
+    # retorne el porcentaje y la trama de datos 
+    
+    
+    
+#    data<-data[data$years_y!=1981&data$years_y!=1982,]
+    
+    
+    
+#    obs<-data[data$years_y>2005&data$years_y<=2012,estacion]
+    
+#    quantiles<-matrix(1:14, byrow = TRUE, ncol=2)  
+#    cat_obs<-0
+#    for(i in 1:length(2006:2012)){
+#    quantiles[i,]<-quantile(data[data$years_y<(i+2005),estacion],  probs = c(0.33,0.66))
+#    cbind(data$years_y[data$years_y<(i+2005)],  data[data$years_y<(i+2005),estacion])
+      
+#      if(obs[i]<quantiles[i,1]){
+#        cat_obs[i]<-1
+#      } else if(obs[i]>quantiles[i,2]){
+#        cat_obs[i]<-3
+#      } else  cat_obs[i]<-2
+#      print(i)
+#      print(max(data$years_y[data$years_y<(i+2005)]))
+#    }  
+    
+#    observaciones<-data.frame(years = 2006:2012, quantile_33=quantiles[,1], quantile_66=quantiles[,2], obs = obs, cat_obs)
+    
+    
+#    Cat_estacion<-data.frame(observaciones, categorias)
+    
+#    por_cat_est<-sum(Cat_estacion$cat_obs==Cat_estacion$cat_pron)/length(2006:2012) *100
+    
+#    aciertos<-list(Cat_estacion,por_cat_est) 
+#    names(aciertos)<-c("data", "por_cat_est")
+#  } else  if(a != 12){
+    ### Si a != 12
+    
+    ### Organizarlo puede ser a partir de un condicionante para que 
+    # lea la tabla de datos de below (pronosticada)
+#    probabilities_1<-read.table(paste(ruta_r,"Retroactive_Forecast_Probabilities_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=3, nrows = 10)
+#    probabilities_1e<-probabilities_1[-1:-2,estacion ]
+    # lea la tabla de datos de normal (pronosticada)
+#    probabilities_2<-read.table(paste(ruta_r,"Retroactive_Forecast_Probabilities_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=15, nrows = 10)
+#    probabilities_2e<-probabilities_2[-1:-2, estacion]
+    # lea la tabla de datos de above (pronosticada)
+#    probabilities_3<-read.table(paste(ruta_r,"Retroactive_Forecast_Probabilities_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=27, nrows = 10)
+#    probabilities_3e<-probabilities_3[-1:-2, estacion]
+    # cree un data frame con la información filtada solo para la estación deseada
+#    categorias<-data.frame(year=2006:2013, below=probabilities_1e, normal=probabilities_2e,above=probabilities_3e)
+    
+    # Encuentre los quantiles observados 
+    
+#    cat_pron<-0
+    
+#    for (i in 1:length(2006:2013)) { # repita esto por el número de años 
+      # cree el vector de categorías pronosticadas
+      # tomando como base la categoría más probable 
+#      if(categorias$below[i]>categorias$normal[i]&categorias$below[i]>categorias$above[i]){
+#        cat_pron[i] <-1 
+#      } else if (categorias$above[i]>categorias$normal[i]&categorias$above[i]>categorias$below[i]) {
+#        cat_pron[i] <-3
+#      } else cat_pron[i] <-2
+#    }
+    #cree un data frame con todos los datos 
+#    categorias<-data.frame(categorias, cat_pron=cat_pron)
+    # retorne el porcentaje y la trama de datos 
+    
+    
+    
+#    data<-data[data$years_y!=1981,]
+    
+    
+#    obs<-data[data$years_y>2005&data$years_y<=2013,estacion]
+#    quantiles<-matrix(1:16, byrow = TRUE, ncol=2)  
+#    cat_obs<-0
+#    for(i in 1:length(2006:2013)){
+#    quantiles[i,]<-quantile(data[data$years_y<(i+2005),estacion],  probs = c(0.33,0.66))
+#    cbind(data$years_y[data$years_y<(i+2005)],  data[data$years_y<(i+2005),estacion])
+      
+#      if(obs[i]<quantiles[i,1]){
+#        cat_obs[i]<-1
+#      } else if(obs[i]>quantiles[i,2]){
+#        cat_obs[i]<-3
+#      } else  cat_obs[i]<-2
+#      print(i)
+#      print(max(data$years_y[data$years_y<(i+2005)]))
+#    }  
+    
+#    observaciones<-data.frame(years = 2006:2013, quantile_33=quantiles[,1], quantile_66=quantiles[,2], obs = obs, cat_obs)
+    
+#    Cat_estacion<-data.frame(observaciones, categorias)
+    
+#    por_cat_est<-sum(Cat_estacion$cat_obs==Cat_estacion$cat_pron)/length(2006:2013) *100
+    
+#    aciertos<-list(Cat_estacion,por_cat_est) 
+#    names(aciertos)<-c("data", "por_cat_est")
+#  }  
+  
+ return(aciertos)#}
+
+
+#dep="santander"
+#a=12
+#Estaciones_C <- read.delim(paste(ruta1,"dep/precip_",dep,".txt",sep=""),skip =3, header=T, sep="")
+#estacion="StaIsabel"
+#lead="DEF"
+
+#categorias(Estaciones_C,ruta_r,lead,dep, estacion,a) 
+#categorias(Estaciones_C,ruta_r,"SON",dep, estacion,9) 
+
+
 
 
 
@@ -1406,27 +1385,27 @@ retrospectiva<-function(ruta_r, estacion,sitios, dep, lead, a){
   if(a == 12){
     year=2012
     # Lea los limites de los pronosticos deterministicos y extraigalos solo para la estación
-    lower<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=3, nrows = 9)
-    lower<-lower[-1:-2,estacion]
-    upper<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=14, nrows = 9)
-    upper<-upper[-1:-2,estacion]
-  } else if(a != 12){
-    year=2013
-    # Lea los limites de los pronosticos deterministicos y extraigalos solo para la estación
     lower<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=3, nrows = 10)
     lower<-lower[-1:-2,estacion]
     upper<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=15, nrows = 10)
     upper<-upper[-1:-2,estacion]
+  } else if(a != 12){
+    year=2013
+    # Lea los limites de los pronosticos deterministicos y extraigalos solo para la estación
+    lower<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=3, nrows = 11)
+    lower<-lower[-1:-2,estacion]
+    upper<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=16, nrows = 11)
+    upper<-upper[-1:-2,estacion]
   }
   # solo deje los datos observados para el periodo de interes 
-  position<-which(data$years_y>2005&data$years_y<=year)
+  position<-which(data$years_y>2004&data$years_y<=year)
   obs<-data[position,estacion]
   # lea la información del pronosticos y elimine las coordenadas de la estación
   predictions<-read.table(paste(ruta_r,"Retroactive_Predictions_",a,"_",lead,"_precip_",dep,".txt", sep=""),  skip=2)
   predictions<-predictions[-1:-2,estacion]
 
   ## Cree un data frame para el periodo de retrospectivo y la estación deseada
-  estacion_data <- data.frame(year=2006:year, predictions = predictions, lower= lower, upper=upper, obs = obs)
+  estacion_data <- data.frame(year=2005:year, predictions = predictions, lower= lower, upper=upper, obs = obs)
   
   # Haga el gráfico de intervalos 
   retro <-  ggplot(data=estacion_data,aes(x=year,y=predictions))
@@ -1440,10 +1419,10 @@ retrospectiva<-function(ruta_r, estacion,sitios, dep, lead, a){
                            legend.key.width=unit(0.8,"cm"),  axis.text.x = element_text(angle = 90, hjust = 1))
   retro <- retro + scale_fill_manual(values=c("red","blue"), 
                                      labels=c("Observación","Predicción"), name="")
-  retro <- retro +   scale_x_continuous(breaks = seq(2006,year,1))
+  retro <- retro +   scale_x_continuous(breaks = seq(2005,year,1))
   retro
   # Almacene la imagen 
-  tiff(paste(ruta,"/retrospectivo_",a,"_",lead,"_", sitios,"_",dep,".tif",sep=""), height=720,width=1280,res=200,
+  tiff(paste(ruta,"/santander/retrospectivo_",a,"_",lead,"_", sitios,"_",dep,".tif",sep=""), height=720,width=1280,res=200,
        pointsize=2,compression="lzw")
   print(retro)
   dev.off()
@@ -1465,6 +1444,7 @@ for(i in 1:6){
   
   for(j in 1:12){
     retrospectiva(ruta_r, estaciones[i], sitios[i], dep[i], lead[j], a[j])
+   # retrospectiva(ruta_r, "StaIsabel", "Villanueva", "santander", lead[j], a[j])
   }
 }
 

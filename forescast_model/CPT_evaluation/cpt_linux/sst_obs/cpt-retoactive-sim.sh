@@ -128,7 +128,7 @@ $YFile
     
 #Other options
 7       #length of training period (defaults to 1982-2013)
-31     #fixed 32-year period
+$length #fixed 32-year period
 9       #Number of forecasts
 1       #1 years
 6       #Forecast period settings
