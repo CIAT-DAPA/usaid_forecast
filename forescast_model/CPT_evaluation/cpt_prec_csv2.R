@@ -9,12 +9,9 @@ library(gridExtra)
 library(cowplot)
 
 ### Directorio de trabajo
-setwd("C:/Users/AESQUIVEL/Google Drive/Exp_2/")
+setwd("C:/Users/AESQUIVEL/Google Drive/Exp_3")
 getwd()
 
-
-# Región puede tomar dos valores de acuerdo a tipo de región predictora que se tenga 
-region<-"Tropico" #"optimo"
 
 
 ## Ruta principal donde se encuentran las carpetas con los archivos  
@@ -24,17 +21,13 @@ ruta=getwd()
 colombia=shapefile(paste(ruta,"/colombia/colombia_depts.shp",sep=""))
 
 
-
-
-
-
-
-
-
 ### Transformar un archivo .tsv(CPT) en raster de CSFv2
 
 transform_raster=function(x){
-  mapa_base=raster()
+  #mapa_base=raster(nrows=190, ncols=384,xmn=0,xmx=359.0625, ymn= -89.27665,ymx=89.27665)
+  
+  mapa_base=raster(resolution=0.9375,xmn=0,xmx=359.0625, ymn= -89.27665,ymx=89.27665)
+  
   val=c(as.matrix(t(x),ncol=1,byrow = T))
   val=as.numeric(val)
   val[val==-999.000]=NA
@@ -51,12 +44,12 @@ rasterize=function(dates) {
   year_month=dates[1,][pos_years]
   if(substr(year_month[2],6,7)=="12"){year=as.numeric(substr(year_month[-1],1,4))+1
   }else{year=as.numeric(substr(year_month[-1],1,4))}
-  total_row_delete=c(-1,-3,-(which(dates[,1]=="90.0")-2),-which(dates[,1]=="-90.0"),-which(dates[,1]==""))
+  total_row_delete=c(-1,-3,-(which(dates[,1]=="89.27665")-2),-which(dates[,1]=="-89.27665"),-which(dates[,1]==""))
   dates=dates[total_row_delete,-1]
-  list_dates=split(dates,sort(rep(year,180)))
+  list_dates=split(dates,sort(rep(year,190)))
   all_raster=lapply(list_dates,transform_raster)
   layers=stack(all_raster)
-  layers_crop=crop(layers,extent(-180, 180, -30, 30))
+  layers_crop=crop(layers,extent(0, 359.0625, -89.27665, 89.27665))
   
   return(layers_crop)
 }
@@ -79,8 +72,6 @@ data_trim=function(Estaciones_C, a){ #Los argumentos son el conjunto de las esta
   data_out_final=data.frame(years_y,data_out_final) # Cree un data frame con los datos finales
   return(data_out_final)
 } # devuelva los datos finales
-
-
 
 
 
@@ -197,7 +188,7 @@ cca_maps<-function(var_ocanoAt, yserie, Estaciones_C, xserie, lead, ruta,  a, xm
   
   
   #  Guarde los cca_maps de correlaciones
-  tiff(paste(ruta,"/",region,"/results/",dep,"/cca_maps_",names_file,".tif",sep=""), height=300,width=1600,res=100,
+  tiff(paste(ruta,"/results/",dep,"/cca_maps_",names_file,".tif",sep=""), height=300,width=1600,res=100,
        compression="lzw") # height=1280, width=2048, pointsize=2, res=200,
   grid.arrange(Map_x,modos,p,ncol=5, layout_matrix = rbind(c(1,1,2,3,3)))
   dev.off()
@@ -206,9 +197,8 @@ cca_maps<-function(var_ocanoAt, yserie, Estaciones_C, xserie, lead, ruta,  a, xm
 
 
 
-
-ruta_c<-paste(ruta, "/",region,"/Cross_validated/",sep="")
-# "casanare"    "cordoba"    "tolima"    "valle"  "santander"
+ruta_c<-paste(ruta, "/Cross_validated/",sep="")
+# "casanare"    "cordoba"    "tolima"     "valle"     "santander"
 dep= "santander" # variar el departamento
 
 
@@ -231,19 +221,17 @@ if(dep=="casanare"){
 }
 
 
-
 # Lead times (nombres)
 lead<-c(paste(rep("MAM",3),c("Feb","Nov","Sep"), sep="_"),
-  paste(rep("JJA",3),c("May","Feb","Dec"), sep="_"),
-  paste(rep("SON",3),c("Aug","May","Mar"), sep="_"),
-  paste(rep("DEF",3),c("Nov","Aug","Jun"), sep="_"))
+        paste(rep("JJA",3),c("May","Feb","Dec"), sep="_"),
+        paste(rep("SON",3),c("Aug","May","Mar"), sep="_"),
+        paste(rep("DEF",3),c("Nov","Aug","Jun"), sep="_"))
 
 # Timestre
 a<- c(rep(3,3),rep(6,3),rep(9,3),rep(12,3))
 
 #### Declaración de las constantes
 length_periodo=rep(c(32,31,32,31,32,31),c(1,2,2,1,3,3)) # Ancho del periodo de estudio para cada trimestre
-
 
 
 # Lectura d eas estaciones para cada departamento.
@@ -254,15 +242,36 @@ for(i in 1:12){
   xserie <- read.csv(paste(ruta_c, "X_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
   yserie <- read.csv(paste(ruta_c,"Y_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
   
-  SST<-read.table(paste(ruta,"/CFSv2_evaluacion/",lead[i],".tsv",sep=""),sep="\t",dec=".",skip =2,fill=TRUE,na.strings =-999)
+  SST<-read.table(paste(ruta,"/Prec_CFSv2/",lead[i],".tsv",sep=""),sep="\t",dec=".",skip =2,fill=TRUE,na.strings =-999)
   ## Conversión a raster
   SST=rasterize(SST)
   var_ocanoAt <-SST[[1:length_periodo[i]]]
-  
+  b<-extent(coor_xmin[i], coor_xmax[i], coor_ymin[i], coor_ymax[i])
+  var_ocanoAt=crop(var_ocanoAt, b)
   
   cca_maps(var_ocanoAt, yserie, Estaciones_C, xserie, lead[i], ruta,  a[i], xmin, xmax, ymin, ymax, estaciones_in)
   print(i)
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -320,12 +329,16 @@ GoodnessIndex <- function(ruta_c,dep_f){
   
   
   
-  setwd(paste("C:/Users/AESQUIVEL/Google Drive/Exp_2/", region, "/", sep=""))
+  setwd(paste("C:/Users/AESQUIVEL/Google Drive/Exp_3/", sep=""))
   ### Guarde todos los Goodness Index en un archivo .csv
   write.csv(x = GoodnessIndex, file = "GoodnessIndex.csv",sep = ",")
   
   
-  setwd("C:/Users/AESQUIVEL/Google Drive/Exp_2/")
+  
+  
+  
+  setwd("C:/Users/AESQUIVEL/Google Drive/Exp_3/")
+  
   
   GoodnessIndex$a[GoodnessIndex$a==12]=0 # Cambiarle el número para que diciembre 
   #aparezca primero
@@ -341,9 +354,9 @@ GoodnessIndex <- function(ruta_c,dep_f){
     graph_dep  <-graph_dep  + theme_bw() + theme(legend.position = "none") 
     
     
-    tiff(paste(ruta,"/",region,"/results/",dep_f[i],"/GoodnessIndex_dep_",dep_f[i],".tif",sep=""), height=720,width=1280,res=200,
+    tiff(paste(ruta,"/results/",dep_f[i],"/GoodnessIndex_dep_",dep_f[i],".tif",sep=""), height=720,width=1280,res=200,
          pointsize=2,compression="lzw")
-    print(graph_dep  )
+    print(graph_dep)
     dev.off()
   }
   
@@ -365,7 +378,7 @@ GoodnessIndex <- function(ruta_c,dep_f){
   
   
   # Guarde el graph
-  tiff(paste(ruta,"/",region,"/results/GoodnessIndex_line.tif",sep=""), height=720,width=1280,res=200,
+  tiff(paste(ruta,"/results/GoodnessIndex_line.tif",sep=""), height=720,width=1280,res=200,
        pointsize=2,compression="lzw")
   print(graph_line)
   dev.off()
@@ -375,11 +388,10 @@ GoodnessIndex <- function(ruta_c,dep_f){
 
 
 ## Corrida para todos los archivos
+## Corrida para todos los archivos
 ruta_c
 dep_f<-c("casanare",    "cordoba",    "tolima",    "valle", "santander")
 table<-GoodnessIndex(ruta_c = ruta_c, dep_f = dep_f)
-
-#table<-read.csv(paste(ruta,"/", region,"/GoodnessIndex.csv", sep=""))
 
 
 
@@ -401,10 +413,15 @@ graph_line  <- graph_line + theme(legend.title = element_text(size = 10.5),
 
 
 # Guarde el graph
-tiff(paste(ruta,"/",region,"/results/Max_line.tif",sep=""), height=720,width=1280,res=200,
+tiff(paste(ruta,"/results/Max_line.tif",sep=""), height=720,width=1280,res=200,
      pointsize=2,compression="lzw")
 print(graph_line)
 dev.off()
+
+
+
+
+
 
 
 
@@ -423,9 +440,7 @@ summary_ind<-function(ruta_c, tipo){
   lead_num<-rep(c(0,3,5),4) # número de los archivos
   a<- c(rep(3,3),rep(6,3),rep(9,3),rep(12,3)) # trimestres de estudio
   # nombre de los sitios d eestudios (como apareceran en el gráfico)
-  # nombre de los sitios d eestudios (como apareceran en el gráfico)
-  estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima"
-                ,"Turipana", "StaIsabel")
+  estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima","Turipana", "StaIsabel")
   
   
   datos<-NA # Creación de una trama de datos
@@ -468,7 +483,7 @@ summary_ind<-function(ruta_c, tipo){
   
   # Shape
   # Cree una nueva variable 
-  res.shape2 <- cbind(res.shape2,f1=rep(1:28,each=3)) # 24 equivale a # de trimestre * sitios
+  res.shape2 <- cbind(res.shape2,f1=rep(1:28,each=3)) # 28 equivale a # de trimestre * sitios
   
   ##  Cree los limites del gráfico y el titulo del eje de acuerdo al indicador
   if(tipo=="Pearsons_correlation"){
@@ -489,12 +504,14 @@ summary_ind<-function(ruta_c, tipo){
   }
   
   
-  tiff(paste(ruta,"/",region,"/results/santander/a_",tipo,".tif",sep=""), height=800,width=1800,res=150,
+  tiff(paste(ruta,"/results/santander/a_",tipo,".tif",sep=""), height=800,width=1800,res=150,
        compression="lzw")
   
   # Cree el gráfico condicionando por la nueva variable
   plot(ROC_B~f1,data=res.shape2,type="n",xlab=" ",
        ylab=tit,xaxt="n",bty="n", ylim=lim)#
+  
+  #abline(h=0.95,col=2,lty=2)
   
   #abline(h=0.95,col=2,lty=2)
   
@@ -548,17 +565,13 @@ for(i in  1:length(tipo)){
 
 
 
-
-
-
-
 ###################################################################################
 
 ########################### Analisis Retrospectivos 
 
 
 
-ruta_r=paste(ruta, "/", region,"/retroactive/",sep="")
+ruta_r=paste(ruta, "/retroactive/",sep="")
 
 #### Funciones 
 
@@ -573,8 +586,7 @@ summary_ind_r<-function(ruta_r, tipo){
   a<- c(rep(3,3),rep(6,3),rep(9,3),rep(12,3)) # trimestres de estudio
   # nombre de los sitios d eestudios (como apareceran en el gráfico)
   estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima"
-                ,"Turipana", "StaIsabel")
-  
+                ,"Turipana", "StaIsabel")  
   
   
   datos<-NA # Creación de una trama de datos
@@ -633,7 +645,7 @@ summary_ind_r<-function(ruta_r, tipo){
   }
   
   
-  tiff(paste(ruta,"/", region,"/results/santander/retroa_",tipo,".tif",sep=""), height=800,width=1800,res=150,
+  tiff(paste(ruta,"/results/santander/retroa_",tipo,".tif",sep=""), height=800,width=1800,res=150,
        compression="lzw")
   # layout(matrix(c(1,1,1,1,1,1,1,1,2), 1,9, byrow = TRUE))
   plot(ROC_B~f1,data=res.shape2,type="n",xlab=" ",
@@ -655,7 +667,6 @@ summary_ind_r<-function(ruta_r, tipo){
   text(sitios[4],y=lim[2],x=18.5)
   text(sitios[5],y=lim[2],x=22.5)
   text(sitios[6],y=lim[2],x=26.5)
-  
   
   
   points(ROC_B~f1,data=res.shape2,subset= lead_num==0,pch=1,col=2)
@@ -690,8 +701,12 @@ for(i in  1:length(tipo)){
 
 
 
-#### Calculo de indicadores con las categorías para un departamento
 
+
+
+
+
+#### Calculo de indicadores con las categorías para un departamento
 
 categorias_dep<-function(Estaciones_C,ruta_r,lead,dep,a){
   # Lea los datos de las estaciones
@@ -771,7 +786,7 @@ categorias_dep<-function(Estaciones_C,ruta_r,lead,dep,a){
     
     por_cat_est[j,1]<-sum(Cat_estacion$cat_obs==Cat_estacion$cat_pron)/length(year) *100
     por_cat_est[j,2]<-sum(Cat_estacion$cat_obs==Cat_estacion$cat_pron)
-
+    
   }
   
   
@@ -784,15 +799,12 @@ categorias_dep<-function(Estaciones_C,ruta_r,lead,dep,a){
 ##################### Función para calcular el porcentaje de aciertos deterministicos por 
 #### Departamento 
 
-
-
-
 dep_aciertosD <- function(ruta_r, a, Estaciones_C, lead){
   data<-data_trim(Estaciones_C, a)  # convierta los datos en trimestrales
   porcentaje<-0 # incialice el vector de porcentaje
   RMSE<-0 # incialice el vector para el RMSE 
   count<-0
-
+  
   
   if(a == 12 | lead== "MAM_Nov"| lead== "MAM_Sep"| lead== "JJA_Dec"){ 
     skip_1<-3; skip_2<-15; n_rows <- 10; year<-2006:2013
@@ -841,9 +853,16 @@ dep_aciertosD <- function(ruta_r, a, Estaciones_C, lead){
 
 
 
+
+
+
+
+
+
+
 #### Calculo de indicadores con las categorías para un departamento
 ruta_r
-#dep=c("casanare",    "cordoba",    "tolima",    "valle")
+#dep=c("casanare",    "cordoba",    "tolima",    "valle", "santander")
 
 
 
@@ -864,6 +883,7 @@ Estaciones_C <- read.delim(paste(ruta,"/dep/precip_",dep,".txt",sep=""),skip =3,
 lead_num<-rep(c(0,3,5),4)
 
 
+
 data<-NA
 for(i in 1:12){
   cat_num<-categorias_dep(Estaciones_C,ruta_r,lead[i],dep,a[i])[,2]
@@ -881,17 +901,8 @@ names(data)<-c("Trimestre", "Lead", "Estacion", "num_cat_ac", "prob_cat_ac")
 
 
 
-
 #################### Función para calcular el porcentaje de aciertos deterministicos por 
 #### Departamento 
-
-
-ruta_r
-
-
-
-#dep="valle"
-#Estaciones_C <- read.delim(paste(ruta,"/dep/precip_",dep,".txt",sep=""),skip =3, header=T, sep="")
 
 
 dato<-NA
@@ -955,7 +966,7 @@ retrospectiva<-function(ruta_r, estacion,sitios, dep, lead, a){
   # Extraiga trimestralmente la información de todas las estaciones
   data<-data_trim(Estaciones_C, a)  
   
-
+  
   
   
   if(a == 12 | lead== "MAM_Nov"| lead== "MAM_Sep"| lead== "JJA_Dec"){ 
@@ -966,16 +977,18 @@ retrospectiva<-function(ruta_r, estacion,sitios, dep, lead, a){
     obsc<-data[data$years_y>2004,]
   }
   
-
+  
   lower<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=skip_1, nrows = n_rows)
   lower<-lower[-1:-2,estacion]
   upper<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=skip_2, nrows = n_rows)
   upper<-upper[-1:-2,estacion]
   
   
+  
+  
   obs<-obsc[,estacion]
   
-
+  
   # lea la información del pronosticos y elimine las coordenadas de la estación
   predictions<-read.table(paste(ruta_r,"Retroactive_Predictions_",a,"_",lead,"_precip_",dep,".txt", sep=""),  skip=2)
   predictions<-predictions[-1:-2,estacion]
@@ -998,7 +1011,7 @@ retrospectiva<-function(ruta_r, estacion,sitios, dep, lead, a){
   retro <- retro +   scale_x_continuous(breaks = seq(year[1], 2013,1))
   retro
   # Almacene la imagen 
-  tiff(paste(ruta, "/", region,"/results/",dep, "/retrospectivo_",a,"_",lead,"_", sitios,"_",dep,".tif",sep=""), height=720,width=1280,res=200,
+  tiff(paste(ruta,"/results/",dep, "/retrospectivo_",a,"_",lead,"_", sitios,"_",dep,".tif",sep=""), height=720,width=1280,res=200,
        pointsize=2,compression="lzw")
   print(retro)
   dev.off()
@@ -1007,25 +1020,24 @@ retrospectiva<-function(ruta_r, estacion,sitios, dep, lead, a){
 
 
 estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima","Turipana", "StaIsabel")
-sitios<-c("Lorica","Yopal","Ibagué","LaUnion","Espinal","Cereté","Villanueva")
+sitios<-c("Lorica","Yopal","Ibagué","LaUnion","Espinal","Cereté", "Villanueva")
 # Lead times (nombres)
 lead<-c(paste(rep("MAM",3),c("Feb","Nov","Sep"), sep="_"),
         paste(rep("JJA",3),c("May","Feb","Dec"), sep="_"),
         paste(rep("SON",3),c("Aug","May","Mar"), sep="_"),
         paste(rep("DEF",3),c("Nov","Aug","Jun"), sep="_"))
 a<- c(rep(3,3),rep(6,3),rep(9,3),rep(12,3))
-dep<-c("cordoba", "casanare", "tolima", "valle","tolima", "cordoba", "santander")
 
+dep<-c("cordoba", "casanare", "tolima", "valle","tolima", "cordoba", "santander")
 
 for(i in 1:7){
   Estaciones_C <- read.delim(paste(ruta,"/dep/precip_",dep[i],".txt",sep=""),skip =3, header=T, sep="")
   
   for(j in 1:12){
-    retrospectiva(ruta_r, estaciones[i], sitios[i], dep[i], lead[j], a[j])
-    #retrospectiva(ruta_r, "StaIsabel", "Villanueva", "santander", lead[j], a[j])
+    #retrospectiva(ruta_r, estaciones[i], sitios[i], dep[i], lead[j], a[j])
+    retrospectiva(ruta_r, "StaIsabel", "Villanueva", "santander", lead[j], a[j])
   }
 }
-
 
 
 
@@ -1091,13 +1103,7 @@ names(GoodnessIndex)=c("dep","a", "lead", "GoodnessIndex")
 GoodnessIndex <- cbind.data.frame(GoodnessIndex,lead_time=rep(rep(c(0,3,5),4),length(dep_f))  )
 
 ### Guarde todos los Goodness Index en un archivo .csv
-write.csv(x = GoodnessIndex, file = "GoodnessIndex_ret_Trop.csv")
-
-
-
-
-
-
+write.csv(x = GoodnessIndex, file = "GoodnessIndex_ret.csv")
 
 
 
@@ -1127,23 +1133,12 @@ data<-read.table("clipboard",header = T)
 
 #####  Gráfico de cajas
 
-data1<-data[which(data$validacion=="cv"),]
-good_cv<-cbind(data1[which(data1$region=="tropico"),"GoodnessIndex"],data1[which(data1$region=="optimizada"),"GoodnessIndex"])
-maxCV<-apply(good_cv, 1, max)
-data_cv<-data.frame(data1[,c(1, 3:5,7)], max=maxCV)
-
-data2<-data[which(data$validacion=="retro"),]
-good_retro<-cbind(data2[which(data2$region=="tropico"),"GoodnessIndex"],data2[which(data2$region=="optimizada"),"GoodnessIndex"])
-maxRetro<-apply(good_retro, 1, max)
-data_Retro<-data.frame(data2[,c(1, 3:5,7)], max=round(maxRetro,digits = 3))
-
-
-dataT<-rbind(data_cv, data_Retro)
+dataT<-data
 
 dataT[which(dataT$a==12),]$a=0
 
 
-graph_box  <- ggplot(dataT, aes(x =as.factor(a), y = max, fill=dep))
+graph_box  <- ggplot(dataT, aes(x =as.factor(a), y = GoodnessIndex, fill=dep))
 graph_box  <- graph_box + geom_boxplot() + ylim(0,0.5)
 graph_box  <- graph_box +  scale_x_discrete(breaks = c(0,3,6,9), labels = c("DEF","MAM", "JJA", "SON"))
 graph_box <- graph_box + theme_bw()  + labs(x="", y="Goodness Index")
@@ -1155,31 +1150,53 @@ ggsave("box.png",width =6 ,height =3,dpi=200 )
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 #####  Gráfico comparativo doble
 
 
 data1<-data[which(data$validacion=="cv"),]
 data2<-data[which(data$validacion=="retro"),]
 
-tabla=data.frame(data1[,c(2:5,7) ] , GI_cv=data1$GoodnessIndex,   GI_retro=round(data2$GoodnessIndex,3))
+tabla=data.frame(data1[,c(2:5) ] , GI_cv=data1$GoodnessIndex,   GI_retro=round(data2$GoodnessIndex,3))
 tabla[which(tabla$a==12),]$a=0
-
-
-
 
 labels<-as_labeller(c("0"="DEF","3"="MAM","6"="JJA", "9"="SON"))
 labels_d<-as_labeller(c("casanare"="Casanare","cordoba"="Cordoba","tolima"="Tolima", "valle"="Valle del Cauca"))
 #x11()
-ggplot(tabla,aes(x=GI_cv,y=GI_retro,shape=as.factor(lead_time),color=region,size=0.2))+
+ggplot(tabla,aes(x=GI_cv,y=GI_retro,shape=as.factor(lead_time),color=as.factor(lead_time),size=0.2))+
   geom_point() +
   facet_grid(a~dep, labeller = labeller(a = labels, dep=labels_d))+theme_bw()+
-  scale_size(guide=F)+scale_shape(name="Lead Time")+scale_color_discrete(name="Region", labels=c("Optimized", "Tropic")) + 
+  scale_size(guide=F)+scale_shape(name="Lead Time")+scale_color_discrete(name="Lead Time")+
   ylab("Goodness Index - Retroactive")+xlab("Goodness Index - Cross Validated")+
   theme(strip.text.x = element_text(size = 11)) + 
   geom_vline(xintercept = 0.3, colour = "black", linetype = "dotted") + geom_hline(yintercept = 0.3, colour = "black", linetype = "dotted")
 
 
 ggsave("best_model.png",width =12 ,height =6,dpi=200 )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
