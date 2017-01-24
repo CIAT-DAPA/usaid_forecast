@@ -327,11 +327,6 @@ GoodnessIndex <- function(ruta_c,dep_f){
     print(graph_dep  )
     dev.off()
     
-    
-    
-    
-    
-    
   }
   
   
