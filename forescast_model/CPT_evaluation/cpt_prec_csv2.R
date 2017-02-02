@@ -23,12 +23,10 @@ colombia=shapefile(paste(ruta,"/colombia/colombia_depts.shp",sep=""))
 
 ### Transformar un archivo .tsv(CPT) en raster de CSFv2
 
-transform_raster=function(x){
-  #mapa_base=raster(nrows=190, ncols=384,xmn=0,xmx=359.0625, ymn= -89.27665,ymx=89.27665)
-  
-  mapa_base=raster(resolution=0.9375,xmn=0,xmx=359.0625, ymn= -89.27665,ymx=89.27665)
-  
-  val=c(as.matrix(t(x),ncol=1,byrow = T))
+transform_raster=function(x){ 
+  # Primero se crea un raster teniendo encuenta la resolución espacial de la tabla .tsv  
+  mapa_base=raster(nrows=190, ncols=384,xmn=0,xmx=359.0625, ymn=-89.2767, ymx=89.2767) # Dimensiones del raster
+  val=c(as.matrix(t(x),ncol=1,byrow = T)) 
   val=as.numeric(val)
   val[val==-999.000]=NA
   values(mapa_base)=val
@@ -40,16 +38,17 @@ rasterize=function(dates) {
   
   if(require(raster)==FALSE){install.packages("raster")}
   library("raster")
-  pos_years=!is.na(dates[1,])
-  year_month=dates[1,][pos_years]
-  if(substr(year_month[2],6,7)=="12"){year=as.numeric(substr(year_month[-1],1,4))+1
-  }else{year=as.numeric(substr(year_month[-1],1,4))}
-  total_row_delete=c(-1,-3,-(which(dates[,1]=="89.27665")-2),-which(dates[,1]=="-89.27665"),-which(dates[,1]==""))
-  dates=dates[total_row_delete,-1]
+  pos_years=!is.na(dates[1,]) # Muestra en que lugares de la fila 1 hay información
+  year_month=dates[1,][pos_years] # Muestra la información d ela fila
+  year=substr(year_month[-1],1,4) # Substrae el año de las fehcas
+  
+  total_row_delete=c(-1,-(which(dates[,1]=="89.27665")-2),-which(dates[,1]==""))
+  dates=dates[total_row_delete,-1] # Elimina la información no relevante
   list_dates=split(dates,sort(rep(year,190)))
+  
   all_raster=lapply(list_dates,transform_raster)
   layers=stack(all_raster)
-  layers_crop=crop(layers,extent(0, 359.0625, -89.27665, 89.27665))
+  layers_crop=crop(layers,extent(270, 296, -16, 16))
   
   return(layers_crop)
 }
@@ -114,7 +113,28 @@ cca_maps<-function(var_ocanoAt, yserie, Estaciones_C, xserie, lead, ruta,  a, xm
                                               legend.title = element_text(size = 10.5))
   
   
-  ###### Graficos de y
+  
+  # Para adicionar la división politica al grafico
+  # primero se lee el shp en este caso el de centro y sur america
+  sur1<-shapefile("C:/Users/AESQUIVEL/Google Drive/shp/sur_centro_america.shp")
+  
+  # Corte la región de interes
+  sur<-crop(sur1,extent(-90, -64, -16, 16)) 
+  sur@data$id <- rownames(sur@data) # cree una nueva variable en el shp
+  sur@data$id <- as.numeric(sur@data$id) # digale que es de caracter númerico
+  sur2 <- fortify(sur, region="id") # convierta el shp en una tabla de datos
+  sur2$long<-sur2$long+360 # Lleve las coordenadas al mismo sistema del otro raster
+  
+  # Grafique el shp
+  Map_x <- Map_x + geom_polygon(data=sur2, aes(x=long,y=lat,group=group),colour = alpha("black", 1/2), size = 0.7,  alpha = .01)
+
+    
+    
+  
+  
+  
+
+  ###### Graficos de y... this wasnt ending 
   # Convierta los datos de las estaciones en trimestrales 
   data<-data_trim(Estaciones_C, a)
   
@@ -246,8 +266,8 @@ for(i in 1:12){
   ## Conversión a raster
   SST=rasterize(SST)
   var_ocanoAt <-SST[[1:length_periodo[i]]]
-  b<-extent(coor_xmin[i], coor_xmax[i], coor_ymin[i], coor_ymax[i])
-  var_ocanoAt=crop(var_ocanoAt, b)
+  #b<-extent(coor_xmin[i], coor_xmax[i], coor_ymin[i], coor_ymax[i])
+  #var_ocanoAt=crop(var_ocanoAt, b)
   
   cca_maps(var_ocanoAt, yserie, Estaciones_C, xserie, lead[i], ruta,  a[i], xmin, xmax, ymin, ymax, estaciones_in)
   print(i)
@@ -366,7 +386,7 @@ GoodnessIndex <- function(ruta_c,dep_f){
   ### modificando la función 
   Sim=GoodnessIndex[GoodnessIndex$lead_time==0,]
   names(Sim)[1]="Departamento"
-  levels(Sim$Departamento)<-c("Casanare", "Cordoba", "Tolima",  "Valle", "santander")
+  levels(Sim$Departamento)<-c("Casanare", "Cordoba", "Tolima",  "Valle", "Santander")
   graph_line  <- ggplot(Sim, aes(x =a, y = GoodnessIndex, color=Departamento))
   graph_line  <- graph_line + geom_line(aes(linetype=Departamento), size=1) + ylim(-0.01,0.5)
   graph_line  <- graph_line + geom_point(aes(shape=Departamento), size=2)
@@ -1068,7 +1088,7 @@ for(i in 1:7){
 
 
 
-dep_f=c("casanare","cordoba","tolima","valle")
+dep_f=c("casanare","cordoba","tolima","valle", "santander")
 lead<-c(paste(rep("MAM",3),c("Feb","Nov","Sep"), sep="_"),
         paste(rep("JJA",3),c("May","Feb","Dec"), sep="_"),
         paste(rep("SON",3),c("Aug","May","Mar"), sep="_"),
@@ -1078,7 +1098,7 @@ a<- c(rep(3,3),rep(6,3),rep(9,3),rep(12,3))
 
 good_index=0 # inicialice el vector
 GoodnessIndex=NA # inicialice el data frame
-for(j in 1:4){
+for(j in 1:5){
   for(i in 1:12){
     file= paste(ruta_r,"Retroactive_GoodnessIndex_",a[i],"_",lead[i],"_precip_",dep_f[j],".txt", sep="")
     data=read.table(file,dec=".",skip =2,fill=TRUE,na.strings =-999)
@@ -1140,12 +1160,14 @@ dataT[which(dataT$a==12),]$a=0
 
 graph_box  <- ggplot(dataT, aes(x =as.factor(a), y = GoodnessIndex, fill=dep))
 graph_box  <- graph_box + geom_boxplot() + ylim(0,0.5)
-graph_box  <- graph_box +  scale_x_discrete(breaks = c(0,3,6,9), labels = c("DEF","MAM", "JJA", "SON"))
-graph_box <- graph_box + theme_bw()  + labs(x="", y="Goodness Index")
-graph_box
+graph_box  <- graph_box + scale_x_discrete(breaks = c(0,3,6,9), labels = c("DEF","MAM", "JJA", "SON"))
+graph_box <- graph_box + theme_bw()  + labs(x="", y="Goodness Index") 
+graph_box + scale_fill_discrete(name="Departamento",
+                              breaks=c("casanare", "cordoba", "tolima","valle", "santander"),
+                              labels=c("Casanare", "Cordoba", "Tolima", "Valle del Cauca", "Santander"))
 
 
-ggsave("box.png",width =6 ,height =3,dpi=200 )
+ggsave("box.png",width =6 ,height =3,dpi=200)
 
 
 
@@ -1171,7 +1193,7 @@ tabla=data.frame(data1[,c(2:5) ] , GI_cv=data1$GoodnessIndex,   GI_retro=round(d
 tabla[which(tabla$a==12),]$a=0
 
 labels<-as_labeller(c("0"="DEF","3"="MAM","6"="JJA", "9"="SON"))
-labels_d<-as_labeller(c("casanare"="Casanare","cordoba"="Cordoba","tolima"="Tolima", "valle"="Valle del Cauca"))
+labels_d<-as_labeller(c("casanare"="Casanare","cordoba"="Cordoba","tolima"="Tolima", "valle"="Valle del Cauca", "santander"="Santander"))
 #x11()
 ggplot(tabla,aes(x=GI_cv,y=GI_retro,shape=as.factor(lead_time),color=as.factor(lead_time),size=0.2))+
   geom_point() +
@@ -1182,7 +1204,7 @@ ggplot(tabla,aes(x=GI_cv,y=GI_retro,shape=as.factor(lead_time),color=as.factor(l
   geom_vline(xintercept = 0.3, colour = "black", linetype = "dotted") + geom_hline(yintercept = 0.3, colour = "black", linetype = "dotted")
 
 
-ggsave("best_model.png",width =12 ,height =6,dpi=200 )
+ggsave("best_model.png",width =12 ,height =6,dpi=200)
 
 
 

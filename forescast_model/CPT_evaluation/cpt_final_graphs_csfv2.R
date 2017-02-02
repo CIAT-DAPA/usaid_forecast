@@ -14,7 +14,7 @@ getwd()
 
 
 # Región puede tomar dos valores de acuerdo a tipo de región predictora que se tenga 
-region<-"Tropico" #"optimo"
+region<-"optimo" #"optimo"   "Tropico"
 
 
 ## Ruta principal donde se encuentran las carpetas con los archivos  
@@ -231,14 +231,13 @@ if(dep=="casanare"){
 }
 
 
-
-# Lead times (nombres)
+# Lead times (names)
 lead<-c(paste(rep("MAM",3),c("Feb","Nov","Sep"), sep="_"),
   paste(rep("JJA",3),c("May","Feb","Dec"), sep="_"),
   paste(rep("SON",3),c("Aug","May","Mar"), sep="_"),
   paste(rep("DEF",3),c("Nov","Aug","Jun"), sep="_"))
 
-# Timestre
+# trimester
 a<- c(rep(3,3),rep(6,3),rep(9,3),rep(12,3))
 
 #### Declaración de las constantes
@@ -249,20 +248,69 @@ length_periodo=rep(c(32,31,32,31,32,31),c(1,2,2,1,3,3)) # Ancho del periodo de e
 # Lectura d eas estaciones para cada departamento.
 Estaciones_C <- read.delim(paste(ruta,"/dep/precip_",dep,".txt",sep=""),skip =3, header=T, sep="")
 
-# Lea los archivos y las estaciones necesarias para todas las corridas del departamento. 
-for(i in 1:12){
-  xserie <- read.csv(paste(ruta_c, "X_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
-  yserie <- read.csv(paste(ruta_c,"Y_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
+
+
+
+
+if(region=="tropico"){
+  for(i in 1:12){
+    xserie <- read.csv(paste(ruta_c, "X_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
+    yserie <- read.csv(paste(ruta_c,"Y_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
+    
+    SST<-read.table(paste(ruta,"/CFSv2_evaluacion/",lead[i],".tsv",sep=""),sep="\t",dec=".",skip =2,fill=TRUE,na.strings =-999)
+    ## Conversión a raster
+    SST=rasterize(SST)
+    var_ocanoAt <-SST[[1:length_periodo[i]]]
+    
+    
+    cca_maps(var_ocanoAt, yserie, Estaciones_C, xserie, lead[i], ruta,  a[i], xmin, xmax, ymin, ymax, estaciones_in)
+    print(i)
+  }
+}else if(region=="optimo"){
+  if(dep=="casanare"){
+    coor_ymin<-c(rep(0,3), rep(-5,3), rep(-13,3), rep(-8,3))
+    coor_ymax<-c(rep(25,3), rep(22,3), rep(18,3), rep(7,3))
+    coor_xmin<-c(rep(252,3), rep(274,3), rep(178,3), rep(184,3))-180
+    coor_xmax<-c(rep(336,3), rep(340,3), rep(284,3), rep(283,3))-180
+  }else if(dep=="cordoba"){
+    coor_ymin<-c(rep(-4,3), rep(-13,3), rep(-15,3), rep(-15,3))
+    coor_ymax<-c(rep(27,3), rep(12,3), rep(14,3), rep(12,3))
+    coor_xmin<-c(rep(293,3), rep(177,3), rep(173,3), rep(175,3))-180
+    coor_xmax<-c(rep(340,3), rep(252,3), rep(283,3), rep(283,3))-180
+  }else if(dep=="tolima"){
+    coor_ymin<-c(rep(-13,3), rep(-12,3), rep(-16,3), rep(-16,3))
+    coor_ymax<-c(rep(9,3), rep(14,3), rep(14,3), rep(12,3))
+    coor_xmin<-c(rep(180,3), rep(177,3), rep(172,3), rep(190,3))-180
+    coor_xmax<-c(rep(252,3), rep(255,3), rep(250,3), rep(286,3))-180
+  }else if(dep=="valle"){
+    coor_ymin<-c(rep(-9,3), rep(-12,3), rep(-16,3), rep(-16,3))
+    coor_ymax<-c(rep(27,3), rep(12,3), rep(14,3), rep(12,3))
+    coor_xmin<-c(rep(305,3), rep(175,3), rep(172,3), rep(171,3))-180
+    coor_xmax<-c(rep(340,3), rep(255,3), rep(250,3), rep(286,3))-180
+  }else if(dep=="santander"){
+    coor_ymin<-c(rep(-16,3), rep(-13,3), rep(-10,3), rep(-7,3))
+    coor_ymax<-c(rep(30,3), rep(19,3), rep(16,3), rep(31,3))
+    coor_xmin<-c(rep(289,3), rep(273,3), rep(288,3), rep(301,3))-180
+    coor_xmax<-c(rep(350,3), rep(358,3), rep(354,3), rep(330,3))-180
+  }
   
-  SST<-read.table(paste(ruta,"/CFSv2_evaluacion/",lead[i],".tsv",sep=""),sep="\t",dec=".",skip =2,fill=TRUE,na.strings =-999)
-  ## Conversión a raster
-  SST=rasterize(SST)
-  var_ocanoAt <-SST[[1:length_periodo[i]]]
-  
-  
-  cca_maps(var_ocanoAt, yserie, Estaciones_C, xserie, lead[i], ruta,  a[i], xmin, xmax, ymin, ymax, estaciones_in)
-  print(i)
+  for(i in 1:12){
+    xserie <- read.csv(paste(ruta_c, "X_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
+    yserie <- read.csv(paste(ruta_c,"Y_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
+    
+    SST<-read.table(paste(ruta,"/CFSv2_evaluacion/",lead[i],".tsv",sep=""),sep="\t",dec=".",skip =2,fill=TRUE,na.strings =-999)
+    ## Conversión a raster
+    SST=rasterize(SST)
+    var_ocanoAt <-SST[[1:length_periodo[i]]]
+    b<-extent(coor_xmin[i], coor_xmax[i], coor_ymin[i], coor_ymax[i])
+    var_ocanoAt=crop(var_ocanoAt, b)
+    
+    
+    cca_maps(var_ocanoAt, yserie, Estaciones_C, xserie, lead[i], ruta,  a[i], xmin, xmax, ymin, ymax, estaciones_in)
+    print(i)
+  }
 }
+
 
 
 
@@ -343,7 +391,7 @@ GoodnessIndex <- function(ruta_c,dep_f){
     
     tiff(paste(ruta,"/",region,"/results/",dep_f[i],"/GoodnessIndex_dep_",dep_f[i],".tif",sep=""), height=720,width=1280,res=200,
          pointsize=2,compression="lzw")
-    print(graph_dep  )
+    print(graph_dep)
     dev.off()
   }
   
@@ -353,7 +401,7 @@ GoodnessIndex <- function(ruta_c,dep_f){
   ### modificando la función 
   Sim=GoodnessIndex[GoodnessIndex$lead_time==0,]
   names(Sim)[1]="Departamento"
-  levels(Sim$Departamento)<-c("Casanare", "Cordoba", "Tolima",  "Valle", "santander")
+  levels(Sim$Departamento)<-c("Casanare", "Cordoba", "Tolima",  "Valle", "Santander")
   graph_line  <- ggplot(Sim, aes(x =a, y = GoodnessIndex, color=Departamento))
   graph_line  <- graph_line + geom_line(aes(linetype=Departamento), size=1) + ylim(-0.01,0.5)
   graph_line  <- graph_line + geom_point(aes(shape=Departamento), size=2)
@@ -843,7 +891,7 @@ dep_aciertosD <- function(ruta_r, a, Estaciones_C, lead){
 
 #### Calculo de indicadores con las categorías para un departamento
 ruta_r
-#dep=c("casanare",    "cordoba",    "tolima",    "valle")
+#dep=c("casanare",    "cordoba",    "tolima",    "valle", "santander")
 
 
 
@@ -1051,12 +1099,28 @@ for(i in 1:7){
 #######################################
 
 
+### Directorio de trabajo
+#setwd("C:/Users/AESQUIVEL/Google Drive/Exp_2/")
+#getwd()
+
+
+# Región puede tomar dos valores de acuerdo a tipo de región predictora que se tenga 
+#region<-"optimo" #"optimo"   "Tropico"
+#ruta=getwd()
+
+#ruta_r=paste(ruta, "/", region,"/retroactive/",sep="")
+
+
+
+
+
+
 #### Creación del goodneex index retrospectivo
 
 
 
 
-dep_f=c("casanare","cordoba","tolima","valle")
+dep_f=c("casanare","cordoba","tolima","valle", "santander")
 lead<-c(paste(rep("MAM",3),c("Feb","Nov","Sep"), sep="_"),
         paste(rep("JJA",3),c("May","Feb","Dec"), sep="_"),
         paste(rep("SON",3),c("Aug","May","Mar"), sep="_"),
@@ -1066,7 +1130,7 @@ a<- c(rep(3,3),rep(6,3),rep(9,3),rep(12,3))
 
 good_index=0 # inicialice el vector
 GoodnessIndex=NA # inicialice el data frame
-for(j in 1:4){
+for(j in 1:5){
   for(i in 1:12){
     file= paste(ruta_r,"Retroactive_GoodnessIndex_",a[i],"_",lead[i],"_precip_",dep_f[j],".txt", sep="")
     data=read.table(file,dec=".",skip =2,fill=TRUE,na.strings =-999)
@@ -1091,7 +1155,7 @@ names(GoodnessIndex)=c("dep","a", "lead", "GoodnessIndex")
 GoodnessIndex <- cbind.data.frame(GoodnessIndex,lead_time=rep(rep(c(0,3,5),4),length(dep_f))  )
 
 ### Guarde todos los Goodness Index en un archivo .csv
-write.csv(x = GoodnessIndex, file = "GoodnessIndex_ret_Trop.csv")
+write.csv(x = GoodnessIndex, file = "GoodnessIndex_ret_Op.csv")
 
 
 
@@ -1146,7 +1210,7 @@ dataT[which(dataT$a==12),]$a=0
 graph_box  <- ggplot(dataT, aes(x =as.factor(a), y = max, fill=dep))
 graph_box  <- graph_box + geom_boxplot() + ylim(0,0.5)
 graph_box  <- graph_box +  scale_x_discrete(breaks = c(0,3,6,9), labels = c("DEF","MAM", "JJA", "SON"))
-graph_box <- graph_box + theme_bw()  + labs(x="", y="Goodness Index")
+graph_box <-  graph_box + theme_bw()  + labs(x="", y="Goodness Index")
 graph_box
 
 
@@ -1168,7 +1232,7 @@ tabla[which(tabla$a==12),]$a=0
 
 
 labels<-as_labeller(c("0"="DEF","3"="MAM","6"="JJA", "9"="SON"))
-labels_d<-as_labeller(c("casanare"="Casanare","cordoba"="Cordoba","tolima"="Tolima", "valle"="Valle del Cauca"))
+labels_d<-as_labeller(c("casanare"="Casanare","cordoba"="Cordoba","tolima"="Tolima", "valle"="Valle del Cauca", "santander"="Santander"))
 #x11()
 ggplot(tabla,aes(x=GI_cv,y=GI_retro,shape=as.factor(lead_time),color=region,size=0.2))+
   geom_point() +
