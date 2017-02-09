@@ -1,3 +1,4 @@
+
 ####### Functions #########
 ###########################
 
@@ -29,7 +30,7 @@ download.cpt=function(dir_save,month,year){
     } 
     route=paste("http://iridl.ldeo.columbia.edu/SOURCES/.NOAA/.NCEP/.EMC/.CFSv2/.ENSEMBLE/.OCNF/.surface/.TMP/SOURCES/.NOAA/.NCEP/.EMC/.CFSv2/.REALTIME_ENSEMBLE/.OCNF/.surface/.TMP/appendstream/S/%280000%201%20",month.abb[l],"%201982-",year,"%29VALUES/L/",i,".5/",i+2,".5/RANGE%5BL%5D//keepgrids/average/",ensemble,"%5BM%5Daverage/-999/setmissing_value/Y/(30N)/(30S)/RANGEEDGES/%5BX/Y%5D%5BS/L/add%5Dcptv10.tsv.gz",sep="")### Ruta de descarga de datos 
     
-    download.file(route, paste(dir_save,"/",i,"_",paste(month.abb[w[i:(i+2)]], collapse = '_'),".tsv.gz",sep=""))### Realiza la descarga 
+    download.file(route, paste(dir_save,"/",i,"_",paste(month.abb[w[i:(i+2)]], collapse = '_'),"-",Sys.Date(),".tsv.gz",sep=""))### Realiza la descarga 
     
   }
   
@@ -169,9 +170,9 @@ selection_area=function(x,y){
       cor_tsm=cor(x,mode1[,1])
       count=count+1
       all_cor[count,]=cor_tsm[,1]
-      
+     
     }
-    
+   
   }
   
   cor_mean=apply(abs(all_cor),2,mean)
@@ -263,6 +264,53 @@ cross_val=function(x,y){
 }
 
 
+forecast=function(x,y,x_fores,set){
+  
+  mean_x=colMeans(x)
+  sd_x=apply(x,2,sd)
+  mean_y=colMeans(y)
+  sd_y=apply(y,2,sd)
+  x_fores_scale=(x_fores-mean_x)/sd_x
+  pca_x=nipals(x,set[1])
+  pca_y=nipals(y,set[2])
+  x_fores_comp= x_fores_scale%*%pca_x[[2]]
+  
+  
+  canonico=cancor(pca_x[[1]],pca_y[[1]])
+  x_center=scale(pca_x[[1]],scale=F)
+  y_center=scale(pca_y[[1]],scale=F)  
+  com_x=x_center%*%canonico$xcoef
+  com_y=y_center%*%canonico$ycoef
+  R=canonico$cor
+  xi=as.matrix(x_fores_comp-canonico$xcenter)
+  vec_x=canonico$xcoef
+  xi_com=as.matrix(xi)%*%vec_x[,1,drop=FALSE]
+  y_fores=(R[1]*xi_com)
+  y_fores_last=(y_fores%*%solve(canonico$ycoef)[1,])+canonico$ycenter
+  
+  
+  y_fores_comp=y_fores_last%*%t(as.matrix(pca_y[[2]]))
+  y_fores_final=(y_fores_comp*sd_y)+mean_y
+  
+  all_out=list(y_fores_final,xi_com)
+  
+  return(all_out)
+  
+}
+
+
+
+probabilities=function(fores,Y,sd_s){
+  
+  terciles=apply(Y,2,function(x)quantile(x,c(1/3,2/3),type=6))
+  below=(pnorm(terciles[1,],fores,sd_s))*100
+  normal=(pnorm(terciles[2,],fores,sd_s)-pnorm(terciles[1,],fores,sd_s))*100
+  above=(1-pnorm(terciles[2,],fores,sd_s))*100
+  
+  prob_output=cbind(below,normal,above)
+  
+  return(prob_output)
+}
 
 #########RUN#########
 #####################
@@ -271,13 +319,13 @@ start.time <- Sys.time()
 dir_save="C:/Users/dagudelo/Desktop/Ejemplo_descarga"
 month=as.numeric(format(Sys.Date(),"%m"))
 year=format(Sys.Date(),"%Y")
-y=download.cpt(dir_save,month,year)
+y=download.cpt(dir_save,month-1,year)
 end.time <- Sys.time()
 time.taken <- end.time - start.time
 time.taken
 
 
-files_gz=list.files(dir_save)
+files_gz=list.files(dir_save,pattern =as.character(Sys.Date()))
 dir_files=paste(dir_save,files_gz,sep="/")
 p=lapply(dir_files,function(x)gzfile(x,'rt'))
 y_k=lapply(dir_files,function(x)read.table(x,sep="\t",dec=".",skip =2,fill=TRUE,na.strings =-999))
@@ -288,9 +336,12 @@ data_tsm=unlist(lapply(data_x,"[", 1),recursive=FALSE)
 names(data_tsm)=substr(files_gz,3,13)
 year_predictor=unlist(lapply(data_x,"[", 2),recursive=FALSE)
 names(year_predictor)=names(data_tsm)
+data_tsm_fore=lapply(data_tsm,function(x) x[dim(x)[1],,drop=F])
+names(data_tsm_fore)=names(data_tsm)
 
 
-dir_response="C:/Users/dagudelo/Desktop/Estaciones_1"
+
+dir_response="C:/Users/dagudelo/Desktop/Estaciones"
 dir_res=paste(dir_response,list.files(dir_response),sep="/")
 data_y=lapply(dir_res,function(x)read.table(x,dec=".",sep = ",",header = T))
 names(data_y)=basename(dir_res)
@@ -300,7 +351,7 @@ dir_stations="Y:/USAID_Project/Product_1_web_interface/test/clima/daily_data"
 stations_selec=substr(list.files(dir_stations),1,nchar(list.files(dir_stations))-4)
 
 
-data_quar=lapply(data_y,quarterly_data,month)
+data_quar=lapply(data_y,quarterly_data,month-1)
 data_quartely=unlist(lapply(data_quar,"[", 1),recursive=FALSE)
 year_response=unlist(lapply(data_quar,"[", 2),recursive=FALSE)
 
@@ -320,10 +371,46 @@ data_tsm_selec=Map(function(x,y) Map(selection_area,x,y),data_tsm_final,data_res
 ########## Cross Validation ##########
 ######################################
 
-cross_all=Map(function(x,y) Map(cross_val,x,y),data_tsm_selec,data_res_final)
+cross_obj=Map(function(x,y) Map(cross_val,x,y),data_tsm_selec,data_res_final)
 
-######### Generate probabilities #######
-########################################
+######### Forecast ###################
+######################################
+
+
+fores_tsm_selec=lapply(data_tsm_selec,function(x) Map(function(x1,y1) y1[,match(colnames(x1),colnames(y1)),drop=F],x,data_tsm_fore ))
+
+settings=lapply(cross_obj,function(x) lapply(x,"[[",2))
+cross_all=lapply(cross_obj,function(x) lapply(x,"[[",1))
+
+forescast_obj=Map(function(x,y,x_fores,set)Map(forecast,x,y,x_fores,set),data_tsm_selec,data_res_final,fores_tsm_selec,settings)
+
+forescast_all=lapply(forescast_obj,function(x) lapply(x,"[[",1))
+Value_modo_x=lapply(forescast_obj,function(x) lapply(x,"[[",2))
+
+
+sd_cross=Map(function(x,y) Map(function(x1, y1) sqrt(colSums(((x1-y1)^2)/dim(x1)[1]-1-1)),x,y),cross_all,data_res_final)
+
+
+n_all=lapply(data_res_final,function(x)lapply(x,function(x)dim(x)[1]))
+
+
+sd_final=Map(function(sd,value_modo,n)Map(function(sd1,value_modo1,n1) sd1*sqrt(1+(1/n1)+(value_modo1)^2) ,sd,value_modo,n),sd_cross,Value_modo_x,n_all)
+
+probabilities_final=Map(function(fores,Y,sd_s) Map(probabilities,fores,Y,sd_s),forescast_all,data_res_final,sd_final)
+
+
+View(probabilities_final[[1]][[2]])
+
+
+set=settings[[1]][[2]]
+x_fores=fores_tsm_selec[[1]][[2]]
+x=data_tsm_selec[[1]][[2]]
+y=data_res_final[[1]][[2]]
+
+
+
+
+
 
 mon=month+0:5
 prob=expand.grid(year,mon,stations_selec,33.333,33.333,33.333)
