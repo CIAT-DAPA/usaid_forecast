@@ -98,7 +98,10 @@ gen_esc_daily <- function(prob,data_d,path_output,station){
   #attach(data_d,warn.conflicts =F)
   
   data=aggregate(as.numeric(data_d$prec),list(data_d$year,data_d$month),sum)
+  data_temp=aggregate(data_d[,4:5],list(data_d$year,data_d$month),mean)
+  
   names(data)=c("year","month","value")
+  names(data_temp)=c("year","month","t_max","t_min")
   
   probabilidades=as.data.frame(data_prob[1:6,])
   month.prob = month.name[probabilidades$month] 
@@ -106,12 +109,21 @@ gen_esc_daily <- function(prob,data_d,path_output,station){
   #---------------------------------------------------------------------------------#
   #-----------------Ordenar de menor a Mayr datos mensuales históricos-------------#
   #---------------------------------------------------------------------------------#
-  prec_sort = matrix(NA,nrow(data),6)
-  year_sort = matrix(NA,nrow(data),6)
+  
+  cat("\n Calculando terciles de la precipitación... \n")
+  
+  prec_sort = matrix(NA,length(unique(data$year)),6)
+  year_sort = matrix(NA,length(unique(data$year)),6)
+  
+  t_max_trend = matrix(NA,length(unique(data$year)),6)
+  t_min_trend = matrix(NA,length(unique(data$year)),6)
   
   for (i in probabilidades$month){
     prec_month = data[data$month==i,3]
     year_month = data[data$month==i,1]
+    
+    t_max_trend[,i-month(Sys.Date())+1] = data_temp[data_temp$month==i,3]
+    t_min_trend[,i-month(Sys.Date())+1] = data_temp[data_temp$month==i,4]
     
     prec_sort[,i-month(Sys.Date())+1] = prec_month[order(prec_month)]
     year_sort[,i-month(Sys.Date())+1] = year_month[order(prec_month)]
@@ -120,21 +132,37 @@ gen_esc_daily <- function(prob,data_d,path_output,station){
   colnames(prec_sort)=month.prob
   colnames(year_sort)=month.prob
   
-  
-  #   Años_org2=Años_org[,match(names(probabilidades),colnames(Años_org))]
-  #   var_org2=var_org[,match(names(probabilidades),colnames(var_org))]
-  #   
+  colnames(t_max_trend)=month.prob
+  colnames(t_min_trend)=month.prob
   #---------------------------------------------------------------------------------#
-  #---------------------------Cálculo de percentiles--------------------------------#
+  #------------------------Cálculo tendencias para temp-----------------------------#
   #---------------------------------------------------------------------------------#
-  
-#   percentiles=rbind(apply(prec_sort,2,FUN=quantile,0.3333),apply(prec_sort,2,FUN=quantile,0.6666),apply(prec_sort,2,FUN=quantile,0.9999))
-#   rownames(percentiles)=c("T1","T2","T3")
-#   colnames(percentiles)=month.prob
-#   
-  
   
  
+  s.pred_new = matrix(NA,6,2)
+  for(v in 1:6){
+    
+    by_month_tmax = ts(start = min(data_temp$year),end = max(data_temp$year),t_max_trend[,v])
+    sen.res_tmax = sens.slope(by_month_tmax)
+    
+    by_month_tmin = ts(start = min(data_temp$year),end = max(data_temp$year),t_min_trend[,v])
+    sen.res_tmin = sens.slope(by_month_tmin)
+    
+    # t <- (1:length(by_month))
+    # s.pred <- sen.res$intercept + sen.res$b.sen * t
+    if(data.table::between(0, sen.res_tmax$b.sen.lo, sen.res_tmax$b.sen.up)==F){
+      s.pred_new[v,1] <- sen.res_tmax$b.sen
+    } 
+    if(data.table::between(0, sen.res_tmin$b.sen.lo, sen.res_tmin$b.sen.up)==F){
+      s.pred_new[v,2] <- sen.res_tmin$b.sen
+    }  
+    
+  }
+  
+  
+  t_new = year_rsp-max(data_temp$year)
+  s.pred_new <- sen.res$b.sen * t_new
+  
   
   
   #---------------------------------------------------------------------------------#
@@ -143,7 +171,7 @@ gen_esc_daily <- function(prob,data_d,path_output,station){
   
   masprobable=matrix(0,nrow=100,ncol=dim(probabilidades)[2])
   
-  print("Generando años más frecuentes...")
+  cat("\n Generando años más frecuentes... \n")
   masprobable=sapply_pb(1:100,
                         function(j){
                           esc1=sapply(1:dim(probabilidades)[2], function(i) resampling(prec_sort[,i],probabilidades[i,4:6],year_sort[,i]))
@@ -268,7 +296,7 @@ gen_esc_daily <- function(prob,data_d,path_output,station){
   #----------------------Creación de escenarios a nivel diario----------------------#
   #---------------------------------------------------------------------------------#
   #---------------------------------------------------------------------------------#
-  print("Generando escenarios...")
+  cat("\n Generando escenarios... \n")
   
     esc_final_diarios=list()
     
@@ -322,7 +350,7 @@ gen_esc_daily <- function(prob,data_d,path_output,station){
       write.csv(esc_final_diarios[[k]],paste(path_output,"/",format.Date(Sys.Date(),"%Y%m%d"),"/Escenarios_",station,"/escenario_",nom[k],".csv",sep=""),row.names=F)
     }
     
-  print("Proceso finalizado exitosamente")
+  cat("\n Proceso finalizado exitosamente \n")
 
  
 }
