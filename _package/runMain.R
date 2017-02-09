@@ -5,9 +5,11 @@ library(funr)
 library(lubridate)
 library(reshape)
 library(stringr)
+library(trend)
+library(data.table)
 
 dirCurrent <- paste(get_script_path(), "/", sep = "", collapse = NULL)
-#dirCurrent <- "D:/ToBackup/2017/USAID/paquetes/"
+#dirCurrent <- "D:\\_Scripts\\usaid_forecast\\_package\\"
 
 ## RUN paquete forecast
 dirForecast <- paste(dirCurrent, "prediccionClimatica/", sep = "", collapse = NULL)
