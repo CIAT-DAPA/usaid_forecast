@@ -159,14 +159,44 @@ gen_esc_daily <- function(prob,data_d,path_output,station){
     
   }
   
+  s.pred_new[which(is.na(s.pred_new))] = 0 
+  colnames(s.pred_new) = c("t_max","t_min")
+  row.names(s.pred_new) = month.prob
   
-  t_new = year_rsp-max(data_temp$year)
-  s.pred_new <- sen.res$b.sen * t_new
+  trend_by_year_max = matrix(NA,length(by_month_tmax),6)
+  trend_by_year_min = matrix(NA,length(by_month_tmax),6)
+  
+  for(y in 1:6){
+    trend_by_year_max[,y] = s.pred_new[y,1]*1:length(by_month_tmax)
+    trend_by_year_min[,y] = s.pred_new[y,2]*1:length(by_month_tmax)
+    
+  }
   
   
+  colnames(trend_by_year_max) = month.prob
+  row.names(trend_by_year_max) = max(data_temp$year):min(data_temp$year) 
+  
+  colnames(trend_by_year_min) = month.prob
+  row.names(trend_by_year_min) = max(data_temp$year):min(data_temp$year) 
+  
+  data_d_trend = data_d[data_d$month %in% probabilidades$month,]
+  
+for(y in min(data_temp$year):max(data_temp$year)){
+  for(m in probabilidades$month){
+    trend_max = trend_by_year_max[which(row.names(trend_by_year_max)==y),month.name[m]]
+    trend_min = trend_by_year_min[which(row.names(trend_by_year_min)==y),month.name[m]]
+    
+    pos_max = which(data_d_trend$year==y & data_d_trend$month==m)
+    pos_min = which(data_d_trend$year==y & data_d_trend$month==m)
+    data_d_trend$t_max[pos_max] = data_d_trend$t_max[pos_max]+trend_max
+    data_d_trend$t_min[pos_min] = data_d_trend$t_min[pos_min]+trend_min
+    
+  }
+  
+}  
   
   #---------------------------------------------------------------------------------#
-  #--------------Generación de los 12 años análogos mas probables-------------------#
+  #--------------Generación de los 10 años análogos mas probables-------------------#
   #---------------------------------------------------------------------------------#
   
   masprobable=matrix(0,nrow=100,ncol=dim(probabilidades)[2])
@@ -180,57 +210,7 @@ gen_esc_daily <- function(prob,data_d,path_output,station){
   
   masprobable2=apply(t(masprobable),2,function(x) as.numeric(names(sort(table(x),T))[1:10]))
   
-  #---------------------------------------------------------------------------------#
-  #-------------Generación de datos y resumen de los años mas probables-------------#
-  #---------------------------------------------------------------------------------#
-  #   
-  #   valores=function(mes,var,Años){
-  #     datos=0
-  #     for(i in 1:length(mes))
-  #       datos[i]=var[which(mes[i]==Años)]
-  #     return(datos)
-  #   }
-  #   
-  #   todo=sapply(1:dim(probabilidades)[2], function(i) valores(masprobable2[,i],var_org2[,i],Años_org2[,i]))
-  #   todo2=as.data.frame(rbind(masprobable2,c("Datos análogos",rep("",dim(probabilidades)[2]-1)),todo)) ###Años y datos analogos
-  #   colnames(todo2)=names(probabilidades)
-  #   
-  #   resumen=function(x) rbind(min(x),max(x))
-  #   resumen2=apply(todo,2,resumen)
-  #   
-  #   if(svalue(val_p)=="precip") {medias=apply(todo,2,median)}else{medias=apply(todo,2,mean)}
-  #   
-  #   dif=t(t(todo)-medias)
-  #   
-  #   valores2=function(masprobable2,todo,resumen2,dif){
-  #     datos=0
-  #     for(i in 1:2){
-  #       pos<-which(todo==resumen2[i])
-  #       n=length(pos)
-  #       datos[i]=masprobable2[pos[sample(n,1)]]
-  #     }
-  #     
-  #     pos2=which(abs(dif)==min(abs(dif)))
-  #     n2=length(pos2)
-  #     datos2=masprobable2[pos2[sample(n2,1)]]
-  #     
-  #     datost=c(datos[1],datos2,datos[2])
-  #     
-  #     return(datost)
-  #   }
-  #   
-  #   todo3=sapply(1:dim(probabilidades)[2], function(i) valores2(masprobable2[,i],todo[,i],resumen2[,i],dif[,i]))
-  #   
-  #   resumen3=rbind(resumen2[1,],round(medias,2),resumen2[2,])
-  #   row.names(resumen3)=c("Mín","Promedio","Máx")
-  #   
-  #   resumenf=rbind(resumen3,c("Años",rep("",dim(probabilidades)[2]-1)),todo3) ###Resumen con min max y prom de los escenarios analogos
-  #   colnames(resumenf)=names(probabilidades)
-  #   
-  #   ###Salida de años analogos y resumen
-  #   write.csv(todo2,file="Pronosticos/añosanalogos.csv")
-  #   write.csv(resumenf,file="Pronosticos/resumen_añosanalogos.csv")
-  #   
+    
   #---------------------------------------------------------------------------------#
   #----------Generación de todos los escenarios definidos por el usuario------------#
   #---------------------------------------------------------------------------------#
@@ -296,7 +276,7 @@ gen_esc_daily <- function(prob,data_d,path_output,station){
   #----------------------Creación de escenarios a nivel diario----------------------#
   #---------------------------------------------------------------------------------#
   #---------------------------------------------------------------------------------#
-  cat("\n Generando escenarios... \n")
+  cat("\n Generando escenarios diarios... \n")
   
     esc_final_diarios=list()
     
@@ -316,18 +296,18 @@ gen_esc_daily <- function(prob,data_d,path_output,station){
     for (n in 1:nrow(escenarios_final)){
       
       esc_final_diarios[[n]]=rbind(
-        if(any(names(a)=="January")){esc_diario_Ene[[n]]=data_d[data_d$month=="1"&data_d$year==escenarios_final[n,which(names(escenarios_final)=="January")],]},
-        if(any(names(a)=="February")){esc_diario_Feb[[n]]=data_d[data_d$month=="2"&data_d$year==escenarios_final[n,which(names(escenarios_final)=="February")],]},
-        if(any(names(a)=="March")){esc_diario_Mar[[n]]=data_d[data_d$month=="3"&data_d$year==escenarios_final[n,which(names(escenarios_final)=="March")],]},
-        if(any(names(a)=="April")){esc_diario_Abr[[n]]=data_d[data_d$month=="4"&data_d$year==escenarios_final[n,which(names(escenarios_final)=="April")],]},
-        if(any(names(a)=="May")){esc_diario_May[[n]]=data_d[data_d$month=="5"&data_d$year==escenarios_final[n,which(names(escenarios_final)=="May")],]},
-        if(any(names(a)=="June")){esc_diario_Jun[[n]]=data_d[data_d$month=="6"&data_d$year==escenarios_final[n,which(names(escenarios_final)=="June")],]},
-        if(any(names(a)=="July")){esc_diario_Jul[[n]]=data_d[data_d$month=="7"&data_d$year==escenarios_final[n,which(names(escenarios_final)=="July")],]},
-        if(any(names(a)=="August")){esc_diario_Ago[[n]]=data_d[data_d$month=="8"&data_d$year==escenarios_final[n,which(names(escenarios_final)=="August")],]},
-        if(any(names(a)=="September")){esc_diario_Sep[[n]]=data_d[data_d$month=="9"&data_d$year==escenarios_final[n,which(names(escenarios_final)=="September")],]},
-        if(any(names(a)=="October")){esc_diario_Oct[[n]]=data_d[data_d$month=="10"&data_d$year==escenarios_final[n,which(names(escenarios_final)=="October")],]},
-        if(any(names(a)=="November")){esc_diario_Nov[[n]]=data_d[data_d$month=="11"&data_d$year==escenarios_final[n,which(names(escenarios_final)=="November")],]},
-        if(any(names(a)=="December")){ esc_diario_Dic[[n]]=data_d[data_d$month=="12"&data_d$year==escenarios_final[n,which(names(escenarios_final)=="December")],]})
+        if(any(names(a)=="January")){esc_diario_Ene[[n]]=data_d_trend[data_d_trend$month=="1"&data_d_trend$year==escenarios_final[n,which(names(escenarios_final)=="January")],]},
+        if(any(names(a)=="February")){esc_diario_Feb[[n]]=data_d_trend[data_d_trend$month=="2"&data_d_trend$year==escenarios_final[n,which(names(escenarios_final)=="February")],]},
+        if(any(names(a)=="March")){esc_diario_Mar[[n]]=data_d_trend[data_d_trend$month=="3"&data_d_trend$year==escenarios_final[n,which(names(escenarios_final)=="March")],]},
+        if(any(names(a)=="April")){esc_diario_Abr[[n]]=data_d_trend[data_d_trend$month=="4"&data_d_trend$year==escenarios_final[n,which(names(escenarios_final)=="April")],]},
+        if(any(names(a)=="May")){esc_diario_May[[n]]=data_d_trend[data_d_trend$month=="5"&data_d_trend$year==escenarios_final[n,which(names(escenarios_final)=="May")],]},
+        if(any(names(a)=="June")){esc_diario_Jun[[n]]=data_d_trend[data_d_trend$month=="6"&data_d_trend$year==escenarios_final[n,which(names(escenarios_final)=="June")],]},
+        if(any(names(a)=="July")){esc_diario_Jul[[n]]=data_d_trend[data_d_trend$month=="7"&data_d_trend$year==escenarios_final[n,which(names(escenarios_final)=="July")],]},
+        if(any(names(a)=="August")){esc_diario_Ago[[n]]=data_d_trend[data_d_trend$month=="8"&data_d_trend$year==escenarios_final[n,which(names(escenarios_final)=="August")],]},
+        if(any(names(a)=="September")){esc_diario_Sep[[n]]=data_d_trend[data_d_trend$month=="9"&data_d_trend$year==escenarios_final[n,which(names(escenarios_final)=="September")],]},
+        if(any(names(a)=="October")){esc_diario_Oct[[n]]=data_d_trend[data_d_trend$month=="10"&data_d_trend$year==escenarios_final[n,which(names(escenarios_final)=="October")],]},
+        if(any(names(a)=="November")){esc_diario_Nov[[n]]=data_d_trend[data_d_trend$month=="11"&data_d_trend$year==escenarios_final[n,which(names(escenarios_final)=="November")],]},
+        if(any(names(a)=="December")){ esc_diario_Dic[[n]]=data_d_trend[data_d_trend$month=="12"&data_d_trend$year==escenarios_final[n,which(names(escenarios_final)=="December")],]})
       
     }
     
