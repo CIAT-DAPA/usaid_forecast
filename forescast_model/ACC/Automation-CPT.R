@@ -2,7 +2,6 @@
 ####### Functions #########
 ###########################
 
-
 #####Input download.cpt#####
 ##(dir_save) Ruta para guardar los archivos.
 ##(month) Mes antes del inicio de las predicciones.
@@ -27,7 +26,11 @@ download.cpt=function(dir_save,month,year){
     }
     if(l==8 & i==1){
       ensemble="M/(1%202%203%204%205%206%207%208%209%2010%2011%2012%2014%2015%2016%2017%2018%2019%2020%2021%2022%2023%2024)/VALUES/"
+    }
+    if(l==1 & (i==4|i==5|i==6)){
+      ensemble="M/(1%202%203%204%205%206%207%208%209%2010%2011%2012%2013%2014%2016%2017%2018%2019%2020%2021%2022%2023%2024)/VALUES/"
     } 
+    
     route=paste("http://iridl.ldeo.columbia.edu/SOURCES/.NOAA/.NCEP/.EMC/.CFSv2/.ENSEMBLE/.OCNF/.surface/.TMP/SOURCES/.NOAA/.NCEP/.EMC/.CFSv2/.REALTIME_ENSEMBLE/.OCNF/.surface/.TMP/appendstream/S/%280000%201%20",month.abb[l],"%201982-",year,"%29VALUES/L/",i,".5/",i+2,".5/RANGE%5BL%5D//keepgrids/average/",ensemble,"%5BM%5Daverage/-999/setmissing_value/Y/(30N)/(30S)/RANGEEDGES/%5BX/Y%5D%5BS/L/add%5Dcptv10.tsv.gz",sep="")### Ruta de descarga de datos 
     
     download.file(route, paste(dir_save,"/",i,"_",paste(month.abb[w[i:(i+2)]], collapse = '_'),"-",Sys.Date(),".tsv.gz",sep=""))### Realiza la descarga 
@@ -161,7 +164,7 @@ selection_area=function(x,y){
     
     for(j in 1:k){
       
-      canonico=cancor(x_pca[,1:i],y_pca[,1:j])
+      canonico=cancor(x_pca[,1:i],y_pca[,1:j,drop=F])
       x_center=scale(x_pca[,1:i],scale = F)
       y_center=scale(y_pca[,1:j],scale = F)  
       com_x=x_center%*%canonico$xcoef
@@ -170,7 +173,7 @@ selection_area=function(x,y){
       cor_tsm=cor(x,mode1[,1])
       count=count+1
       all_cor[count,]=cor_tsm[,1]
-     
+     print(c(i,j))
     }
    
   }
@@ -299,17 +302,30 @@ forecast=function(x,y,x_fores,set){
 }
 
 
-
 probabilities=function(fores,Y,sd_s){
   
   terciles=apply(Y,2,function(x)quantile(x,c(1/3,2/3),type=6))
   below=(pnorm(terciles[1,],fores,sd_s))*100
   normal=(pnorm(terciles[2,],fores,sd_s)-pnorm(terciles[1,],fores,sd_s))*100
   above=(1-pnorm(terciles[2,],fores,sd_s))*100
-  
-  prob_output=cbind(below,normal,above)
+  id=substr(names(Y),2,nchar(names(Y)))
+  prob_output=cbind.data.frame(id,below,normal,above)
   
   return(prob_output)
+}
+
+
+prob_output=function(p,m,y){
+  
+  w=(m)+(1:6)
+  years=rep(as.numeric(y),6)
+  if(sum(w>12)>0)years[which(w>12)]=years[which(w>12)]+1
+  if(sum(w>12)>0)w[which(w>12)]=w[which(w>12)]-12
+  if(sum(w<1)>0)w[which(w<1)]=w[which(w<1)]+12
+  table=data.frame(year=rep(years,p),month=rep(w,p))
+  table_order=table[order(table$year,table$month),]
+  return(table_order)
+  
 }
 
 #########RUN#########
@@ -319,7 +335,7 @@ start.time <- Sys.time()
 dir_save="C:/Users/dagudelo/Desktop/Ejemplo_descarga"
 month=as.numeric(format(Sys.Date(),"%m"))
 year=format(Sys.Date(),"%Y")
-y=download.cpt(dir_save,month-1,year)
+y=download.cpt(dir_save,month,year)
 end.time <- Sys.time()
 time.taken <- end.time - start.time
 time.taken
@@ -340,7 +356,6 @@ data_tsm_fore=lapply(data_tsm,function(x) x[dim(x)[1],,drop=F])
 names(data_tsm_fore)=names(data_tsm)
 
 
-
 dir_response="C:/Users/dagudelo/Desktop/Estaciones"
 dir_res=paste(dir_response,list.files(dir_response),sep="/")
 data_y=lapply(dir_res,function(x)read.table(x,dec=".",sep = ",",header = T))
@@ -351,7 +366,7 @@ dir_stations="Y:/USAID_Project/Product_1_web_interface/test/clima/daily_data"
 stations_selec=substr(list.files(dir_stations),1,nchar(list.files(dir_stations))-4)
 
 
-data_quar=lapply(data_y,quarterly_data,month-1)
+data_quar=lapply(data_y,quarterly_data,month)
 data_quartely=unlist(lapply(data_quar,"[", 1),recursive=FALSE)
 year_response=unlist(lapply(data_quar,"[", 2),recursive=FALSE)
 
@@ -367,53 +382,54 @@ data_res_final=Map(function(x,y) Map(function(x1,y1) x1[y1,] ,x,y),data_quartely
 
 data_tsm_selec=Map(function(x,y) Map(selection_area,x,y),data_tsm_final,data_res_final)
 
-
 ########## Cross Validation ##########
 ######################################
 
 cross_obj=Map(function(x,y) Map(cross_val,x,y),data_tsm_selec,data_res_final)
 
-######### Forecast ###################
-######################################
-
+######### deterministic forecast ###########
+############################################
 
 fores_tsm_selec=lapply(data_tsm_selec,function(x) Map(function(x1,y1) y1[,match(colnames(x1),colnames(y1)),drop=F],x,data_tsm_fore ))
-
 settings=lapply(cross_obj,function(x) lapply(x,"[[",2))
 cross_all=lapply(cross_obj,function(x) lapply(x,"[[",1))
-
 forescast_obj=Map(function(x,y,x_fores,set)Map(forecast,x,y,x_fores,set),data_tsm_selec,data_res_final,fores_tsm_selec,settings)
-
 forescast_all=lapply(forescast_obj,function(x) lapply(x,"[[",1))
 Value_modo_x=lapply(forescast_obj,function(x) lapply(x,"[[",2))
 
+######### Probabilistic forecast ###########
+############################################
 
 sd_cross=Map(function(x,y) Map(function(x1, y1) sqrt(colSums(((x1-y1)^2)/dim(x1)[1]-1-1)),x,y),cross_all,data_res_final)
-
-
 n_all=lapply(data_res_final,function(x)lapply(x,function(x)dim(x)[1]))
-
-
 sd_final=Map(function(sd,value_modo,n)Map(function(sd1,value_modo1,n1) sd1*sqrt(1+(1/n1)+(value_modo1)^2) ,sd,value_modo,n),sd_cross,Value_modo_x,n_all)
-
 probabilities_final=Map(function(fores,Y,sd_s) Map(probabilities,fores,Y,sd_s),forescast_all,data_res_final,sd_final)
+probabilities_join=lapply(probabilities_final,function(x) do.call(rbind,x))
+
+######### Probability table ################
+############################################
+
+p_all=lapply(data_y,function(x)dim(x)[2]-2)
+table_year_month=lapply(p_all,prob_output,month,year)
+prob_output_list=Map(function(x,y)cbind(x,y),table_year_month,probabilities_join)
+prob_output_final=do.call(rbind,prob_output_list)
+
+path_prob="Y:/USAID_Project/Product_1_web_interface/test/clima/prob_forecast"
+#path_prob="C:/Users/dagudelo/Desktop"
+write.csv(prob_output_final,paste0(path_prob,"/",format(Sys.Date(),"%Y%m%d"),"_prob.csv"),row.names = F)
+
+######### Metrics table ###############
+#######################################
+
+pearson_cor=Map(function(x,y) Map(function(x1, y1){pearson=diag(cor(x1,y1));id=substr(names(x1),2,nchar(names(x1)));data.frame(id,pearson)},x,y),data_res_final,cross_all)
+kendall_cor=Map(function(x,y) Map(function(x1, y1){kendall=diag(cor(x1,y1,method = "kendall"));data.frame(kendall)},x,y),data_res_final,cross_all)
+pearson_join=lapply(pearson_cor,function(x) do.call(rbind,x))
+kendall_join=lapply(kendall_cor,function(x) do.call(rbind,x))
 
 
-View(probabilities_final[[1]][[2]])
+lapply(settings,function(x) lapply(x,function(x1)x1[3]) )
 
-
-set=settings[[1]][[2]]
-x_fores=fores_tsm_selec[[1]][[2]]
-x=data_tsm_selec[[1]][[2]]
-y=data_res_final[[1]][[2]]
+u=Map(function(x,y,z) cbind(x,y,z),table_year_month,pearson_join,kendall_join)
 
 
 
-
-
-
-mon=month+0:5
-prob=expand.grid(year,mon,stations_selec,33.333,33.333,33.333)
-names(prob)=c("year","month","id","below","normal","above")
-
-write.csv(prob,paste0("Y:/USAID_Project/Product_1_web_interface/test/clima/prob_forecast","/",format(Sys.Date(),"%Y%m%d"),"_prob.csv"),row.names = F)
