@@ -588,31 +588,6 @@ plot(results$maps)
 #dim(res$global.pca$ind$coord[,1:3])
 
 
-setwd(paste(ruta,"/results_graphs/DMFA/",dep,sep=""))
-prueba<-getwd()
-
-region<-raster(paste(prueba,"/",substring(dep,1,4),"_", lead,".tif", sep = "")) # Lectura de un archivo raster para graficar
-plot(region) # grafico
-
-
-as.numeric(names(table(cluster_values[])))
-
-
-
-
-num_clust<-list(1,2,3,4) #Declare en un objeto tipo lista los cluster de interes
-# Cree un stack con las formas de los cluster
-num_zone<-stack(sapply(num_clust, ext_by_clust, cluster_values))
-# Cambie los nombres de los objetos del stack
-names(num_zone)<-paste("cluster", num_clust, sep="_")
-plot(num_zone) # Grafique los objetos
-
-
-
-
-
-
-
 
 # num_zone ahora sera un stack, supongo por ahora que no tendra mas de 4 capas. 
 DMFA_C<-function(dep, a, lead,lead_num, num_zone, results, answer){
@@ -679,7 +654,7 @@ DMFA_C<-function(dep, a, lead,lead_num, num_zone, results, answer){
   #setwd(paste("C:/Users/AESQUIVEL/Google Drive/Exp_2_AFM/results_graphs/", dep, "/",answer, "/", trim, "/", sep=""))
   
   
-  setwd(paste(ruta, "/results_graphs/",sep=""))
+  setwd(paste(ruta, "/results_graphs/DMFA/", dep, "/", answer, "/", trim ,sep=""))
   getwd()
   
   # No encuentro las contribuciones del grupo (todavia)
@@ -689,7 +664,7 @@ DMFA_C<-function(dep, a, lead,lead_num, num_zone, results, answer){
   
   #Guarde el archivo con lso valores propios
   write.csv(res.dmfa$eig, file=paste("eigGroup",answer, trim,lead_num ,".csv", sep="_"))
-  # Imprima el resumen del AFM
+  # Imprima el resumen del DAFM
   
   
   ###### Guardado automatico de la grafica de valores propios
@@ -734,7 +709,7 @@ DMFA_C<-function(dep, a, lead,lead_num, num_zone, results, answer){
   
   
   # Guarde las dos imagenes automaticamente
-  tiff(paste(ruta,"/results_graphs/disp","_",answer, "_",trim,"_",lead_num,".tif",sep=""), height=300,width=600,res=80,
+  tiff(paste(ruta,"/results_graphs/DMFA/", dep, "/", answer, "/", trim,"/disp","_",answer, "_",trim,"_",lead_num,".tif",sep=""), height=300,width=600,res=80,
        compression="lzw") 
   grid.arrange(gp,p2, p3,ncol=3)
   dev.off()
@@ -744,7 +719,81 @@ DMFA_C<-function(dep, a, lead,lead_num, num_zone, results, answer){
   write.csv(res.dmfa$var$coord, file=paste("componentes",answer, a, lead_num ,".csv", sep="_"))
   # Guarde lo que vaya a entregar en una lista que entrega, la correlaciónm, la contribución y las componentes
   entrega<-list(corr=corr, res_global.pca=res.dmfa$var$coord[,1:3])
+  
+  
+  
   return(entrega)}
+
+
+
+
+######### Corridas de la funacion  (estado: adaptando a las nuevas condiciones)
+
+
+
+setwd(paste(ruta,"/results_graphs/DMFA/",dep,"/",answer,sep=""))
+prueba<-getwd()
+
+region<-raster(paste(prueba,"/",substring(dep,1,4),"_", lead,".tif", sep = "")) # Lectura de un archivo raster para graficar
+plot(region) # grafico
+
+
+as.numeric(names(table(cluster_values[])))
+
+num_clust<-list(1,2,3,4) #Declare en un objeto tipo lista los cluster de interes
+# Cree un stack con las formas de los cluster
+num_zone<-stack(sapply(num_clust, ext_by_clust, cluster_values))
+# Cambie los nombres de los objetos del stack
+names(num_zone)<-paste("cluster", num_clust, sep="_")
+plot(num_zone) # Grafique los objetos
+
+
+
+
+
+
+# Esta información se usa como referencia, son los sitios 
+# de interes en el estudio
+estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima","Turipana")
+sitios<-c("Lorica","Yopal","Ibagué","LaUnion","Espinal","Cereté")
+cbind(estaciones, sitios)
+
+
+
+dep="casanare"
+
+## lead
+if(a==12){
+  lead=c("DEF_Nov","DEF_Aug", "DEF_Jun")
+}else  if(a==3){ 
+  lead=c("MAM_Feb","MAM_Nov", "MAM_Sep")}else  if(a==6){
+    lead=c("JJA_May","JJA_Feb","JJA_Dec")
+  }else  if(a==9){
+    lead=c("SON_Aug", "SON_May", "SON_Mar")
+  }
+
+answer= "AptoYopal"
+lead_num=c(0,3,5)
+a<-c(12,3,6,9)
+num_zone<-tabla[,"num_zone"]
+
+for(j in 1:4){
+  if(a[j]==12){
+    lead=c("DEF_Nov","DEF_Aug", "DEF_Jun")
+  }else if(a[j]==3){ 
+    lead=c("MAM_Feb","MAM_Nov", "MAM_Sep")}else if(a[j]==6){
+      lead=c("JJA_May","JJA_Feb","JJA_Dec")
+    }else if(a[j]==9){
+      lead=c("SON_Aug", "SON_May", "SON_Mar")}
+  for(i in 1:3){
+    results<-correlation(dep, lead[i], a[j],answer)
+    MFA<-MFA_C(dep, a[j], lead[i], lead_num[i], num_zone[j], results, answer)
+  }
+} 
+
+
+
+
 
 
 
