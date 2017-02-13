@@ -118,15 +118,15 @@ gen_esc_daily <- function(prob,data_d,path_output,station){
   t_max_trend = matrix(NA,length(unique(data$year)),6)
   t_min_trend = matrix(NA,length(unique(data$year)),6)
   
-  for (i in probabilidades$month){
+  for (i in 1:6){
     prec_month = data[data$month==i,3]
     year_month = data[data$month==i,1]
     
-    t_max_trend[,i-month(Sys.Date())+1] = data_temp[data_temp$month==i,3]
-    t_min_trend[,i-month(Sys.Date())+1] = data_temp[data_temp$month==i,4]
+    t_max_trend[,i] = data_temp[data_temp$month==probabilidades$month[i],3]
+    t_min_trend[,i] = data_temp[data_temp$month==probabilidades$month[i],4]
     
-    prec_sort[,i-month(Sys.Date())+1] = prec_month[order(prec_month)]
-    year_sort[,i-month(Sys.Date())+1] = year_month[order(prec_month)]
+    prec_sort[,i] = prec_month[order(prec_month)]
+    year_sort[,i] = year_month[order(prec_month)]
   }
   
   colnames(prec_sort)=month.prob
@@ -348,7 +348,7 @@ path_data_d <- dir_stations
 data_d_all = list.files(path_data_d,full.names = T)
 
 data_prob_all=read.csv(path_prob,header=T,dec=".")
-station_names = unique(data_prob_all$id)
+station_names = gsub('.csv','',list.files(path_data_d))
 
 start.time <- Sys.time()
 
