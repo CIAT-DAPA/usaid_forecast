@@ -87,7 +87,8 @@ resampling <- function(data,prob,añoshistorico){
 
 gen_esc_daily <- function(prob,data_d,path_output,station){
   
-   
+  cat("\n Inicio del remuestreo... \n")
+  
   #---------------------------------------------------------------------------------#
   #-------------------------------Lectura de datos----------------------------------#
   #---------------------------------------------------------------------------------#
@@ -138,7 +139,8 @@ gen_esc_daily <- function(prob,data_d,path_output,station){
   #------------------------Cálculo tendencias para temp-----------------------------#
   #---------------------------------------------------------------------------------#
   
- 
+  cat("\n Calculando tendencias de temperaturas... \n")
+  
   s.pred_new = matrix(NA,6,2)
   for(v in 1:6){
     
@@ -330,7 +332,7 @@ for(y in min(data_temp$year):max(data_temp$year)){
       write.csv(esc_final_diarios[[k]],paste(path_output,"/",format.Date(Sys.Date(),"%Y%m%d"),"/Escenarios_",station,"/escenario_",nom[k],".csv",sep=""),row.names=F)
     }
     
-  cat("\n Proceso finalizado exitosamente \n")
+  cat("\n Proceso finalizado exitosamente \n \n")
 
  
 }
