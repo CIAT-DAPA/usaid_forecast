@@ -679,10 +679,7 @@ DMFA_C<-function(dep, a, lead,lead_num, num_zone, results, answer){
                          cor3=cor(results$ind, res.dmfa$var$coord[,3]))
   
   
-  
-  
-  
-  
+ 
   # Realice un gráfico entre la primera componente y el indicador de la estación y agregue la correlación
   datos=as.data.frame(cbind(res.dmfa$var$coord[,1], results$ind))
   gp = ggplot(datos, aes(datos[,1], datos[,2])) +  geom_point(shape=19, size=3,colour="#CC0000")
@@ -707,7 +704,6 @@ DMFA_C<-function(dep, a, lead,lead_num, num_zone, results, answer){
   p3
  
   
-  
   # Guarde las dos imagenes automaticamente
   tiff(paste(ruta,"/results_graphs/DMFA/", dep, "/", answer, "/", trim,"/disp","_",answer, "_",trim,"_",lead_num,".tif",sep=""), height=300,width=600,res=80,
        compression="lzw") 
@@ -720,48 +716,22 @@ DMFA_C<-function(dep, a, lead,lead_num, num_zone, results, answer){
   # Guarde lo que vaya a entregar en una lista que entrega, la correlaciónm, la contribución y las componentes
   entrega<-list(corr=corr, res_global.pca=res.dmfa$var$coord[,1:3])
   
-  
-  
   return(entrega)}
 
 
 
 
-######### Corridas de la funacion  (estado: adaptando a las nuevas condiciones)
-
-
-
-setwd(paste(ruta,"/results_graphs/DMFA/",dep,"/",answer,sep=""))
-prueba<-getwd()
-
-region<-raster(paste(prueba,"/",substring(dep,1,4),"_", lead,".tif", sep = "")) # Lectura de un archivo raster para graficar
-plot(region) # grafico
-
-
-as.numeric(names(table(cluster_values[])))
-
-num_clust<-list(1,2,3,4) #Declare en un objeto tipo lista los cluster de interes
-# Cree un stack con las formas de los cluster
-num_zone<-stack(sapply(num_clust, ext_by_clust, cluster_values))
-# Cambie los nombres de los objetos del stack
-names(num_zone)<-paste("cluster", num_clust, sep="_")
-plot(num_zone) # Grafique los objetos
-
-
-
-
-
+######### Corridas de la funcion  (estado: adaptando a las nuevas condiciones)
 
 # Esta información se usa como referencia, son los sitios 
 # de interes en el estudio
-estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima","Turipana")
-sitios<-c("Lorica","Yopal","Ibagué","LaUnion","Espinal","Cereté")
+estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima","Turipana","Villanueva")
+sitios<-c("Lorica","Yopal","Ibagué","LaUnion","Espinal","Cereté", "StaIsabel")
 cbind(estaciones, sitios)
 
 
 
-dep="casanare"
-
+dep="santander"
 ## lead
 if(a==12){
   lead=c("DEF_Nov","DEF_Aug", "DEF_Jun")
@@ -772,12 +742,12 @@ if(a==12){
     lead=c("SON_Aug", "SON_May", "SON_Mar")
   }
 
-answer= "AptoYopal"
+answer= "StaIsabel"
 lead_num=c(0,3,5)
 a<-c(12,3,6,9)
-num_zone<-tabla[,"num_zone"]
 
 for(j in 1:4){
+  
   if(a[j]==12){
     lead=c("DEF_Nov","DEF_Aug", "DEF_Jun")
   }else if(a[j]==3){ 
@@ -785,11 +755,32 @@ for(j in 1:4){
       lead=c("JJA_May","JJA_Feb","JJA_Dec")
     }else if(a[j]==9){
       lead=c("SON_Aug", "SON_May", "SON_Mar")}
+  
+  
   for(i in 1:3){
-    results<-correlation(dep, lead[i], a[j],answer)
-    MFA<-MFA_C(dep, a[j], lead[i], lead_num[i], num_zone[j], results, answer)
-  }
-} 
+   
+    
+    setwd(paste(ruta, "/results_graphs/DMFA/", dep, "/", sep=""))
+    prueba<-getwd()
+    
+    region<-raster(paste(prueba,"/",substring(dep,1,4),"_", lead[i],".tif", sep = "")) # Lectura de un archivo raster para graficar
+    plot(region) # grafico
+    
+    #Declare en un objeto tipo lista los cluster de interes
+    num_clust<-as.list(as.numeric(names(table(region[])))) 
+    # Cree un stack con las formas de los cluster
+    num_zone<-stack(sapply(num_clust, ext_by_clust, region))
+    # Cambie los nombres de los objetos del stack
+    names(num_zone)<-paste("cluster", num_clust, sep="_")
+    plot(num_zone) # Grafique los objetos
+    
+    
+    
+     results<-correlation(dep, lead[i], a[j],answer)
+     DMFA<- DMFA_C(dep, a[j], lead[i], lead_num[i], num_zone, results, answer)
+  } # cierre el segundo for
+  
+} # Cierre el primer for
 
 
 
@@ -810,8 +801,8 @@ DMFA_P<-function(dep, a, lead,lead_num, num_zone, results, answer){
   if(a==3){trim<-"MAM"}else if(a==6){ trim<-"JJA"}else if(a==9){trim<-"SON"}else if(a==12){trim<-"DEF"}else print("ERRORR !!!!")
   
   #### Correción de las regiones predictoras
-  num_zone
-  results$SST
+  #num_zone
+  #results$SST
   
   Total_zone<-1:dim(num_zone)[3]
   
@@ -861,7 +852,7 @@ DMFA_P<-function(dep, a, lead,lead_num, num_zone, results, answer){
   } 
   
   ##### Para utilizar este tipo de analisis se debe crear una variable columna 
-  res.dmfa = DMFA (zonas, num.fact = 1)
+  res.dmfa = DMFA (zonas, num.fact = 1, graph=FALSE)
 
   # correlación entre las componentes y el indicador
   corr<-cbind.data.frame(cor1=cor(results$ind, res.dmfa$var$coord[,1]),
@@ -881,6 +872,135 @@ DMFA_P<-function(dep, a, lead,lead_num, num_zone, results, answer){
 
 
 
+
+
+dep="santander"
+## lead
+if(a==12){
+  lead=c("DEF_Nov","DEF_Aug", "DEF_Jun")
+}else  if(a==3){ 
+  lead=c("MAM_Feb","MAM_Nov", "MAM_Sep")}else  if(a==6){
+    lead=c("JJA_May","JJA_Feb","JJA_Dec")
+  }else  if(a==9){
+    lead=c("SON_Aug", "SON_May", "SON_Mar")
+  }
+
+answer= "StaIsabel"
+lead_num=c(0,3,5)
+a<-c(12,3,6,9)
+
+
+
+datos<-0
+for(j in 1:4){
+  
+  if(a[j]==12){
+    lead=c("DEF_Nov","DEF_Aug", "DEF_Jun")
+  }else if(a[j]==3){ 
+    lead=c("MAM_Feb","MAM_Nov", "MAM_Sep")}else if(a[j]==6){
+      lead=c("JJA_May","JJA_Feb","JJA_Dec")
+    }else if(a[j]==9){
+      lead=c("SON_Aug", "SON_May", "SON_Mar")}
+  
+  for(i in 1:3){
+   
+    setwd(paste(ruta, "/results_graphs/DMFA/", dep, "/", sep=""))
+    prueba<-getwd()
+    
+    region<-raster(paste(prueba,"/",substring(dep,1,4),"_", lead[i],".tif", sep = "")) # Lectura de un archivo raster para graficar
+    plot(region) # grafico
+    
+    #Declare en un objeto tipo lista los cluster de interes
+    num_clust<-as.list(as.numeric(names(table(region[])))) 
+    # Cree un stack con las formas de los cluster
+    num_zone<-stack(sapply(num_clust, ext_by_clust, region))
+    # Cambie los nombres de los objetos del stack
+    names(num_zone)<-paste("cluster", num_clust, sep="_")
+    plot(num_zone) # Grafique los objetos
+    
+    
+    
+    results<-correlation(dep, lead[i], a[j],answer)
+    MFA<-DMFA_P(dep, a[j], lead[i], lead_num[i],num_zone, results, answer)
+    datos_p=data.frame(a[j],answer,lead[i], MFA$corr, MFA$corr_test)
+    datos=rbind(datos, datos_p)
+  }
+} # Aqui se almacena el coeficiente de correlación de las 3 primeras componentes
+# Cree una tabla global para el coeficiente de correlación 
+datosp<-rbind(datosp,datos[-1,])
+fix(datosp)
+
+
+##Organice la información global 
+#datosp<-datosp[-1,]
+names(datosp)<-c("a","Station","lead","cor1", "cor2", "cor3", "test1", "test2","test3")
+row.names(datosp)<-paste(substring(datosp[,2],1,5),datosp[,1], datosp[, "lead"], sep="_")
+
+
+## Guarde en un archivo la tabla
+
+setwd("C:/Users/AESQUIVEL/Google Drive/Exp_2_AFM/results_graphs/DMFA/")
+getwd()
+
+write.csv(datosp, file = "correlaciones.csv")
+
+
+
+
+
+
+
+
+#### Gráfico de Correlaciones
+correlaciones <- read.csv("C:/Users/AESQUIVEL/Google Drive/Exp_2_AFM/results_graphs/DMFA/correlaciones.csv", row.names=1)
+correlaciones[,"a"]<-as.factor(correlaciones[,"a"])
+
+# Este es un gráfico de barras de las correlaciones de cada componente 
+# con cada estación agrupadas por trimestre y lead time 
+c <- ggplot(correlaciones, aes(a,cor1, fill=as.factor(lead_num)))
+c <- c + geom_bar(stat = "identity", position="dodge")
+c <- c + facet_grid(. ~ Station) + theme_bw() 
+c <- c + geom_hline(yintercept = c(0.25,-0.25)) + labs( x="", y="Cor comp 1") + ylim(c(-0.8,0.8)) + guides(fill=guide_legend(title="Lead Time"))
+
+
+d <- ggplot(correlaciones, aes(a,cor2, fill=as.factor(lead_num)) )
+d <-d + geom_bar(stat = "identity", position="dodge")
+d <- d + facet_grid(. ~ Station) + theme_bw() 
+d <- d + geom_hline(yintercept = c(0.25,-0.25)) + labs( x="", y="Cor comp 2") + ylim(c(-0.8,0.8)) + guides(fill=guide_legend(title="Lead Time"))
+
+f <- ggplot(correlaciones, aes(a,cor3, fill=as.factor(lead_num)) )
+f <-f + geom_bar(stat = "identity", position="dodge")
+f <- f + facet_grid(. ~ Station) + theme_bw() 
+f <-f + geom_hline(yintercept = c(0.25,-0.25)) + labs( x="", y="Cor comp 3") + ylim(c(-0.8,0.8)) + guides(fill=guide_legend(title="Lead Time"))
+
+x11()
+grid.arrange(c,d,f, ncol=1)
+
+# Posiciones en las que se cumple que el valor absoluto de la correlación
+# sea mayor a 0.25
+cond<-ifelse(abs(correlaciones[,4:6])>0.3,yes = 1,no = 0)
+
+suma<-apply(cond, 1, sum) # Diga por filas cuantas componentes cumplen la condición 
+
+
+cbind(cond,suma)
+
+
+length(rownames(correlaciones)[which(suma<1)]) # Muestre cuales modelos no pueden ajustarse
+# es decir no  cumplen con la condición 
+correlaciones[which(suma<1),] # Muestre las correlaciones de aquellos modelos que no cumplen
+
+
+
+
+
+
+
+
+
+cond<-ifelse(abs(correlaciones[,7:9])<0.1,yes = 1,no = 0)
+suma<-apply(cond, 1, sum) # Diga por filas cuantas componentes cumplen la condición 
+length(rownames(correlaciones)[which(suma<1)]) # Muestre cuales modelos no pueden ajustarse
 
 
 ## Esta función realiza el modelo de regresión lineal multiple (o simple)
@@ -908,10 +1028,13 @@ modelo<-function(dep,lead,lead_num, a, answer, num_zone){
   # Esta función corre el AFM y entrega las componentes para ingresar al modelo
   MFA<-DMFA_P(dep, a, lead,lead_num, num_zone, results, answer)
   
-  comp<-ifelse(MFA$corr_test<0.05,1,0)
+  comp<-ifelse(MFA$corr_test<0.01,1,0)
   
   print(comp)
   
+  
+  
+  if(sum(comp)>0){
   # En este condicional se ajusta el modelo de regresión lineal
   # dependiendo de los valores del vector cop se decide que tipo de modelo se ajsuta
   # es decir con cuantas y cuales componentes
@@ -937,7 +1060,6 @@ modelo<-function(dep,lead,lead_num, a, answer, num_zone){
   
   ### Cambia el directorio de guardado de los archivos
   setwd(paste(ruta, "/results_graphs/", sep=""))
-  
   
   adj_r_squared=summary(modelo)$adj.r.squared # Estrae el adj_r_squared del modelo
   # A  partir del estadístico F se calcula el valor_p del modelo
@@ -984,9 +1106,97 @@ modelo<-function(dep,lead,lead_num, a, answer, num_zone){
   
   # Cree una lista donde se guarde los indicadores del modelo, lo observado, lo pronosticado y los residuales del modelo, tambien se almacenan las coefficientes
   entrega<-list(comp=comp, summary_m=summary_m, obs=results$ind, pron=modelo$fitted.values, residuales=modelo$residuals,  coeff=modelo$coefficients)
-  
+  } else if(sum(comp)==0){
+   entrega=list(summary_m=data.frame(media="NA",Intercept="NA",adj_r_squared="NA",p_value="NA", var="NA", nor="NA", box="NA", RMSE_b="NA", num_coef="NA", row.names = NULL))
+  }
   # Devuelva la lista 
   return(entrega)}
+
+
+
+
+
+# Corra todos los modelos
+dep<-"casanare"
+answer<-"AptoYopal"
+
+
+
+## lead
+lead_num=c(0,3,5)
+a<-c(12,3,6,9)
+
+
+
+
+mo_p<-list()
+
+for(j in 1:4){
+  
+  if(a[j]==12){
+    lead=c("DEF_Nov","DEF_Aug", "DEF_Jun")
+  }else if(a[j]==3){ 
+    lead=c("MAM_Feb","MAM_Nov", "MAM_Sep")}else if(a[j]==6){
+      lead=c("JJA_May","JJA_Feb","JJA_Dec")
+    }else if(a[j]==9){
+      lead=c("SON_Aug", "SON_May", "SON_Mar")}
+  
+  
+  for(i in 1:3){
+    
+    setwd(paste(ruta, "/results_graphs/DMFA/", dep, "/", sep=""))
+    prueba<-getwd()
+    
+    region<-raster(paste(prueba,"/",substring(dep,1,4),"_", lead[i],".tif", sep = "")) # Lectura de un archivo raster para graficar
+    plot(region) # grafico
+    
+    #Declare en un objeto tipo lista los cluster de interes
+    num_clust<-as.list(as.numeric(names(table(region[])))) 
+    # Cree un stack con las formas de los cluster
+    num_zone<-stack(sapply(num_clust, ext_by_clust, region))
+    # Cambie los nombres de los objetos del stack
+    names(num_zone)<-paste("cluster", num_clust, sep="_")
+    plot(num_zone) # Grafique los objetos
+    
+    
+    model<-modelo(dep,lead[i],lead_num[i], a[j], answer, num_zone)$summary_m
+    #row.names(model)=paste(substring(answer,1,5),a[i], lead_num[i], sep="_")
+    #mo_p=rbind.data.frame(mo_p, ls(model))  
+     mo_p[[i]]<-model
+  } # cierre el segundo for
+  
+  unlist(mo_p)
+  
+} # Cierre el primer for
+
+
+
+# Guarde automaticamente una tabla con todos los indicadores de los modelos corridos
+mop<-rbind(mop,mo_p[-1, ])
+mop
+
+setwd("C:/Users/AESQUIVEL/Google Drive/Exp_2_AFM/")
+getwd()
+write.csv(mop, file = "summary_models.csv", row.names = TRUE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
