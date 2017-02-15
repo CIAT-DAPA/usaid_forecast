@@ -550,9 +550,6 @@ plot(num_zone) # Grafique los objetos
 
 
 
-
-
-
 answer="StaIsabel"
 dep="santander"
 lead_v
@@ -1028,7 +1025,7 @@ modelo<-function(dep,lead,lead_num, a, answer, num_zone){
   # Esta función corre el AFM y entrega las componentes para ingresar al modelo
   MFA<-DMFA_P(dep, a, lead,lead_num, num_zone, results, answer)
   
-  comp<-ifelse(MFA$corr_test<0.01,1,0)
+  comp<-ifelse(MFA$corr_test<0.1,1,0)
   
   print(comp)
   
@@ -1059,7 +1056,7 @@ modelo<-function(dep,lead,lead_num, a, answer, num_zone){
   
   
   ### Cambia el directorio de guardado de los archivos
-  setwd(paste(ruta, "/results_graphs/", sep=""))
+  setwd(paste(ruta, "/results_graphs/DMFA/", dep, "/", answer, "/", trim, "/", sep=""))
   
   adj_r_squared=summary(modelo)$adj.r.squared # Estrae el adj_r_squared del modelo
   # A  partir del estadístico F se calcula el valor_p del modelo
@@ -1067,7 +1064,7 @@ modelo<-function(dep,lead,lead_num, a, answer, num_zone){
   summary(modelo) # imprima el resumen del modelo
   
   # Guarde el resumen gráfico de los supuestos
-  tiff(paste(ruta,"/results_graphs/Csup_", answer,"_",a,"_",lead_num,".tif",sep=""), height=450,width=700,res=100,
+  tiff(paste(ruta,"/results_graphs/DMFA/",dep, "/", answer, "/", trim,"/Csup_", answer,"_",a,"_",lead_num,".tif",sep=""), height=450,width=700,res=100,
        compression="lzw") 
   layout(matrix(1:6,2)) # ponga todos los gráficos en el display (dividido)
   plot(modelo) # Realiza el resumen gráfico del modelo
@@ -1099,7 +1096,7 @@ modelo<-function(dep,lead,lead_num, a, answer, num_zone){
   ajuste=  ajuste +  geom_text(data = data.frame(), aes(max(results$ind)-70, min(modelo$fitted.values)+60, label = paste("r = ", round(cor(results$ind, modelo$fitted.values),3), sep="")))
   ajuste=  ajuste +  geom_text(data = data.frame(), aes(max(results$ind)-70, min(modelo$fitted.values)+10, label = paste("RMSE = ", round(sqrt(sum((modelo$fitted.values-results$ind)^2)/length(results$ind)),3), sep="")))
   
-  tiff(paste(ruta,"/results_graphs/Cajuste_", answer,"_",a,"_",lead_num,".tif",sep=""), height=450,width=700,res=100,
+  tiff(paste(ruta,"/results_graphs/DMFA/",dep, "/", answer, "/", trim, "/Cajuste_", answer,"_",a,"_",lead_num,".tif",sep=""), height=450,width=700,res=100,
        compression="lzw") 
   print(ajuste)
   dev.off()
@@ -1107,7 +1104,7 @@ modelo<-function(dep,lead,lead_num, a, answer, num_zone){
   # Cree una lista donde se guarde los indicadores del modelo, lo observado, lo pronosticado y los residuales del modelo, tambien se almacenan las coefficientes
   entrega<-list(comp=comp, summary_m=summary_m, obs=results$ind, pron=modelo$fitted.values, residuales=modelo$residuals,  coeff=modelo$coefficients)
   } else if(sum(comp)==0){
-   entrega=list(summary_m=data.frame(media="NA",Intercept="NA",adj_r_squared="NA",p_value="NA", var="NA", nor="NA", box="NA", RMSE_b="NA", num_coef="NA", row.names = NULL))
+   entrega=list(summary_m=data.frame(media=NA,Intercept=NA,adj_r_squared=NA,p_value=NA, var=NA, nor=NA, box=NA, RMSE_b=NA, num_coef=NA, row.names = NULL))
   }
   # Devuelva la lista 
   return(entrega)}
@@ -1117,8 +1114,8 @@ modelo<-function(dep,lead,lead_num, a, answer, num_zone){
 
 
 # Corra todos los modelos
-dep<-"casanare"
-answer<-"AptoYopal"
+dep<-"santander"
+answer<-"StaIsabel"
 
 
 
@@ -1129,7 +1126,7 @@ a<-c(12,3,6,9)
 
 
 
-mo_p<-list()
+mo_p<-NA
 
 for(j in 1:4){
   
@@ -1140,8 +1137,7 @@ for(j in 1:4){
       lead=c("JJA_May","JJA_Feb","JJA_Dec")
     }else if(a[j]==9){
       lead=c("SON_Aug", "SON_May", "SON_Mar")}
-  
-  
+
   for(i in 1:3){
     
     setwd(paste(ruta, "/results_graphs/DMFA/", dep, "/", sep=""))
@@ -1160,12 +1156,10 @@ for(j in 1:4){
     
     
     model<-modelo(dep,lead[i],lead_num[i], a[j], answer, num_zone)$summary_m
-    #row.names(model)=paste(substring(answer,1,5),a[i], lead_num[i], sep="_")
-    #mo_p=rbind.data.frame(mo_p, ls(model))  
-     mo_p[[i]]<-model
+    row.names(model)=paste(substring(answer,1,5),a[j], lead_num[i], sep="_")
+    mo_p=rbind(mo_p, model)  
+    #mo_p[[i]]<-model
   } # cierre el segundo for
-  
-  unlist(mo_p)
   
 } # Cierre el primer for
 
@@ -1175,9 +1169,9 @@ for(j in 1:4){
 mop<-rbind(mop,mo_p[-1, ])
 mop
 
-setwd("C:/Users/AESQUIVEL/Google Drive/Exp_2_AFM/")
+setwd("C:/Users/AESQUIVEL/Google Drive/Exp_2_AFM/results_graphs/DMFA/")
 getwd()
-write.csv(mop, file = "summary_models.csv", row.names = TRUE)
+write.csv(mop, file = "summary_models_test.csv", row.names = TRUE)
 
 
 
@@ -1222,63 +1216,79 @@ modelop<-function(dep,lead,lead_num, a, answer, num_zone){
   MFA<-DMFA_P(dep, a, lead,lead_num, num_zone, results, answer)
   
   comp<-ifelse(MFA$corr_test<0.1,1,0)
+  
+  print(comp)
 
   
-  # En este condicional se ajusta el modelo de regresión lineal
-  # dependiendo de los valores del vector cop se decide que tipo de modelo se ajsuta
-  # es decir con cuantas y cuales componentes
-  # demolo de la forma lm(results$ind~MFA$componentes)
-  if(comp[1]==1 & comp[2]==1 & comp[3]==1){
-    modelo<-lm(results$ind~MFA$res_global.pca[,1]+MFA$res_global.pca[,2]+MFA$res_global.pca[,3])
-  }else if(comp[1]==1 & comp[2]==1 & comp[3]==0){
-    modelo<-lm(results$ind~MFA$res_global.pca[,1]+MFA$res_global.pca[,2])
-  }else if(comp[1]==1 & comp[2]==0 & comp[3]==1){
-    modelo<-lm(results$ind~MFA$res_global.pca[,1]+MFA$res_global.pca[,3])
-  }else if(comp[1]==1 & comp[2]==0 & comp[3]==0){
-    modelo<-lm(results$ind~MFA$res_global.pca[,1])
-  }else if(comp[1]==0 & comp[2]==1 & comp[3]==1){
-    modelo<-lm(results$ind~MFA$res_global.pca[,2]+MFA$res_global.pca[,3])
-  }else if(comp[1]==0 & comp[2]==1 & comp[3]==0){
-    modelo<-lm(results$ind~MFA$res_global.pca[,2])
-  }else if(comp[1]==0 & comp[2]==0 & comp[3]==1){
-    modelo<-lm(results$ind~MFA$res_global.pca[,3])
-  }else if(comp[1]==0 & comp[2]==0 & comp[3]==0){
-    print(modelo<-"ERRORRR !!!")
+  if(sum(comp)>0){
+    # En este condicional se ajusta el modelo de regresión lineal
+    # dependiendo de los valores del vector cop se decide que tipo de modelo se ajsuta
+    # es decir con cuantas y cuales componentes
+    # demolo de la forma lm(results$ind~MFA$componentes)
+    if(comp[1]==1 & comp[2]==1 & comp[3]==1){
+      modelo<-lm(results$ind~MFA$res_global.pca[,1]+MFA$res_global.pca[,2]+MFA$res_global.pca[,3])
+    }else if(comp[1]==1 & comp[2]==1 & comp[3]==0){
+      modelo<-lm(results$ind~MFA$res_global.pca[,1]+MFA$res_global.pca[,2])
+    }else if(comp[1]==1 & comp[2]==0 & comp[3]==1){
+      modelo<-lm(results$ind~MFA$res_global.pca[,1]+MFA$res_global.pca[,3])
+    }else if(comp[1]==1 & comp[2]==0 & comp[3]==0){
+      modelo<-lm(results$ind~MFA$res_global.pca[,1])
+    }else if(comp[1]==0 & comp[2]==1 & comp[3]==1){
+      modelo<-lm(results$ind~MFA$res_global.pca[,2]+MFA$res_global.pca[,3])
+    }else if(comp[1]==0 & comp[2]==1 & comp[3]==0){
+      modelo<-lm(results$ind~MFA$res_global.pca[,2])
+    }else if(comp[1]==0 & comp[2]==0 & comp[3]==1){
+      modelo<-lm(results$ind~MFA$res_global.pca[,3])
+    }else if(comp[1]==0 & comp[2]==0 & comp[3]==0){
+      print(modelo<-"ERRORRR !!!")
+    }
+    
+    
+    ### Cambia el directorio de guardado de los archivos
+    setwd(paste(ruta, "/results_graphs/DMFA/", dep, "/", answer, "/", trim, "/", sep=""))
+    
+    adj_r_squared=summary(modelo)$adj.r.squared # Estrae el adj_r_squared del modelo
+    # A  partir del estadístico F se calcula el valor_p del modelo
+    p_value<-1-pf(summary(modelo)$fstatistic[1], summary(modelo)$fstatistic[2], summary(modelo)$fstatistic[3])
+    summary(modelo) # imprima el resumen del modelo
+    
+    # Guarde otros indicadores relevantes tales como la media, el intercepto, y las pruebas sobre los supestos
+    # tambien el RMSE y la correlación de pearson entre los obs y lo pronsticado
+    media<-mean(results$ind) 
+    Intercept<-modelo$coefficients[1]
+    var<-bptest(modelo)$p.value # igualdad de varianza
+    nor<-shapiro.test(modelo$residuals)$p.value # normalidad
+    box<-Box.test (modelo$residuals, lag = 5)$p.value # independencia
+    cor_b<-round(cor(results$ind, modelo$fitted.values),3)
+    RMSE_b<-round(sqrt(sum((modelo$fitted.values-results$ind)^2)/length(results$ind)),3)
+    
+    # Cree un data frame con todos los indicadores y sumele el nú
+    summary_m<-data.frame(media,Intercept,adj_r_squared,p_value, var, nor, box, RMSE_b, num_coef=length(modelo$coefficients), row.names = NULL)
+    
+    # Cree una lista donde se guarde los indicadores del modelo, lo observado, lo pronosticado y los residuales del modelo, tambien se almacenan las coefficientes
+    entrega<-list(comp=comp, summary_m=summary_m, obs=results$ind, pron=modelo$fitted.values, residuales=modelo$residuals,  coeff=modelo$coefficients)
+  } else if(sum(comp)==0){
+    entrega=list(summary_m=data.frame(media=NA,Intercept=NA,adj_r_squared=NA,p_value=NA, var=NA, nor=NA, box=NA, RMSE_b=NA, num_coef=NA, row.names = NULL))
   }
-  
-  
- 
-  adj_r_squared=summary(modelo)$adj.r.squared # Estrae el adj_r_squared del modelo
-  # A  partir del estadístico F se calcula el valor_p del modelo
-  p_value<-1-pf(summary(modelo)$fstatistic[1], summary(modelo)$fstatistic[2], summary(modelo)$fstatistic[3])
-  summary(modelo) # imprima el resumen del modelo
- 
-  # Guarde otros indicadores relevantes tales como la media, el intercepto, y las pruebas sobre los supestos
-  # tambien el RMSE y la correlación de pearson entre los obs y lo pronsticado
-  media<-mean(results$ind) 
-  Intercept<-modelo$coefficients[1]
-  var<-bptest(modelo)$p.value # igualdad de varianza
-  nor<-shapiro.test(modelo$residuals)$p.value # normalidad
-  box<-Box.test (modelo$residuals, lag = 5)$p.value # independencia
-  cor_b<-round(cor(results$ind, modelo$fitted.values),3)
-  RMSE_b<-round(sqrt(sum((modelo$fitted.values-results$ind)^2)/length(results$ind)),3)
-  
-  # Cree un data frame con todos los indicadores y sumele el nú
-  summary_m<-data.frame(media,Intercept,adj_r_squared,p_value, var, nor, box, RMSE_b, num_coef=length(modelo$coefficients), row.names = NULL)
-  
-  # Guarde automaticamente en un archivo .csv lo obervado, pronosticado y los residuales
-  results_model<-cbind.data.frame(obs=results$ind, pron=modelo$fitted.values, residuales=modelo$residuals)
- 
-  # Cree una lista donde se guarde los indicadores del modelo, lo observado, lo pronosticado y los residuales del modelo, tambien se almacenan las coefficientes
-  entrega<-list(comp=comp, summary_m=summary_m, obs=results$ind, pron=modelo$fitted.values, residuales=modelo$residuals,  coeff=modelo$coefficients)
   
   # Devuelva la lista 
   return(entrega)}
 
-pruebas<-modelop(dep,lead,lead_num, a, answer, num_zone)
 
-pruebas
+#pruebas<-modelop(dep,lead,lead_num, a, answer, num_zone)
+#pruebas
 
+
+
+
+
+
+
+
+
+
+
+###################### Aun no se ha adaptado esta parte (En proceso)
 
 
 
@@ -1294,6 +1304,18 @@ probabilities=function(fores,Y,sd_s){
   
   return(prob_output)
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1324,164 +1346,215 @@ cross_validation <-function(dep,lead,lead_num, a, answer, num_zone){
   if(a==3){trim<-"MAM"}else if(a==6){ trim<-"JJA"}else if(a==9){trim<-"SON"}else if(a==12){trim<-"DEF"}else print("ERRORR !!!!")
   
   
-  
   results<-correlation(dep, lead, a,answer) # corre lo mapas de correlaciones y devuelve
   # la información de la estación y la sst (trimestral)
   MFA<-DMFA_P(dep, a, lead, lead_num, num_zone, results, answer) ## Corre la información del AFM
   
   comp<-ifelse(MFA$corr_test<0.1,1,0)
+  print(comp)
   
   
-  # Crea una matriz con las posiciones que se deben eliminar en cada validación. 
-  j=matrix(c(1:30),5,6, byrow = F) ## Matriz de posiciones
-  forecasts=matrix(c(1:30),5,6, byrow = F) ## Matriz en blanco de pronostico
-  
-  
-  ## Crea una matriz para almacenar los coeficientes de regresión
-  coef<-matrix(c(1:(sum(comp)+1)),6,(sum(comp)+1), byrow = T)
-  z<-cbind.data.frame(y=results$ind, x1=MFA$res_global.pca[,1], x2=MFA$res_global.pca[,2], x3=MFA$res_global.pca[,3])
-  
-  
-  # Realiza la validación cruzada 
-  for(i in 1:6){
+  if(sum(comp)>0){
     
-    results_i<-list(ind=results$ind[-j[,i]], SST=results$SST[[-j[,i]]])
-    
-    MFA1<-DMFA_P(dep, a, lead, lead_num, num_zone, results_i, answer) ## Corre la información del AFM
-    # Crea un data frame con los resultados y las componentes 
-    data<-cbind.data.frame(y=results_i$ind, x1=MFA1$res_global.pca[,1], x2=MFA1$res_global.pca[,2], x3=MFA1$res_global.pca[,3])
+    # Crea una matriz con las posiciones que se deben eliminar en cada validación. 
+    j=matrix(c(1:30),5,6, byrow = F) ## Matriz de posiciones
+    forecasts=matrix(c(1:30),5,6, byrow = F) ## Matriz en blanco de pronostico
     
     
-    # condicionando por las diferentes combinaciones de parametros del modelo
-    # corre el modelo
-    # almacena los pronosticos de las posiciones quitadas
-    # alamacena los coeficientes del modelo en cada caso 
-    if(comp[1]==1 & comp[2]==1 & comp[3]==1){ 
-      modelo<-lm(data$y ~ data$x1 + data$x2 + data$x3)
-      forecasts[,i]=modelo$coefficients[1]+modelo$coefficients[2]*z[j[,i],2]+modelo$coefficients[3]*z[j[,i],3]+modelo$coefficients[4]*z[j[,i],4]
-      coef[i,]<-modelo$coefficients
-    }else if(comp[1]==1 & comp[2]==1 & comp[3]==0){
-      modelo<-lm(data$y ~data$x1 + data$x2)
-      forecasts[,i]=modelo$coefficients[1]+modelo$coefficients[2]*z[j[,i],2]+modelo$coefficients[3]*z[j[,i],3]
-      coef[i,]<-modelo$coefficients
-    }else if(comp[1]==1 & comp[2]==0 & comp[3]==1){
-      modelo<-lm( data$y ~data$x1 + data$x3)
-      forecasts[,i]=modelo$coefficients[1]+modelo$coefficients[2]*z[j[,i],2]+modelo$coefficients[3]*z[j[,i],3]
-      coef[i,]<-modelo$coefficients
-    }else if(comp[1]==1 & comp[2]==0 & comp[3]==0){
-      modelo<-lm(data$y ~data$x1)
-      forecasts[,i]=modelo$coefficients[1]+modelo$coefficients[2]*z[j[,i],2]
-      coef[i,]<-modelo$coefficients
-    }else if(comp[1]==0 & comp[2]==1 & comp[3]==1){
-      modelo<-lm(data$y ~ data$x2 + data$x3)
-      forecasts[,i]=modelo$coefficients[1]+modelo$coefficients[2]*z[j[,i],2]+modelo$coefficients[3]*z[j[,i],3]
-      coef[i,]<-modelo$coefficients
-    }else if(comp[1]==0 & comp[2]==1 & comp[3]==0){
-      modelo<-lm(data$y ~ data$x2)
-      forecasts[,i]=modelo$coefficients[1]+modelo$coefficients[2]*z[j[,i],2]
-      coef[i,]<-modelo$coefficients
-    }else if(comp[1]==0 & comp[2]==0 & comp[3]==1){
-      modelo<-lm(data$y ~ data$x3)
-      forecasts[,i]=modelo$coefficients[1]+modelo$coefficients[2]*z[j[,i],2]
-      coef[i,]<-modelo$coefficients
-    }else if(comp[1]==0 & comp[2]==0 & comp[3]==0){
-      print(modelo<-"ERRORRR !!!")
+    ## Crea una matriz para almacenar los coeficientes de regresión
+    coef<-matrix(c(1:(sum(comp)+1)),6,(sum(comp)+1), byrow = T)
+    z<-cbind.data.frame(y=results$ind, x1=MFA$res_global.pca[,1], x2=MFA$res_global.pca[,2], x3=MFA$res_global.pca[,3])
+    
+    
+    # Realiza la validación cruzada 
+    for(i in 1:6){
+      
+      results_i<-list(ind=results$ind[-j[,i]], SST=results$SST[[-j[,i]]])
+      
+      MFA1<-DMFA_P(dep, a, lead, lead_num, num_zone, results_i, answer) ## Corre la información del AFM
+      # Crea un data frame con los resultados y las componentes 
+      data<-cbind.data.frame(y=results_i$ind, x1=MFA1$res_global.pca[,1], x2=MFA1$res_global.pca[,2], x3=MFA1$res_global.pca[,3])
+      
+      
+      # condicionando por las diferentes combinaciones de parametros del modelo
+      # corre el modelo
+      # almacena los pronosticos de las posiciones quitadas
+      # alamacena los coeficientes del modelo en cada caso 
+      if(comp[1]==1 & comp[2]==1 & comp[3]==1){ 
+        modelo<-lm(data$y ~ data$x1 + data$x2 + data$x3)
+        forecasts[,i]=modelo$coefficients[1]+modelo$coefficients[2]*z[j[,i],2]+modelo$coefficients[3]*z[j[,i],3]+modelo$coefficients[4]*z[j[,i],4]
+        coef[i,]<-modelo$coefficients
+      }else if(comp[1]==1 & comp[2]==1 & comp[3]==0){
+        modelo<-lm(data$y ~data$x1 + data$x2)
+        forecasts[,i]=modelo$coefficients[1]+modelo$coefficients[2]*z[j[,i],2]+modelo$coefficients[3]*z[j[,i],3]
+        coef[i,]<-modelo$coefficients
+      }else if(comp[1]==1 & comp[2]==0 & comp[3]==1){
+        modelo<-lm( data$y ~data$x1 + data$x3)
+        forecasts[,i]=modelo$coefficients[1]+modelo$coefficients[2]*z[j[,i],2]+modelo$coefficients[3]*z[j[,i],3]
+        coef[i,]<-modelo$coefficients
+      }else if(comp[1]==1 & comp[2]==0 & comp[3]==0){
+        modelo<-lm(data$y ~data$x1)
+        forecasts[,i]=modelo$coefficients[1]+modelo$coefficients[2]*z[j[,i],2]
+        coef[i,]<-modelo$coefficients
+      }else if(comp[1]==0 & comp[2]==1 & comp[3]==1){
+        modelo<-lm(data$y ~ data$x2 + data$x3)
+        forecasts[,i]=modelo$coefficients[1]+modelo$coefficients[2]*z[j[,i],2]+modelo$coefficients[3]*z[j[,i],3]
+        coef[i,]<-modelo$coefficients
+      }else if(comp[1]==0 & comp[2]==1 & comp[3]==0){
+        modelo<-lm(data$y ~ data$x2)
+        forecasts[,i]=modelo$coefficients[1]+modelo$coefficients[2]*z[j[,i],2]
+        coef[i,]<-modelo$coefficients
+      }else if(comp[1]==0 & comp[2]==0 & comp[3]==1){
+        modelo<-lm(data$y ~ data$x3)
+        forecasts[,i]=modelo$coefficients[1]+modelo$coefficients[2]*z[j[,i],2]
+        coef[i,]<-modelo$coefficients
+      }else if(comp[1]==0 & comp[2]==0 & comp[3]==0){
+        print(modelo<-"ERRORRR !!!")
+      }
     }
-  }
+    
+    
+    forecast=as.numeric(forecasts) ### La matriz de pronosticos conviertala en vector
+    forecast[forecast<0]=0 ## Todos los pronosticos negativos son iguales a 0 por definición de la precipitación.
+    
+    
+    # se hace un data frame con los datos observados y los prontosicados
+    cv<-cbind.data.frame(obs=results$ind[1:30], forecasts= forecast)
+    
+    # se calcula el goodness index que corresponde al coeficiente de correlación
+    # de Pearson
+    kendall<-cor(cv$obs, cv$forecasts, method = "kendall")
+    pearson<-cor(cv$obs, cv$forecasts, method = "pearson")
+    spearman<-cor(cv$obs, cv$forecasts, method = "spearman")
+    
+    RMSE <- sqrt(sum((cv$forecasts-cv$obs)^2)/length(cv$obs)) # Total
+    RMSE_porc <- (RMSE/mean(cv$obs))*100
+    
+    
+    ########### Curva ROC
+    cv<-cv[order(cv$obs),]
+    q_obs<-quantile(cv$obs, c(0.33,0.66))
+    below_o<-ifelse(cv$obs<q_obs[1],1,0)
+    
+    q_pron<-quantile(cv$forecasts, c(0.33,0.66)) 
+    below_p<-ifelse(cv$forecasts<q_pron[1],1,0)
+    
+    
+    table(below_p, below_o)
+    below<-cbind.data.frame(cv$obs,cv$forecasts, below_o, below_p)
+    
+    roc_below<-roc(response = below$below_o, predictor = below$`cv$forecasts`, smooth=F)
+    auc_below<-auc(roc_below)
+    #plot(roc_below, col="red",grid=TRUE)
+    
+    roc_below<-roc(response = below$below_o, predictor = below$`cv$forecasts`, smooth=F)
+    auc_below<-auc(roc_below)
+    
+    
+    above_o<-ifelse(cv$obs>q_obs[2],1,0)
+    above_p<-ifelse(cv$forecasts>q_pron[2],1,0)
+    
+    
+    table(above_p, above_o)
+    above<-cbind.data.frame(cv$obs,cv$forecasts, above_o, above_p)
+    
+    roc_above<-roc(response = above$above_o, predictor = above$`cv$forecasts`, smooth=F)
+    auc_above<-auc(roc_above)
+    
+    
+    indi=data.frame(kendall=kendall,pearson=pearson, spearman=spearman, RMSE=RMSE,  RMSE_porc= RMSE_porc, roc_below=auc_below , roc_above=auc_above)
+    
+    #  Realice una lista donde se almacenan todos los resultados
+    resultados=list(cv=cv, kendall=kendall, coeficientes=coef, indicadores=indi) ## Almacene los pronosticos y los resumenes de los modelos en una lista
+    
+    
+    # Directorio en el cual se guardan los archivos. 
+    setwd(paste(ruta,"/results_graphs/DMFA/", dep, "/", answer, "/", trim, "/",sep=""))
+    
+    
+    tiff(paste("ROC", answer, a, lead_num, ".tif",sep="_"), width = 620, height = 620, res=100,
+         compression="lzw")
+    plot(1-roc_below$specificities, roc_below$sensitivities,  type="l", col="red3", 
+         ylab="Hit rate", xlab="False-alarm rate", lwd=2, main="Relative Operating Characteristics")
+    abline(a=0, b=1, lwd=2)
+    lines(1-roc_above$specificities, roc_above$sensitivities, lwd=2,  col="blue")
+    legend(0.65,0.12, lwd=c(2,2), legend =c(paste("Below(",auc_below ,")",sep=""), paste("Above(",auc_above ,")",sep="")), col=c("red3","blue"))
+    dev.off()
+    
+    
+    # Almacene un archivo con la validación cruzada y otro con los parametros
+    write.csv(cv, file = paste("cv_" , answer,"_",a,"_",lead_num,".csv", sep=""))
+    write.csv(coef, file = paste("coef_" , answer,"_",a,"_",lead_num,".csv", sep=""))
+    write.csv(indi, file = paste("ind_" , answer,"_",a,"_",lead_num,".csv", sep=""))
+    
+    
+    
+    
+  } else if(sum(comp)==0){
+  
+      #  Realice una lista donde se almacenan todos los resultados
+    resultados=list(cv=NA, kendall=NA, coeficientes=NA, indicadores=NA) ## Almacene los pronosticos y los resumenes de los modelos en una lista
+      }
   
   
-  forecast=as.numeric(forecasts) ### La matriz de pronosticos conviertala en vector
-  forecast[forecast<0]=0 ## Todos los pronosticos negativos son iguales a 0 por definición de la precipitación.
-  
-  
-  # se hace un data frame con los datos observados y los prontosicados
-  cv<-cbind.data.frame(obs=results$ind[1:30], forecasts= forecast)
-  
-  # se calcula el goodness index que corresponde al coeficiente de correlación
-  # de Pearson
-  kendall<-cor(cv$obs, cv$forecasts, method = "kendall")
-  pearson<-cor(cv$obs, cv$forecasts, method = "pearson")
-  spearman<-cor(cv$obs, cv$forecasts, method = "spearman")
-  
-  RMSE <- sqrt(sum((cv$forecasts-cv$obs)^2)/length(cv$obs)) # Total
-  RMSE_porc <- (RMSE/mean(cv$obs))*100
-  
-  
-  ########### Curva ROC
-  cv<-cv[order(cv$obs),]
-  q_obs<-quantile(cv$obs, c(0.33,0.66))
-  below_o<-ifelse(cv$obs<q_obs[1],1,0)
-  
-  q_pron<-quantile(cv$forecasts, c(0.33,0.66)) 
-  below_p<-ifelse(cv$forecasts<q_pron[1],1,0)
-  
-  
-  table(below_p, below_o)
-  below<-cbind.data.frame(cv$obs,cv$forecasts, below_o, below_p)
-  
-  roc_below<-roc(response = below$below_o, predictor = below$`cv$forecasts`, smooth=F)
-  auc_below<-auc(roc_below)
-  #plot(roc_below, col="red",grid=TRUE)
-  
-  roc_below<-roc(response = below$below_o, predictor = below$`cv$forecasts`, smooth=F)
-  auc_below<-auc(roc_below)
-  
-  
-  above_o<-ifelse(cv$obs>q_obs[2],1,0)
-  above_p<-ifelse(cv$forecasts>q_pron[2],1,0)
-  
-  
-  table(above_p, above_o)
-  above<-cbind.data.frame(cv$obs,cv$forecasts, above_o, above_p)
-  
-  roc_above<-roc(response = above$above_o, predictor = above$`cv$forecasts`, smooth=F)
-  auc_above<-auc(roc_above)
-  #plot(roc_below, col="red",grid=TRUE)
   
   
   
-  indi=data.frame(kendall=kendall,pearson=pearson, spearman=spearman, RMSE=RMSE,  RMSE_porc= RMSE_porc, roc_below=auc_below , roc_above=auc_above)
-  
-  #  Realice una lista donde se almacenan todos los resultados
-  resultados=list(cv=cv, kendall=kendall, coeficientes=coef, indicadores=indi) ## Almacene los pronosticos y los resumenes de los modelos en una lista
-  
-  
-  # Directorio en el cual se guardan los archivos. 
-  setwd(paste(ruta,"/results_graphs/",sep=""))
-  
-  
-  #paste(ruta,"/results_graphs/", dep,"/", answer, "/", trim, "/modelo/",sep="")
-  
-  
-  tiff(paste("ROC", answer, a, lead_num, ".tif",sep="_"), width = 620, height = 620, res=100,
-       compression="lzw")
-  plot(1-roc_below$specificities, roc_below$sensitivities,  type="l", col="red3", 
-       ylab="Hit rate", xlab="False-alarm rate", lwd=2, main="Relative Operating Characteristics")
-  abline(a=0, b=1, lwd=2)
-  lines(1-roc_above$specificities, roc_above$sensitivities, lwd=2,  col="blue")
-  legend(0.65,0.12, lwd=c(2,2), legend =c(paste("Below(",auc_below ,")",sep=""), paste("Above(",auc_above ,")",sep="")), col=c("red3","blue"))
-  dev.off()
-  
-  
-  # Almacene un archivo con la validación cruzada y otro con los parametros
-  write.csv(cv, file = paste("cv_" , answer,"_",a,"_",lead_num,".csv", sep=""))
-  write.csv(coef, file = paste("coef_" , answer,"_",a,"_",lead_num,".csv", sep=""))
-  write.csv(indi, file = paste("ind_" , answer,"_",a,"_",lead_num,".csv", sep=""))
   
   # retorne la lista de resultados.
   return(resultados)}
 
-lead_num<-3
+
+
+# Corra todos los modelos
+dep<-"valle"
+answer<-"CentAdmoLaUnion"
+
+## lead
+lead_num=c(0,3,5)
+a<-c(12,3,6,9)
 
 
 GI<-0
 mo_p<-0
 i=1
-#for(i in 1:dim(tab_comp)[1]){
-  GI[i]<-cross_validation(dep,lead[i],lead_num[i], a[i], answer, num_zone)$kendall
-  data<-cbind.data.frame(dep, answer,a[i], lead_num[i], dim(num_zone)[3][i],GI[i])
-  mo_p=rbind(mo_p, data)  
-#}
+
+for(j in 1:4){
+  
+  if(a[j]==12){
+    lead=c("DEF_Nov","DEF_Aug", "DEF_Jun")
+  }else if(a[j]==3){ 
+    lead=c("MAM_Feb","MAM_Nov", "MAM_Sep")}else if(a[j]==6){
+      lead=c("JJA_May","JJA_Feb","JJA_Dec")
+    }else if(a[j]==9){
+      lead=c("SON_Aug", "SON_May", "SON_Mar")}
+  
+  for(i in 1:3){
+    
+    setwd(paste(ruta, "/results_graphs/DMFA/", dep, "/", sep=""))
+    prueba<-getwd()
+    
+    region<-raster(paste(prueba,"/",substring(dep,1,4),"_", lead[i],".tif", sep = "")) # Lectura de un archivo raster para graficar
+    plot(region) # grafico
+    
+    #Declare en un objeto tipo lista los cluster de interes
+    num_clust<-as.list(as.numeric(names(table(region[])))) 
+    # Cree un stack con las formas de los cluster
+    num_zone<-stack(sapply(num_clust, ext_by_clust, region))
+    # Cambie los nombres de los objetos del stack
+    names(num_zone)<-paste("cluster", num_clust, sep="_")
+    plot(num_zone) # Grafique los objetos
+    
+    
+    GI[i]<-cross_validation(dep,lead[i],lead_num[i], a[j], answer, num_zone)$kendall
+    data<-cbind.data.frame(dep, answer,a[j], lead_num[i], dim(num_zone)[3],GI[i])
+    mo_p=rbind(mo_p, data)  
+  
+    
+  } # cierre el segundo for
+  
+} # Cierre el primer for
+
 
 #mop<-mo_p[-1, ]
 mop<-rbind(mop,mo_p[-1, ])
