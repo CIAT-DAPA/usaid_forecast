@@ -1507,12 +1507,12 @@ cross_validation <-function(dep,lead,lead_num, a, answer, num_zone){
 
 
 # Corra todos los modelos
-dep<-"valle"
-answer<-"CentAdmoLaUnion"
+dep<-"santander"
+answer<-"StaIsabel"
 
 ## lead
 lead_num=c(0,3,5)
-a<-c(12,3,6,9)
+a<-c(12,3,6,9)   
 
 
 GI<-0
@@ -1562,10 +1562,10 @@ mop
 
 
 
-setwd("C:/Users/AESQUIVEL/Google Drive/Exp_2_AFM")
+setwd("C:/Users/AESQUIVEL/Google Drive/Exp_2_AFM/results_graphs/DMFA/")
 getwd()
 # Almacene el archivo
-#write.csv(mop, file = "summary_models_cv.csv", row.names = TRUE)
+write.csv(mop, file = "summary_models_cv.csv", row.names = TRUE)
 
 
 
@@ -1605,6 +1605,15 @@ restrospective_validation<-function(dep,lead,lead_num, a, answer, num_zone){
   results<-correlation(dep, lead, a,answer) # corre lo mapas de correlaciones y devuelve
   # la información de la estación y la sst (trimestral)
   
+  # la información de la estación y la sst (trimestral)
+  MFA<-DMFA_P(dep, a, lead, lead_num, num_zone, results, answer) ## Corre la información del AFM
+  
+  
+  comp<-ifelse(MFA$corr_test<0.1,1,0)
+  print(comp)
+  
+  
+  if(sum(comp)>0){
   
   # Condiciona la cantidad de pronosticos de acuerdo al trimestre
   # puesto que DEF posee menos observaciones, el año de referencia se toma como año al 
@@ -1701,7 +1710,8 @@ restrospective_validation<-function(dep,lead,lead_num, a, answer, num_zone){
   forecasts=as.numeric(forecasts) ### La matriz de pronosticos conviertala en vector
   forecasts[forecasts<0]=0 ## Todos los pronosticos negativos son iguales a 0 por definición de la precipitación.
   
-  
+  # cambie el directorio donde se guardaran los archivos.
+  setwd(paste(ruta,"/results_graphs/DMFA/",dep,"/",answer,"/",trim,"/",sep=""))
   
   
   # cree una trama de datos con el año, la observación y lo pronosticado
@@ -1715,55 +1725,83 @@ restrospective_validation<-function(dep,lead,lead_num, a, answer, num_zone){
   # cree una lista con los resultados
   resultados=list(kendall=kendall, retro= retro, coeficientes=coef) ## Almacene lso pronosticos y los resumenes de los modelos en una lista
   
-  # cambie el directorio donde se guardaran los archivos.
-  #setwd(paste(ruta,"/results_graphs/", dep, "/", answer, "/", trim,"/modelo/",sep=""))
-  setwd(paste(ruta,"/results_graphs/",sep=""))
-  
+    
   write.csv( retro, file = paste(" retro_" , answer,"_",a,"_",lead_num,".csv", sep=""))
   write.csv(coef, file = paste("coef_" , answer,"_",a,"_",lead_num,".csv", sep=""))
+  
+  } else if(sum(comp)==0){
+    
+    #  Realice una lista donde se almacenan todos los resultados
+    resultados=list(kendall=NA, retro=NA, coeficientes=NA) ## Almacene lso pronosticos y los resumenes de los modelos en una lista
+    
+  }
   
   # Retorne la lista de resultados.
   return(resultados)}
 
+
 # Declare las variables de la función 
 dep<-"santander"
 answer<-"StaIsabel"
-lead<-"DEF_Aug"
-lead_num<-3
-a<-12
 
-# Vuelva al espacio de trabajo original 
-setwd("C:/Users/AESQUIVEL/Google Drive/Exp_2_AFM")
-getwd()
-
-
-
-
-
+## lead
+lead_num=c(0,3,5)
+a<-c(12,3,6,9)   
 
 # Corra la función y almacene el goodness index
 GI_r<-0
 mo_pr<-0
-i=1
-#for(i in 1:dim(tab_comp)[1]){
-  GI_r[i]<-restrospective_validation(dep,lead,lead_num, a, answer, num_zone)$kendall
-  datar<-cbind.data.frame(dep, answer,a[i], lead_num[i], num_zone[i],GI_r[i])
-  mo_pr=rbind(mo_pr, datar)  
-#}
 
+for(j in 1:4){
+    
+    if(a[j]==12){
+      lead=c("DEF_Nov","DEF_Aug", "DEF_Jun")
+    }else if(a[j]==3){ 
+      lead=c("MAM_Feb","MAM_Nov", "MAM_Sep")}else if(a[j]==6){
+        lead=c("JJA_May","JJA_Feb","JJA_Dec")
+      }else if(a[j]==9){
+        lead=c("SON_Aug", "SON_May", "SON_Mar")}
+    
+    for(i in 1:3){
+      
+      setwd(paste(ruta, "/results_graphs/DMFA/", dep, "/", sep=""))
+      prueba<-getwd()
+      
+      region<-raster(paste(prueba,"/",substring(dep,1,4),"_", lead[i],".tif", sep = "")) # Lectura de un archivo raster para graficar
+      plot(region) # grafico
+      
+      #Declare en un objeto tipo lista los cluster de interes
+      num_clust<-as.list(as.numeric(names(table(region[])))) 
+      # Cree un stack con las formas de los cluster
+      num_zone<-stack(sapply(num_clust, ext_by_clust, region))
+      # Cambie los nombres de los objetos del stack
+      names(num_zone)<-paste("cluster", num_clust, sep="_")
+      plot(num_zone) # Grafique los objetos
+      
+      
+      GI_r[i]<-restrospective_validation(dep,lead[i],lead_num[i], a[j], answer, num_zone)$kendall
+      datar<-cbind.data.frame(dep, answer,a[j], lead_num[i], dim(num_zone)[3],GI_r[i])
+      mo_pr=rbind(mo_pr, datar)   
+      
+      
+    } # cierre el segundo for
+    
+  } # Cierre el primer for  
+  
 
+#mopr<-mo_pr[-1, ]
 mopr<-rbind(mopr,mo_pr[-1, ])
 mopr
 
 
 
 
-setwd("C:/Users/AESQUIVEL/Google Drive/Exp_2_AFM")
+setwd("C:/Users/AESQUIVEL/Google Drive/Exp_2_AFM/results_graphs/DMFA")
 getwd()
 
 
 # Almacene el archivo
-#write.csv(mop, file = "summary_models_retro.csv", row.names = TRUE)
+write.csv(mop, file = "summary_models_retro.csv", row.names = TRUE)
 
 
 
