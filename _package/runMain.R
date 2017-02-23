@@ -8,15 +8,15 @@ library(stringr)
 library(trend)
 library(data.table)
 
-dirCurrent <- paste(get_script_path(), "/", sep = "", collapse = NULL)
-#dirCurrent <- "D:\\_Scripts\\usaid_forecast\\_package\\"
+#dirCurrent <- paste(get_script_path(), "/", sep = "", collapse = NULL)
+dirCurrent <- "D:/ToBackup/2017/USAID/usaid_forecast/_package/"
 
 ## RUN paquete forecast
 dirForecast <- paste(dirCurrent, "prediccionClimatica/", sep = "", collapse = NULL)
 dir_save <- paste(dirForecast, "descarga", sep = "", collapse = NULL)
 dir_response <- paste(dirForecast, "estacionesMensuales", sep = "", collapse = NULL)
 dir_stations <- paste(dirForecast, "dailyData", sep = "", collapse = NULL)
-dir_probForecast <- paste(dirForecast, "probForecast", sep = "", collapse = NULL)
+path_prob <- paste(dirForecast, "probForecast", sep = "", collapse = NULL)
 path_output <- paste(dirForecast, "resampling", sep = "", collapse = NULL)
 
 if (!file.exists(file.path(dir_save))){

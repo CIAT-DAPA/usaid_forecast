@@ -349,7 +349,7 @@ path_data_d <- dir_stations
 
 data_d_all = list.files(path_data_d,full.names = T)
 
-data_prob_all=read.csv(path_prob,header=T,dec=".")
+data_prob_all=read.csv(paste0(path_prob,"/",format(Sys.Date(),"%Y%m%d"),"_prob.csv"),header=T,dec=".")
 station_names = gsub('.csv','',list.files(path_data_d))
 
 start.time <- Sys.time()
@@ -362,3 +362,4 @@ for(x in 1:length(data_d_all)){
 end.time <- Sys.time()
 time.taken <- end.time - start.time
 time.taken
+
