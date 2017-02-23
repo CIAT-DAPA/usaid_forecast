@@ -309,6 +309,8 @@ for(y in min(data_temp$year):max(data_temp$year)){
   orden=match(month.prob,colnames(year_sort))
   ord_col=order(match(sort(orden),orden))
   
+  
+  
       escenarios_final=rbind(escenarios_final1[,ord_col],escenarios_final1[1:3,ord_col])
       nom=c(seq(1,num_esc1),"min","prom","max")
 
