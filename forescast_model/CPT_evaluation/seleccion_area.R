@@ -9,7 +9,7 @@ setwd("C:/Users/AESQUIVEL/Google Drive/new_predictor/")
 getwd()
 
 
-
+prec="U_wind_250"
 
 #### Primero se corre para u-wind 250 la lectura inicial de la grilla. 
 
@@ -43,10 +43,23 @@ rasterize=function(dates) {
   list_dates=split(dates_1,sort(rep(year,74))) # Se divide la tabla de datos por año
   all_raster=lapply(list_dates,transform_raster) ## Transforma las tablas de datos en rasters
   layers=stack(all_raster) # Crea un stack
-  
-  
-  layers_crop=crop(layers,extent(220, 50, -25, 25)) ## Realiza el corte para que solo tome el tropico
-  
+
+  if(prec=="U_wind_250"){
+    r1 <- crop(layers,extent(0, 50, -25, 25))
+    r2 <- crop(layers,extent(220, 357.5, -25, 25))
+    res(r2) <- c(xres(r1), yres(r1))
+    
+    x <- list(r1, r2)
+    x$overwrite <- TRUE
+    layers_crop <- do.call(merge, x)
+    names(layers_crop)<-  names(r1)
+    #plot(layers_crop)  
+  }else if(prec=="U_wind_250"){
+    
+  }
+
+    
+    
   return(layers_crop)
 }
 
@@ -164,16 +177,23 @@ selection_area=function(x,y){
 
 
 
-plots=function(dep, x,y){
+plots=function(prec, dep, x,y){
   
   if(require(rasterVis)==FALSE){install.packages("rasterVis")}
   library("rasterVis")
-  tiff(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/optimizaciones/", dep, "/",y,".tiff",sep=""),compression = 'lzw',height = 5,width = 16,units="in", res=150)
+  tiff(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/optimizaciones/", dep, "/", prec, "/",y,".tiff",sep=""),compression = 'lzw',height = 5,width = 16,units="in", res=150)
   myThemec <- BuRdTheme()
-  myThemec$regions$col=colorRampPalette(c("darkturquoise","mediumblue"))
-  myThemec$panel.background$col = "gray30"
-  e=levelplot(x>quantile(x,0.7,na.rm=T), main=y,par.settings=myThemec,margin=F,colorkey=list(space="right"))
+  myThemec$regions$col=colorRampPalette(c("snow","red4"))
+  myThemec$panel.background$col = "gray"
+    
+  
+  shp=shapefile("C:/Users/AESQUIVEL/Google Drive/shp/mapa_mundi.shp")
+  
+  
+  #myThemec$panel.background$col = "gray30"
+  e=levelplot(rotate(x)>quantile(x,0.7,na.rm=T), main=y,par.settings=myThemec,margin=F,colorkey=list(space="right"))+ latticeExtra::layer(sp::sp.lines(shp, lwd=0.8, col="gray30"))
   print(e)
+  #writeSpatialShape(sur2, "torn")
   dev.off()
 }
 
@@ -203,7 +223,7 @@ years_predictor=data_raw[[2]]
 
 
 
-dep="casanare"
+dep="santander"
 
 
 
@@ -231,15 +251,22 @@ data_res_final=Map(function(x1,y1) x1[y1,,drop=FALSE] ,data_quartely,years_final
 
 final=Map(selection_area,data_tsm_final,data_res_final)
 
-Map(plots,dep, final,month_ini)
+Map(plots,prec, dep, final,month_ini)
 
-levelplot(final[[1]]>quantile(final[[1]],0.7,na.rm=T))
-
-prueba<-final[[1]]
-
-corte=crop(prueba,extent(220, 50, -25, 25))
+levelplot(final[[2]]>quantile(final[[1]],0.7,na.rm=T,marge=F))
 
 
 
+#prueba<-raster("C:/Users/AESQUIVEL/Google Drive/new_predictor/map.tif")
+#plot(final[[1]])
+#extent(prueba)<-extent(0,357.5,-30,30)
+#plot(prueba, add=T, col="snow")
+#s=writeRaster(final[[1]], "C:/Users/AESQUIVEL/Google Drive/new_predictor/optimizaciones/9.tiff")
 
-s=raster("C:/Users/dagudelo/Desktop/imagenes_rclimtool/9.tiff")
+
+
+
+
+
+
+
