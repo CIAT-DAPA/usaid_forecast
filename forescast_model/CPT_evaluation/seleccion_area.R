@@ -9,9 +9,9 @@ setwd("C:/Users/AESQUIVEL/Google Drive/new_predictor/")
 getwd()
 
 
-prec="U_wind_850"
+prec="rhum_700"
 
-# prec= c("U_wind_250","U_wind_850")
+# prec= c("U_wind_250","U_wind_850", "rhum_700")
 
 
 #### Primero se corre para u-wind 250  y u-wind 850 la lectura inicial de la grilla. 
@@ -61,6 +61,9 @@ rasterize=function(dates, prec) {
     #plot(layers_crop)  
   }else if(prec=="U_wind_850"){
     layers_crop <- crop(layers,extent(0, 357.5, -45, 45))
+    #plot(layers_crop)  
+  }else if(prec=="rhum_700"){
+    layers_crop <- crop(layers,extent(0, 357.5, -30, 30))
     #plot(layers_crop)  
   }
     
@@ -180,6 +183,7 @@ selection_area=function(x,y){
 }
 
 
+shp=shapefile("C:/Users/AESQUIVEL/Google Drive/shp/mapa_mundi.shp")
 
 plots=function(prec, dep, x,y){
   
@@ -273,5 +277,9 @@ levelplot(final[[2]]>quantile(final[[1]],0.7,na.rm=T,marge=F))
 
 
 
-
+################################################################
+################################################################
+################################################################
+################################################################
+################################################################
 
