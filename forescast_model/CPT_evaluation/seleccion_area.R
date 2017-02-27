@@ -9,9 +9,12 @@ setwd("C:/Users/AESQUIVEL/Google Drive/new_predictor/")
 getwd()
 
 
-prec="U_wind_250"
+prec="U_wind_850"
 
-#### Primero se corre para u-wind 250 la lectura inicial de la grilla. 
+# prec= c("U_wind_250","U_wind_850")
+
+
+#### Primero se corre para u-wind 250  y u-wind 850 la lectura inicial de la grilla. 
 
 transform_raster=function(x){ 
   # Primero se crea un raster teniendo encuenta la resolución espacial de la tabla .tsv  
@@ -26,7 +29,9 @@ transform_raster=function(x){
 
 
 # Con esta función se depura y rasteriza la tabla .tsv
-rasterize=function(dates) { 
+# El Argumento prec permite tener el cuenta el tipo de predictor
+# cuando se rasteriza el .tsv
+rasterize=function(dates, prec) { 
   
   if(require(raster)==FALSE){install.packages("raster")}
   library("raster")
@@ -54,11 +59,10 @@ rasterize=function(dates) {
     layers_crop <- do.call(merge, x)
     names(layers_crop)<-  names(r1)
     #plot(layers_crop)  
-  }else if(prec=="U_wind_250"){
-    
+  }else if(prec=="U_wind_850"){
+    layers_crop <- crop(layers,extent(0, 357.5, -45, 45))
+    #plot(layers_crop)  
   }
-
-    
     
   return(layers_crop)
 }
@@ -209,14 +213,14 @@ plots=function(prec, dep, x,y){
 
 
 ### la primera es la ruta donde estabas los archivos de la tsm
-path<-"C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp1/predictors/U_wind_250"
+path<-paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp1/predictors/", prec, sep="")
 
 files_tsm<-list.files(path)
 rutes=paste(path,files_tsm,sep = "/")
 
 data_tsm=lapply(rutes,function(x)read.table(x,sep="\t",dec=".",skip =2,fill=TRUE,na.strings =-999))
 
-data_stack=lapply(data_tsm,rasterize)
+data_stack=lapply(data_tsm,rasterize, prec)
 data_raw=data_base(data_stack)
 data_tsm=data_raw[[1]]
 years_predictor=data_raw[[2]]
@@ -262,6 +266,7 @@ levelplot(final[[2]]>quantile(final[[1]],0.7,na.rm=T,marge=F))
 #extent(prueba)<-extent(0,357.5,-30,30)
 #plot(prueba, add=T, col="snow")
 #s=writeRaster(final[[1]], "C:/Users/AESQUIVEL/Google Drive/new_predictor/optimizaciones/9.tiff")
+
 
 
 
