@@ -362,7 +362,7 @@ start.time <- Sys.time()
 dir_save="C:/Users/dagudelo/Desktop/Ejemplo_descarga"
 month=as.numeric(format(Sys.Date(),"%m"))
 year=format(Sys.Date(),"%Y")
-y=download.cpt(dir_save,month,year)
+y=download.cpt(dir_save,month-1,year)
 end.time <- Sys.time()
 time.taken <- end.time - start.time
 time.taken
@@ -413,7 +413,7 @@ cat("\n Nombres de las estaciones de interes cargados \n")
 ####### Convierte los datos respuesta a trimestrales ########
 #############################################################
 
-data_quar=lapply(data_y,quarterly_data,month)
+data_quar=lapply(data_y,quarterly_data,month-1)
 data_quartely=unlist(lapply(data_quar,"[", 1),recursive=FALSE)
 year_response=unlist(lapply(data_quar,"[", 2),recursive=FALSE)
 
@@ -467,13 +467,13 @@ cat("\n Predicciones probabilisticas calculadas \n")
 #############################################################
 
 p_all=lapply(data_y,function(x)dim(x)[2]-2)
-table_year_month=lapply(p_all,prob_output,month,year)
+table_year_month=lapply(p_all,prob_output,month-1,year)
 prob_output_list=Map(function(x,y)cbind(x,y),table_year_month,probabilities_join)
 prob_output_final=do.call(rbind,prob_output_list)
 
 #path_save="Y:/USAID_Project/Product_1_web_interface/test/clima/prob_forecast"
 path_save="C:/Users/dagudelo/Desktop"
-write.csv(prob_output_final,paste0(path_save,"/",format(Sys.Date(),"%Y%m%d"),"_prob.csv"),row.names = F)
+write.csv(prob_output_final,paste0(path_save,"/","probabilities.csv"),row.names = F)
 
 cat("\n Pronosticos probabilisticos almacenados \n")
 
@@ -490,6 +490,6 @@ kendall_googness_join=lapply(kendall_goodness,function(x) do.call(rbind,x))
 metrics_output_list=Map(function(x,y,z) cbind(x,y,z),table_year_month,pearson_join,kendall_googness_join)
 metrics_output_all=do.call(rbind,metrics_output_list)
 
-write.csv(metrics_output_all,paste0(path_save,"/",format(Sys.Date(),"%Y%m%d"),"_metrics.csv"),row.names = F)
+write.csv(metrics_output_all,paste0(path_save,"/","metrics.csv"),row.names = F)
 
 cat("\n Metricas de validación almacenadas \n")
