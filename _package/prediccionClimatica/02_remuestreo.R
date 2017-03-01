@@ -87,7 +87,8 @@ resampling <- function(data,prob,añoshistorico){
 
 gen_esc_daily <- function(prob,data_d,path_output,station){
   
-   
+  cat("\n Inicio del remuestreo... \n")
+  
   #---------------------------------------------------------------------------------#
   #-------------------------------Lectura de datos----------------------------------#
   #---------------------------------------------------------------------------------#
@@ -138,7 +139,8 @@ gen_esc_daily <- function(prob,data_d,path_output,station){
   #------------------------Cálculo tendencias para temp-----------------------------#
   #---------------------------------------------------------------------------------#
   
- 
+  cat("\n Calculando tendencias de temperaturas... \n")
+  
   s.pred_new = matrix(NA,6,2)
   for(v in 1:6){
     
@@ -210,7 +212,54 @@ for(y in min(data_temp$year):max(data_temp$year)){
   
   masprobable2=apply(t(masprobable),2,function(x) as.numeric(names(sort(table(x),T))[1:10]))
   
-    
+  
+  #---------------------------------------------------------------------------------#
+  #-------------Generación de datos y resumen de los años mas probables-------------#
+  #---------------------------------------------------------------------------------#
+
+    # valores=function(mes,var,Años){
+    #   datos=0
+    #   for(i in 1:length(mes))
+    #     datos[i]=var[which(mes[i]==Años)]
+    #   return(datos)
+    # }
+    # 
+    # todo=sapply(1:dim(probabilidades)[2], function(i) valores(masprobable2[,i],prec_sort[,i],year_sort[,i]))
+    # todo2=as.data.frame(rbind(masprobable2,c("Datos análogos",rep("",dim(probabilidades)[2]-1)),todo)) ###Años y datos analogos
+    # colnames(todo2)=names(probabilidades)
+    # 
+    # resumen=function(x) rbind(min(x),max(x))
+    # resumen2=apply(todo,2,resumen)
+    # 
+    # medias=apply(todo,2,median)
+    # 
+    # dif=t(t(todo)-medias)
+    # 
+    # valores2=function(masprobable2,todo,resumen2,dif){
+    #   datos=0
+    #   for(i in 1:2){
+    #     pos<-which(todo==resumen2[i])
+    #     n=length(pos)
+    #     datos[i]=masprobable2[pos[sample(n,1)]]
+    #   }
+    # 
+    #   pos2=which(abs(dif)==min(abs(dif)))
+    #   n2=length(pos2)
+    #   datos2=masprobable2[pos2[sample(n2,1)]]
+    # 
+    #   datost=c(datos[1],datos2,datos[2])
+    # 
+    #   return(datost)
+    # }
+    # 
+    # todo3=sapply(1:dim(probabilidades)[2], function(i) valores2(masprobable2[,i],todo[,i],resumen2[,i],dif[,i]))
+    # 
+    # resumen3=rbind(resumen2[1,],round(medias,2),resumen2[2,])
+    # row.names(resumen3)=c("Mín","Promedio","Máx")
+    # 
+    # resumenf=rbind(resumen3,c("Años",rep("",dim(probabilidades)[2]-1)),todo3) ###Resumen con min max y prom de los escenarios analogos
+    # colnames(resumenf)=names(probabilidades)
+
   #---------------------------------------------------------------------------------#
   #----------Generación de todos los escenarios definidos por el usuario------------#
   #---------------------------------------------------------------------------------#
@@ -260,16 +309,21 @@ for(y in min(data_temp$year):max(data_temp$year)){
   orden=match(month.prob,colnames(year_sort))
   ord_col=order(match(sort(orden),orden))
   
-  #     escenarios_final=rbind(escenarios_final1[,ord_col],todo3)
-  #     nom=c(seq(1,num_esc1),"min","prom","max")
   
-  escenarios_final=escenarios_final1[,ord_col]
-  nom=seq(1,num_esc1)
   
+      escenarios_final=rbind(escenarios_final1[,ord_col],escenarios_final1[1:3,ord_col])
+      nom=c(seq(1,num_esc1),"min","prom","max")
+
+  # escenarios_final=escenarios_final1[,ord_col]
+  # nom=seq(1,num_esc1)
+  # 
   
   
   escenarios_final=as.data.frame(escenarios_final)
   names(escenarios_final)=month.prob
+  
+  
+  
   
   #---------------------------------------------------------------------------------#
   #---------------------------------------------------------------------------------#
@@ -330,7 +384,7 @@ for(y in min(data_temp$year):max(data_temp$year)){
       write.csv(esc_final_diarios[[k]],paste(path_output,"/",format.Date(Sys.Date(),"%Y%m%d"),"/Escenarios_",station,"/escenario_",nom[k],".csv",sep=""),row.names=F)
     }
     
-  cat("\n Proceso finalizado exitosamente \n")
+  cat("\n Proceso finalizado exitosamente \n \n")
 
  
 }
