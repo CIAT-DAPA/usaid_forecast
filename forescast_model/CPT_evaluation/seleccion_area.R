@@ -9,9 +9,9 @@ setwd("C:/Users/AESQUIVEL/Google Drive/new_predictor/")
 getwd()
 
 
-prec="rhum_700"
+prec="U_wind_850"
 
-# prec= c("U_wind_250","U_wind_850", "rhum_700")
+# prec= c("U_wind_250","U_wind_850", "rhum_700", "vertical_vel_250")
 
 
 #### Primero se corre para u-wind 250  y u-wind 850 la lectura inicial de la grilla. 
@@ -65,7 +65,21 @@ rasterize=function(dates, prec) {
   }else if(prec=="rhum_700"){
     layers_crop <- crop(layers,extent(0, 357.5, -30, 30))
     #plot(layers_crop)  
+  }else if(prec=="vertical_vel_250"){
+    r1 <- crop(layers,extent(0, 45, -20, 20))
+    r2 <- crop(layers,extent(135, 357.5, -20, 20))
+    res(r2) <- c(xres(r1), yres(r1))
+    
+    x <- list(r1, r2)
+    x$overwrite <- TRUE
+    layers_crop <- do.call(merge, x)
+    names(layers_crop)<-  names(r1)
+    #plot(layers_crop)  
   }
+  
+  
+  
+  
     
   return(layers_crop)
 }
@@ -220,9 +234,9 @@ plots=function(prec, dep, x,y){
 path<-paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp1/predictors/", prec, sep="")
 
 files_tsm<-list.files(path)
-rutes=paste(path,files_tsm,sep = "/")
+rutes<-paste(path,files_tsm,sep = "/")
 
-data_tsm=lapply(rutes,function(x)read.table(x,sep="\t",dec=".",skip =2,fill=TRUE,na.strings =-999))
+data_tsm<-lapply(rutes,function(x)read.table(x,sep="\t",dec=".",skip =2,fill=TRUE,na.strings =-999))
 
 data_stack=lapply(data_tsm,rasterize, prec)
 data_raw=data_base(data_stack)
@@ -230,8 +244,8 @@ data_tsm=data_raw[[1]]
 years_predictor=data_raw[[2]]
 
 
-
-dep="santander"
+#########################################################
+dep="valle"
 
 
 
@@ -258,10 +272,19 @@ data_res_final=Map(function(x1,y1) x1[y1,,drop=FALSE] ,data_quartely,years_final
 
 
 final=Map(selection_area,data_tsm_final,data_res_final)
+#Map(plots,prec, dep, final,month_ini)
 
-Map(plots,prec, dep, final,month_ini)
+#levelplot(final[[1]]>quantile(final[[1]],0.7,na.rm=T,marge=F))
 
-levelplot(final[[2]]>quantile(final[[1]],0.7,na.rm=T,marge=F))
+
+x11()
+pos<-4
+plot(rotate(final[[pos]])>quantile(rotate(final[[pos]]),0.7,na.rm=T)
+     , colNA="gray30", main=paste(dep,month_ini[pos]))
+plot(shp, add=T)
+x<-drawExtent(col="red")
+x
+as.numeric(as.character(x))
 
 
 
