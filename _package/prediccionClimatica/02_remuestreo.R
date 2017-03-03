@@ -387,12 +387,12 @@ for(y in min(data_temp$year):max(data_temp$year)){
     tmin_limit = cbind(data_prob[,1:2],all_min$t_min,all_avg$t_min,all_min$t_max)
     srad_limit = cbind(data_prob[,1:2],all_min$sol_rad,all_avg$sol_rad,all_max$sol_rad)
     
-    which.min()
-    which.max()
-    
+    # which.min()
+    # which.max()
+    # 
     limit.name = c("min","avg", "max")
     for(j in 1:3){
-      write.csv(prec_limit[,1:(i+2)],paste0("prec_",limit.name[i], ".csv"))
+      write.csv(prec_limit[,c(1,2,(j+2))],paste(path_output,"/",format.Date(Sys.Date(),"%Y%m%d"),"/Escenarios_",station,"/prec_",limit.name[j], ".csv",sep=""),row.names=F)
       
     }
      
