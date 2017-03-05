@@ -119,21 +119,241 @@ data_trim=function(Estaciones_C, a){ #Los argumentos son el conjunto de las esta
 
 
 ## Ruta principal donde se encuentran las carpetas con los archivos  
-ruta= paste("C:/Users/AESQUIVEL/Google Drive/Experimento_1/Salidas_corrida_DEF/salidas/Salidas_",region,sep="")
+ruta = paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp1/", region, "/", prec, "/" ,sep="")
 
-ruta1="C:/Users/AESQUIVEL/Google Drive/Experimento_1/Salidas_corrida_DEF/salidas/"
+
+
+ruta_l="C:/Users/AESQUIVEL/Google Drive/Experimento_1/Salidas_corrida_DEF/salidas/"
 ### Lectura del shp
-colombia=shapefile(paste(ruta1,"/colombia/colombia_depts.shp",sep=""))
+colombia=shapefile(paste(ruta_l,"/colombia/colombia_depts.shp",sep=""))
 
 
 
 
 
 
+#### Gráfico 1 - Correlación entre las componentes y la SST
+
+# var_oceanoAt= variable oceano atmosferica
+# y serie = el modo en y
+# xserie = el modo en x
+# Estaciones_C= archivo de estaciones en el cual se realizo CPT
+# Colombia= shp del país
+# names_file = nombre del trimestre pronosticado y su lag (DEF_DEF ó DEF_0)
+# a = mes de inicio del trimestre, b = segundo mes del trimestre, c = tercer mes del trimestre
+# length_periodo = Longitud del periodo de entrenamiento
+## cca_Maps función que realiza el gráfico cca_map de CPT, las imagenes se almacenan en la ruta
+cca_maps<-function(var_ocanoAt, yserie, Estaciones_C, xserie, names_file, ruta,  a, xmin, xmax, ymin, ymax, estaciones_in){
+  
+  ocean=which(!is.na(var_ocanoAt[[1]][])) # tome las posiciones en las que la variable sea diferente de NA
+  correl=array(NA,length(ocean)) # relice un arreglo del tamaño de oceano 
+  var_table=var_ocanoAt[] # Realice una tabla de la variable
+  
+  for(i in 1:length(ocean)){ # En todos los pixeles diferentes de NA
+    var_pixel=var_table[ocean[i],] # Extraiga el pixel i 
+    correl[i]=cor(xserie$X1,var_pixel) # realice la correlación entre el pixel i el modo 1 de x
+  } # 
+  
+  correl_map=var_ocanoAt[[1]] # Cree un raster vacio 
+  correl_map[]=NA 
+  correl_map[ocean]=correl # Almacene en el raster los NA 
+  
+  # Realice el mapa de Correlaciones entre la variable y el modo 1 de x
+  Map_x=gplot(correl_map) + geom_tile(aes(fill = value)) + coord_equal() + 
+    scale_fill_gradient2(low="#2166AC",mid = "white", high="#B2182B",name = " ",  limits=c(-1,1)) + 
+    labs(title=" ",x="Long",y="Lat")  + theme(legend.key.height=unit(0.5,"cm"),legend.key.width=unit(2,"cm"),
+                                              legend.text=element_text(size=10),
+                                              panel.background=element_rect(fill="white",colour="black"),
+                                              axis.text=element_text(colour="black",size=10),
+                                              axis.title=element_text(colour="black",size=10,face="bold"),
+                                              legend.position = "bottom", 
+                                              legend.title = element_text(size = 10.5))
+  
+  
+  ###### Graficos de y
+  # Convierta los datos de las estaciones en trimestrales 
+  data<-data_trim(Estaciones_C, a)
+  
+  # La organización de la información se hace de acuerdo al mes de estudio.
+  if(a == 12){ 
+    data<-data[data$years_y!=1982,]
+  } else  data<-data[data$years_y!=1981,]
+  
+  correl_y=0 # inicialice las correlaciones con x
+  for(i in 2:length(data)){ # realice las correlaciones para todas las estaciones
+    correl_y[i-1]<-cor(data[,i],yserie$X1) # correlaciones entre la estación i y el modo 1 de x
+  }
+  
+  Estacion=names(Estaciones_C) # extraiga los nombres de las estaciones
+  coor<-data.frame(t(Estaciones_C[1:2,]), row.names = NULL) # extraiga las coordenadas
+  # Cree un data frame con la información de las estaciones y las correlaciones
+  datos2<-data.frame(Estacion,Long=coor$cpt.X, Lat=coor$cpt.Y,  Correly=correl_y, row.names = NULL)
+  datos2$Correly=round(datos2$Correly ,3) # redondee el valor de las correlaciones a tres cifras
+  
+  # Corte colombia de acuerdo a las coordenadas asignadas
+  col2=extent(xmin, xmax, ymin, ymax) # Coordenadas por departamento
+  colombia=crop(colombia,col2) #  realizar el coorte
+  colombia@data$id <- rownames(colombia@data) # cree una nueva variable en el shp
+  colombia@data$id <- as.numeric(colombia@data$id) # digale que es de caracter númerico
+  colombia2 <- fortify(colombia, region="id") # convierta el shp en una tabla de datos
+  
+  
+  
+  
+  # Realice el gráfico de las correlaciones entre las estaciones y el modo 1 de y 
+  p <- ggplot(colombia2, aes(x=long,y=lat)) # gráfique el país
+  p <- p + geom_polygon(aes(fill=hole,group=group),fill="grey 80")
+  p <- p + scale_fill_manual(values=c("grey 80","grey 80"))
+  p <- p + geom_path(aes(long,lat,group=group,fill=hole),color="white",size=0.3)
+  # Aqui se ingresan los datos de las estaciones
+  p <- p + geom_point(data=datos2, aes(x=Long, y=Lat, map_id=Estacion,col=Correly),size=2.5)
+  p <- p + scale_color_gradient2(low="#2166AC",mid = "white", high="#B2182B", name=" ", limits=c(-1,1))+ coord_equal()
+  p<-  p + theme(legend.key.height=unit(1,"cm"),legend.key.width=unit(0.5,"cm"),
+                 legend.text=element_text(size=8),
+                 panel.background=element_rect(fill="white",colour="black"),
+                 axis.text=element_text(colour="black",size=10),
+                 axis.title=element_text(colour="black",size=10,face="bold"),
+                 #legend.position = "bottom", 
+                 legend.title = element_text(size = 10.5))
+  # Aqui se colocan los nombres de las estaciones
+  p <- p + geom_text(data=estaciones_in,aes(label = substring(name,1,9), x = Long, y=Lat-0.05),size=3) 
+  
+  
+  
+  
+  ## Gráficos Componentes 
+  
+  # Se crea una trama de datos con la fecha y las componentes 
+  datos<-data.frame(date=data$years_y, X=xserie$X1, Y=yserie$X1, row.names = NULL)
+  datos$X=round(datos$X ,4) # redondee los modos 
+  datos$Y=round(datos$Y ,4) # redondee los modos 
+  datos[datos$X==-999.0000,2:3]=0 # quite los valore NA
+  datos[,2:3]=datos[,2:3]*100 # multipliquelos * 100
+  
+  # gráfico de los modos 
+  modos<-  ggplot(datos, aes(date)) +   geom_line(aes(y = X ),  colour="#B2182B") + 
+    geom_line(aes(y = Y),  colour="#2166AC")  + 
+    geom_hline(yintercept = 0, colour="gray") + theme_bw() + 
+    theme(legend.position = "none", axis.text.x = element_text(angle = 90, hjust = 1)) +
+    guides(colour = guide_legend(title = " ")) + labs(title=paste("Correlación = ", round(cor(datos$X,datos$Y),3),sep = ""),x="",y="Scores (X roja; Y azul) (*100)") 
+  modos <- modos  +   scale_x_continuous(breaks = seq(1982,2012,3))
+  
+  
+  
+  #  Guarde los cca_maps de correlaciones
+  tiff(paste(ruta,"results/",dep,"/cca_maps_",names_file,".tif",sep=""), height=300,width=1600,res=100,
+       compression="lzw") # height=1280, width=2048, pointsize=2, res=200,
+  grid.arrange(Map_x,modos,p,ncol=5, layout_matrix = rbind(c(1,1,2,3,3)))
+  #grid.arrange(Map_x,p,modos, layout_matrix = rbind(c(1,1),c(2,3)))
+  dev.off()
+}
 
 
 
 
+
+ruta_c<-paste(ruta, "Cross_validated/",sep="")
+
+dep= "casanare" # variar el departamento
+
+
+
+# "casanare"    "cordoba"    "tolima"    "valle" "santander"
+# Determinación de los limites departamentales y estaciones a dibular en el cap >.<
+if(dep=="casanare"){
+  xmin<- -73.5; xmax<- -71; ymin<-  4; ymax<-  6
+  estaciones_in=data.frame(name="Yopal", Long=-72.388, Lat = 	5.320)
+}else if(dep=="cordoba"){
+  xmin<- -76.6; xmax<- -74.6; ymin<-  7; ymax<-  10
+  estaciones_in=data.frame(name=c("Lorica","Cereté"), Long=c(-75.913,-75.802), Lat = c(9.302,8.840))
+}else if(dep=="tolima"){
+  xmin<- -76.2; xmax<- -74; ymin<-  2.8; ymax<-  5.5
+  estaciones_in=data.frame(name=c("Ibagué","Espinal"), Long=c(-75.148,-74.960), Lat = c(4.430,4.188))
+}else if(dep=="valle"){
+  xmin<- -77.5; xmax<- -75.6; ymin<-  3; ymax<-  5
+  estaciones_in=data.frame(name="La Unión", Long=-76.062, Lat = 4.531)
+}else if(dep=="santander"){
+  xmin<- -75; xmax<- -72; ymin<- 5; ymax<- 8
+  estaciones_in=data.frame(name="Villanueva", Long=-73.21, Lat = 6.64)
+}
+
+
+length_periodo=c(rep(32,9), rep(31,3)) # Ancho del periodo de estudio para cada trimestre
+# Lead times (nombres)
+lead<-c("MAM",	"Feb", "Nov", "JJA",	"May",	"Feb", "SON", "Aug",	"May", "DEF",	"Nov",	"Aug")
+# Timestre
+a<- c(rep(3,3),rep(6,3),rep(9,3),rep(12,3))
+
+## Para cada estación lea las estaciones de interes. 
+
+
+# Lectura d eas estaciones para cada departamento.
+Estaciones_C <- read.delim(paste(ruta_l,"dep/precip_",dep,".txt",sep=""),skip =3, header=T, sep="")
+
+
+if(region=="results_graphs_C"){
+  # Lea los archivos y las estaciones necesarias para todas las corridas del departamento. 
+  for(i in 1:12){
+    xserie <- read.csv(paste(ruta_c, "X_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
+    yserie <- read.csv(paste(ruta_c,"Y_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
+    names_file <- paste(a[i],"_",lead[i],"_", dep,sep="")
+    
+    
+    SST<-read.table(paste(ruta_l,"ERSST_CPT/",lead[i],".tsv",sep=""),sep="\t",dec=".",skip =3,fill=TRUE,na.strings =-999)
+    ## Conversión a raster
+    SST=rasterize(SST)
+    var_ocanoAt <-SST[[1:length_periodo[i]]]
+    
+    cca_maps(var_ocanoAt, yserie, Estaciones_C, xserie, names_file, ruta,  a[i], xmin, xmax, ymin, ymax, estaciones_in)
+  }  
+}else if(region=="results_graphs_Op"){
+  ##### Si la region es optimizada correr este for
+  
+  #if(dep=="casanare"){
+  #  coor_ymin<-c(rep(0,3), rep(-5,3), rep(-13,3), rep(-8,3))
+  #  coor_ymax<-c(rep(25,3), rep(22,3), rep(18,3), rep(7,3))
+  #  coor_xmin<-c(rep(252,3), rep(274,3), rep(178,3), rep(184,3))
+  #  coor_xmax<-c(rep(336,3), rep(340,3), rep(284,3), rep(283,3))
+  #}else if(dep=="cordoba"){
+  #  coor_ymin<-c(rep(-4,3), rep(-13,3), rep(-15,3), rep(-15,3))
+  #  coor_ymax<-c(rep(27,3), rep(12,3), rep(14,3), rep(12,3))
+  #  coor_xmin<-c(rep(293,3), rep(177,3), rep(173,3), rep(175,3))
+  #  coor_xmax<-c(rep(340,3), rep(252,3), rep(283,3), rep(283,3))
+  #}else if(dep=="tolima"){
+  #  coor_ymin<-c(rep(-13,3), rep(-12,3), rep(-16,3), rep(-16,3))
+  #  coor_ymax<-c(rep(9,3), rep(14,3), rep(14,3), rep(12,3))
+  #  coor_xmin<-c(rep(180,3), rep(177,3), rep(172,3), rep(190,3))
+  #  coor_xmax<-c(rep(252,3), rep(255,3), rep(250,3), rep(286,3))
+  #}else if(dep=="valle"){
+  #  coor_ymin<-c(rep(-9,3), rep(-12,3), rep(-16,3), rep(-16,3))
+  #  coor_ymax<-c(rep(27,3), rep(12,3), rep(14,3), rep(12,3))
+  #  coor_xmin<-c(rep(305,3), rep(175,3), rep(172,3), rep(171,3))
+  #  coor_xmax<-c(rep(340,3), rep(255,3), rep(250,3), rep(286,3))
+  #}else if(dep=="santander"){
+  #  coor_ymin<-c(rep(-16,3), rep(-13,3), rep(-10,3), rep(-7,3))
+  #  coor_ymax<-c(rep(30,3), rep(19,3), rep(16,3), rep(31,3))
+  #  coor_xmin<-c(rep(289,3), rep(273,3), rep(288,3), rep(301,3))
+  #  coor_xmax<-c(rep(350,3), rep(358,3), rep(354,3), rep(330,3))
+  #}
+  
+  #for(i in 1:12){
+  #  xserie <- read.csv(paste(ruta_c, "X_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
+  #  yserie <- read.csv(paste(ruta_c,"Y_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
+  #  names_file <- paste(a[i],"_",lead[i],"_", dep,sep="")
+    
+    
+  #  SST<-read.table(paste(ruta1,"ERSST_CPT/",lead[i],".tsv",sep=""),sep="\t",dec=".",skip =3,fill=TRUE,na.strings =-999)
+    ## Conversión a raster
+  #  SST=rasterize(SST)
+    
+  #  var_ocanoAt <-SST[[1:length_periodo[i]]]
+  #  var_ocanoAt=crop(var_ocanoAt, extent(coor_xmin[i], coor_xmax[i], coor_ymin[i], coor_ymax[i]))
+    
+  #  cca_maps(var_ocanoAt, yserie, Estaciones_C, xserie, names_file, ruta,  a[i], xmin, xmax, ymin, ymax, estaciones_in)
+  #}
+  
+  print("En proceso")
+}
 
 
 

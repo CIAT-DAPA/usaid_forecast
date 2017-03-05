@@ -272,13 +272,13 @@ plot(map)
 #map[which(is.na(results$SST[[1]][]))][]=0
 #map[which(map[]!=0)]=NA
 ##writeRaster(map,paste(ruta,"/map.tif",sep=""))
-estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima","Turipana")
-sitios<-c("Lorica","Yopal","Ibagué","LaUnion","Espinal","Cereté")
+estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima","Turipana", "StaIsabel")
+sitios<-c("Lorica","Yopal","Ibagué","LaUnion","Espinal","Cereté", "Villanueva")
 cbind(estaciones, sitios)
 
 
-dep="valle"
-answer="CentAdmoLaUnion"
+dep="santander"
+answer="StaIsabel"
 lead<-c("MAM",	"Feb", "Nov", "JJA",	"May",	"Feb", "SON", "Aug",	"May", "DEF",	"Nov",	"Aug")
 lead_num<-rep(c("sim",0,3), 4)
 a <-rep(seq(3,12,3), each = 3)
@@ -319,14 +319,14 @@ for(i in 1:12){
 
 
 ### All stations
-estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima","Turipana")
-sitios<-c("Lorica","Yopal","Ibagué","LaUnion","Espinal","Cereté")
+estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima","Turipana","StaIsabel")
+sitios<-c("Lorica","Yopal","Ibagué","LaUnion","Espinal","Cereté", "Villanueva")
 cbind(estaciones, sitios)
 
 
 
 
-dep<-"valle"
+dep<-"santander"
 lead<-c("MAM",	"Feb", "Nov", "JJA",	"May",	"Feb", "SON", "Aug",	"May", "DEF",	"Nov",	"Aug")
 lead_num<-rep(c("sim",0,3), 4)
 a <-rep(seq(3,12,3), each = 3)
@@ -367,8 +367,8 @@ for(i in 1:length(a)){
   dev.off()
 }
 
-dep<-c("casanare","cordoba","tolima","valle")
-for(j in 1:4){
+dep<-c("casanare","cordoba","tolima","valle", "santander")
+for(j in 1:5){
   for(i in 1:length(a)){
     all_stations<-sta_complete(dep[j], lead[i], a[i])
     areas<-stack(all_stations$areas_p, all_stations$areas_s)
@@ -386,9 +386,9 @@ for(j in 1:4){
 
 
 ## Parametros con los que se corre la función 
-dep="valle"
-lead="SON" 
-a=9
+dep="santander"
+lead="DEF" 
+a=12
 # Solo se corrio la función para los modelos que CPT selecciono como los mejores modelos
 all_stations<-sta_complete(dep, lead, a)
 
@@ -400,6 +400,8 @@ plot(all_stations$areas_p, colNA="gray30", col=jet.colors(20), main="Pearson")
 plot(all_stations$areas_s, colNA="gray30", col=jet.colors(20), main="Spearman") 
 graphics.off()
 
+
+x11()
 plot(all_stations$areas_s+all_stations$areas_p, colNA="gray30", col=jet.colors(20), main="Spearman + Pearson") 
 
 ### Con estas funciones se puede realizar el area predictora solo dando click encima de la región deseada
@@ -444,13 +446,13 @@ areas_graph<-function(fila){
   scale_fill_gradient2(low="white",mid = "white", high="white",name = " ") 
 
 ## Gráfique como rectangulos las areas predictoras sobre el mapa
-  plot_areas <- plot_areas + geom_rect(xmin = tabla[fila,4], xmax = tabla[fila,5], ymin = tabla[fila,6], ymax = tabla[fila,7],fill="lightpink", alpha=0.2) #+ geom_text(data = data.frame(), aes(tabla[fila,5]+10, tabla[fila,7]+5, label = "1"))
+  plot_areas <- plot_areas + geom_rect(xmin = tabla[fila,5], xmax = tabla[fila,6], ymin = tabla[fila,7], ymax = tabla[fila,8],fill="lightpink", alpha=0.2) #+ geom_text(data = data.frame(), aes(tabla[fila,5]+10, tabla[fila,7]+5, label = "1"))
   
-  plot_areas <- plot_areas + geom_rect(xmin = tabla[fila,8], xmax = tabla[fila,9], ymin = tabla[fila,10], ymax = tabla[fila,11],fill="yellow", alpha=0.2) #+ geom_text(data = data.frame(), aes(tabla[fila,9]+10, tabla[fila,11]+5, label = "2"))
+  plot_areas <- plot_areas + geom_rect(xmin = tabla[fila,9], xmax = tabla[fila,10], ymin = tabla[fila,11], ymax = tabla[fila,12],fill="yellow", alpha=0.2) #+ geom_text(data = data.frame(), aes(tabla[fila,9]+10, tabla[fila,11]+5, label = "2"))
   
-  plot_areas <- plot_areas + geom_rect(xmin = tabla[fila,12], xmax = tabla[fila,13], ymin = tabla[fila,14], ymax = tabla[fila,15],fill="slateblue", alpha=0.2) #+  geom_text(data = data.frame(), aes(tabla[fila,13]+10, tabla[fila,15]+5, label = "3"))
+  plot_areas <- plot_areas + geom_rect(xmin = tabla[fila,13], xmax = tabla[fila,14], ymin = tabla[fila,15], ymax = tabla[fila,16],fill="slateblue", alpha=0.2) #+  geom_text(data = data.frame(), aes(tabla[fila,13]+10, tabla[fila,15]+5, label = "3"))
   
-  plot_areas <- plot_areas + geom_rect(xmin = tabla[fila,16], xmax = tabla[fila,17], ymin = tabla[fila,18], ymax = tabla[fila,19],fill="yellowgreen", alpha=0.2) #+geom_text(data = data.frame(), aes(tabla[fila,17]+10, tabla[fila,19]+5, label = "4"))
+  plot_areas <- plot_areas + geom_rect(xmin = tabla[fila,17], xmax = tabla[fila,18], ymin = tabla[fila,19], ymax = tabla[fila,20],fill="yellowgreen", alpha=0.2) #+geom_text(data = data.frame(), aes(tabla[fila,17]+10, tabla[fila,19]+5, label = "4"))
   
  # plot_areas <- plot_areas + geom_rect(xmin = tabla[fila,21], xmax = tabla[fila,22], ymin = tabla[fila,23], ymax = tabla[fila,24],fill="darkturquoise", alpha=0.2) #+ geom_text(data = data.frame(), aes(tabla[fila,21]+10, tabla[fila,23]+5, label = "5"))
   
@@ -496,8 +498,8 @@ tabla=read.table("clipboard",header = T)
 
 # Esta información se usa como referencia, son los sitios 
 # de interes en el estudio
-estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima","Turipana")
-sitios<-c("Lorica","Yopal","Ibagué","LaUnion","Espinal","Cereté")
+estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima","Turipana", "StaIsabel")
+sitios<-c("Lorica","Yopal","Ibagué","LaUnion","Espinal","Cereté", "Villanueva")
 cbind(estaciones, sitios)
 
 
@@ -530,12 +532,7 @@ MFA_C<-function(dep, a, lead,lead_num, num_zone, results, answer){
     # Corra el AFM, tenga encuenta que el argumento type="s" ("s" variables are scaled to unit variance)
     # En esta linea se tiene que delimitar claramente los grupos
     res <- MFA(t(zonas), group=c(dim(na.omit(region_1[]))[1],dim(na.omit(region_2[]))[1]),type=rep("s",2), name.group=c("zona1", "zona2"))
-    
-    #separate_analysis<-cbind.data.frame(res$separate.analyses$zona1$eig, res$separate.analyses$zona2$eig)
-    #names(separate_analysis)<-paste(rep(c("zona_1", "zona_2"),each=3), names(separate_analysis), sep="_")
-    #write.csv(separate_analysis, file=paste("separate_analysis", answer, trim,lead , ".csv",sep="_"))
-    
-    
+
     
   } else if(num_zone==3){## 3 zonas
     
@@ -545,11 +542,7 @@ MFA_C<-function(dep, a, lead,lead_num, num_zone, results, answer){
     
     zonas<-as.data.frame(rbind(na.omit(region_1[]), na.omit(region_2[]), na.omit(region_3[])))
     res <- MFA(t(zonas), group=c(dim(na.omit(region_1[]))[1],dim(na.omit(region_2[]))[1], dim(na.omit(region_3[]))[1]),type=rep("s",3), name.group=c("zona1", "zona2",  "zona3"))
-    
-    #separate_analysis<-cbind.data.frame(res$separate.analyses$zona1$eig, res$separate.analyses$zona2$eig, res$separate.analyses$zona3$eig)
-    #names(separate_analysis)<-paste(rep(c("zona_1", "zona_2", "zona_3"),each=3), names(separate_analysis), sep="_")
-    #write.csv(separate_analysis, file=paste("separate_analysis", answer, trim,lead , ".csv",sep="_"))
-    
+   
     
     
   } else  if(num_zone==4){ ## 4 zonas
@@ -561,27 +554,8 @@ MFA_C<-function(dep, a, lead,lead_num, num_zone, results, answer){
     zonas<-as.data.frame(rbind(na.omit(region_1[]), na.omit(region_2[]), na.omit(region_3[]), na.omit(region_4[])))
     res <- MFA(t(zonas), group=c(dim(na.omit(region_1[]))[1],dim(na.omit(region_2[]))[1], dim(na.omit(region_3[]))[1], dim(na.omit(region_4[]))[1]),type=rep("s",4), name.group=c("zona1", "zona2",  "zona3",  "zona4"))
     
-    #separate_analysis<-cbind.data.frame(res$separate.analyses$zona1$eig, res$separate.analyses$zona2$eig, res$separate.analyses$zona3$eig, res$separate.analyses$zona4$eig)
-    #names(separate_analysis)<-paste(rep(c("zona_1", "zona_2", "zona_3", "zona_4"),each=3), names(separate_analysis), sep="_")
-    #write.csv(separate_analysis, file=paste("separate_analysis", answer, trim,lead , ".csv",sep="_"))
-    
-    
-  } #else if(num_zone==5){
-    #region_1<-extent(as.numeric(regiones[1:4])); region_1=crop(results$SST, region_1)
-    #region_2<-extent(as.numeric(regiones[5:8])); region_2=crop(results$SST, region_2)
-    #region_3<-extent(as.numeric(regiones[9:12])); region_3=crop(results$SST, region_3)
-    #region_4<-extent(as.numeric(regiones[13:16])); region_4=crop(results$SST, region_4)
-    #region_5<-extent(as.numeric(regiones[17:20])); region_5=crop(results$SST, region_5)
-    
-    #zonas=as.data.frame(rbind(na.omit(region_1[]), na.omit(region_2[]), na.omit(region_3[]), na.omit(region_4[]), na.omit(region_5[])))
-    #res <- MFA(t(zonas), group=c(dim(na.omit(region_1[]))[1],dim(na.omit(region_2[]))[1], dim(na.omit(region_3[]))[1], dim(na.omit(region_4[]))[1], dim(na.omit(region_5[]))[1]),type=rep("s",5), name.group=c("zona1", "zona2",  "zona3",  "zona4",  "zona5"))
-    
-    #separate_analysis<-cbind.data.frame(res$separate.analyses$zona1$eig, res$separate.analyses$zona2$eig, res$separate.analyses$zona3$eig, res$separate.analyses$zona4$eig,  res$separate.analyses$zona5$eig)
-    #names(separate_analysis)<-paste(rep(c("zona_1", "zona_2", "zona_3", "zona_4", "zona_5"),each=3), names(separate_analysis), sep="_")
-    #write.csv(separate_analysis, file=paste("separate_analysis", answer, trim,lead , ".csv",sep="_"))
-    
-  #}
   
+  } 
   
   
   setwd(paste("C:/Users/AESQUIVEL/Google Drive/salidas_afm", "/results_graphs/AFM/", dep, "/",answer, "/", trim, "/", sep=""))
@@ -630,78 +604,12 @@ MFA_C<-function(dep, a, lead,lead_num, num_zone, results, answer){
   return(entrega)}
 #rownames(tabla)<-paste(tabla[,"Station"],tabla[,1], sep="_")
 
-#MFA_C<-function(dep, a, lead,lead_num, num_zone, results, answer){
-  # determine el trimestre que se va a pronosticar en base al mes de incio del periodo 
-  if(a==3){trim<-"MAM"}else if(a==6){ trim<-"JJA"}else if(a==9){trim<-"SON"}else if(a==12){trim<-"DEF"}else print("ERRORR !!!!")
-  
-  ## nombre de la fila que se va a estudiar (departamento - trimestre donde se encuentra las estaciones)
-  fila=paste(answer,trim,sep="_")
-  regiones<-tabla[fila,names(tabla)[5:20]] # elimine las celdas que no corresponden a coordenadas
-  regiones<-regiones[1:(4*num_zone)] #determine cuantas regiones se utilizaran
-  
-  ### AFM condicionado por el número de regiones
-  if(num_zone==2){ # 2 zonas 
-    # Cree la región predictora y corte la SST de acuerdo a la región
-    region_1<-extent(as.numeric(regiones[1:4])); region_1=crop(results$SST, region_1)
-    region_2<-extent(as.numeric(regiones[5:8])); region_2=crop(results$SST, region_2)
-    
-    # cree un data frame de las regiones predictoras omitiendo las celdas sin información
-    zonas<-as.data.frame(rbind(na.omit(region_1[]), na.omit(region_2[])))
-    # Corra el AFM, tenga encuenta que el argumento type="s" ("s" variables are scaled to unit variance)
-    # En esta linea se tiene que delimitar claramente los grupos
-    res <- MFA(t(zonas), group=c(dim(na.omit(region_1[]))[1],dim(na.omit(region_2[]))[1]),type=rep("s",2), name.group=c("zona1", "zona2"))
-
-  } else if(num_zone==3){## 3 zonas
-    
-    region_1<-extent(as.numeric(regiones[1:4])); region_1=crop(results$SST, region_1)
-    region_2<-extent(as.numeric(regiones[5:8])); region_2=crop(results$SST, region_2)
-    region_3<-extent(as.numeric(regiones[9:12])); region_3=crop(results$SST, region_3)
-    
-    zonas<-as.data.frame(rbind(na.omit(region_1[]), na.omit(region_2[]), na.omit(region_3[])))
-    res <- MFA(t(zonas), group=c(dim(na.omit(region_1[]))[1],dim(na.omit(region_2[]))[1], dim(na.omit(region_3[]))[1]),type=rep("s",3), name.group=c("zona1", "zona2",  "zona3"))
-
-  } else  if(num_zone==4){ ## 4 zonas
-    region_1<-extent(as.numeric(regiones[1:4])); region_1=crop(results$SST, region_1)
-    region_2<-extent(as.numeric(regiones[5:8])); region_2=crop(results$SST, region_2)
-    region_3<-extent(as.numeric(regiones[9:12])); region_3=crop(results$SST, region_3)
-    region_4<-extent(as.numeric(regiones[13:16])); region_4=crop(results$SST, region_4)
-    
-    zonas<-as.data.frame(rbind(na.omit(region_1[]), na.omit(region_2[]), na.omit(region_3[]), na.omit(region_4[])))
-    res <- MFA(t(zonas), group=c(dim(na.omit(region_1[]))[1],dim(na.omit(region_2[]))[1], dim(na.omit(region_3[]))[1], dim(na.omit(region_4[]))[1]),type=rep("s",4), name.group=c("zona1", "zona2",  "zona3",  "zona4"))
-    
-  } 
-  
-  # correlación entre las componentes y el indicador
-  corr<-cbind.data.frame(cor1=cor(results$ind, res$global.pca$ind$coord[,1]),cor2=cor(results$ind, res$global.pca$ind$coord[,2]), cor3=cor(results$ind, res$global.pca$ind$coord[,3]))
-  
-  # Realice un gráfico entre la primera componente y el indicador de la estación y agregue la correlación
-  datos=as.data.frame(cbind(res$global.pca$ind$coord[,1], results$ind))
-  gp = ggplot(datos, aes(datos[,1], datos[,2])) +  geom_point(shape=19, size=3,colour="#CC0000")
-  gp = gp +  geom_smooth(method=lm, colour="#000099") + labs(x="Primera Componente AFM",y="Precipitación (mm)") 
-  gp = gp + geom_text(data = data.frame(), aes(max(datos[,1])-0.5, max(datos[,2])+20, label = paste("r = ", round(cor(datos[,1], datos[,2]),3), sep="")))
-  gp = gp + theme_bw()
-  # Realice un gráfico entre la segunda componente y el indicador de la estación y agregue la correlación
-  datos2=as.data.frame(cbind(res$global.pca$ind$coord[,2], results$ind))
-  p2 = ggplot(datos2, aes(datos2[,1], datos2[,2])) +  geom_point(shape=19, size=3,colour="#CC0000")
-  p2 = p2 +  geom_smooth(method=lm, colour="#000099") + labs(x="Segunda Componente AFM",y="Precipitación (mm)") 
-  p2 = p2 + geom_text(data = data.frame(), aes(max(datos2[,1])-0.5, max(datos2[,2])+20, label = paste("r = ", round(cor(datos2[,1], datos2[,2]),3), sep="")))
-  p2 = p2 + theme_bw()
-  
-  # Guarde las dos imagenes automaticamente
-  tiff(paste(ruta,"/results_graphs/AFM/","cortes/disp","_",answer, "_",trim,"_",lead_num,".tif",sep=""), height=400,width=550,res=100,
-       compression="lzw") 
-  grid.arrange(gp,p2,ncol=2)
-  dev.off()
- # Guarde lo que vaya a entregar en una lista que entrega, la correlaciónm, la contribución y las componentes
-  entrega<-list(corr=corr, contrib=res$group$contrib, res_global.pca=res$global.pca$ind$coord[,1:3])
-  return(entrega)}
-
 tabla=read.table("clipboard",header = T)
 rownames(tabla)<-paste(tabla[,"Station"],tabla[,1], sep="_")
 
 
 
-dep="tolima"
+dep="santander"
 ## lead
 if(a==12){
   lead=c("DEF","Nov", "Aug")
@@ -711,7 +619,9 @@ if(a==12){
   }else  if(a==9){
     lead=c("SON", "Aug", "May")
   }
-answer= "Nataima"
+
+
+answer= "StaIsabel"
 lead_num=c("sim",0,3)
 a<-c(12,3,6,9)
 num_zone<-tabla[,"num_reg"]
@@ -797,8 +707,8 @@ MFA_P<-function(dep, a, lead, num_zone, results, answer){
 tabla=read.table("clipboard",header = T)
 rownames(tabla)<-paste(tabla[,"Station"],tabla[,1], sep="_")
 
-answer<- "CentAdmoLaUnion"
-dep<-"valle"
+answer<- "StaIsabel"
+dep<-"santander"
 a<-tabla[,"a"]
 num_zone<-tabla[,"num_reg"]
 
@@ -838,29 +748,33 @@ write.csv(datosp, file = "correlaciones.csv")
 correlaciones <- read.csv("C:/Users/AESQUIVEL/Google Drive/salidas_afm/correlaciones.csv", row.names=1)
 correlaciones[,"a"]<-as.factor(correlaciones[,"a"])
 
+
 # Este es un gráfico de barras de las correlaciones de cada componente 
 # con cada estación agrupadas por trimestre y lead time 
-c <- ggplot(correlaciones, aes(a,cor1, fill=lead_num) )
+c <- ggplot(correlaciones, aes(a,cor1, fill=as.factor(lead_num)))
 c <- c + geom_bar(stat = "identity", position="dodge")
 c <- c + facet_grid(. ~ Station) + theme_bw() 
-c <- c  + geom_hline(yintercept = c(0.25,-0.25)) + labs( x="") + ylim(c(-0.32,0.8))
-  
-d <- ggplot(correlaciones, aes(a,cor2, fill=lead_num) )
+c <- c + geom_hline(yintercept = c(0.25,-0.25)) + labs( x="", y="Cor comp 1") + ylim(c(-0.8,0.8)) + guides(fill=guide_legend(title="Lead Time"))
+
+
+d <- ggplot(correlaciones, aes(a,cor2, fill=as.factor(lead_num)) )
 d <-d + geom_bar(stat = "identity", position="dodge")
 d <- d + facet_grid(. ~ Station) + theme_bw() 
-d <- d  + geom_hline(yintercept = c(0.25,-0.25)) + labs( x="")+ ylim(c(-0.32,0.8))
+d <- d + geom_hline(yintercept = c(0.25,-0.25)) + labs( x="", y="Cor comp 2") + ylim(c(-0.8,0.8)) + guides(fill=guide_legend(title="Lead Time"))
 
-f <- ggplot(correlaciones, aes(a,cor3, fill=lead_num) )
+f <- ggplot(correlaciones, aes(a,cor3, fill=as.factor(lead_num)) )
 f <-f + geom_bar(stat = "identity", position="dodge")
 f <- f + facet_grid(. ~ Station) + theme_bw() 
-f <-f  + geom_hline(yintercept = c(0.25,-0.25)) + labs(x="")+ ylim(c(-0.32,0.8))
+f <-f + geom_hline(yintercept = c(0.25,-0.25)) + labs( x="", y="Cor comp 3") + ylim(c(-0.8,0.8)) + guides(fill=guide_legend(title="Lead Time"))
 
 x11()
 grid.arrange(c,d,f, ncol=1)
 
+
+
 # Posiciones en las que se cumple que el valor absoluto de la correlación
 # sea mayor a 0.25
-cond<-ifelse(abs(correlaciones[,5:7])>0.25,yes = 1,no = 0)
+cond<-ifelse(abs(correlaciones[,4:6])>0.25,yes = 1,no = 0)
 
 suma<-apply(cond, 1, sum) # Diga por filas cuantas componentes cumplen la condición 
 
@@ -1001,8 +915,8 @@ modelo<-function(dep,lead,lead_num, a, answer, num_zone, comp){
 return(entrega)}
 
 # Corra todos los modelos
-dep<-"valle"
-answer<-"CentAdmoLaUnion"
+dep<-"santander"
+answer<-"StaIsabel"
 lead<-tab_comp[,"lead"]
 lead_num<-tab_comp[,"lead_num"]
 a<-tab_comp[,"a"]
@@ -1024,7 +938,7 @@ mop
 
 setwd("C:/Users/AESQUIVEL/Google Drive/salidas_afm/")
 getwd()
-write.csv(mop, file = "summary_models.csv", row.names = TRUE)
+write.csv(mop, file = "summary_models_santander.csv", row.names = TRUE)
 
 
 
@@ -1109,8 +1023,8 @@ modelop<-function(dep,lead,lead_num, a, answer, num_zone, comp){
 tab_comp<-read.table("clipboard",header = T)
 rownames(tab_comp)<-paste(substring(tab_comp[,2],1,5),tab_comp[,1], tab_comp[,3], sep="_")
 
-dep<-"cordoba"
-answer<-"Turipana"
+dep<-"santander"
+answer<-"StaIsabel"
 lead<-tab_comp[,"lead"]
 lead_num<-tab_comp[,"lead_num"]
 a<-tab_comp[,"a"]
@@ -1261,8 +1175,8 @@ tab_comp<-read.table("clipboard",header = T)
 rownames(tab_comp)<-paste(substring(tab_comp[,2],1,5),tab_comp[,1], tab_comp[,3], sep="_")
 
 # Declare las variables de la función 
-dep<-"valle"
-answer<-"CentAdmoLaUnion"
+dep<-"santander"
+answer<-"StaIsabel"
 lead<-tab_comp[,"lead"]
 lead_num<-tab_comp[,"lead_num"]
 a<-tab_comp[,"a"]
@@ -1283,15 +1197,10 @@ for(i in 1:dim(tab_comp)[1]){
   mo_p=rbind(mo_p, data)  
 }
 
-
-
-
-
-
 #mop<-rbind(mop,mo_p[-1, ])
 
 # Almacene el archivo
-write.csv(mop, file = "summary_models_parcial.csv", row.names = TRUE)
+write.csv(mop, file = "summary_models_parcial_Sant.csv", row.names = TRUE)
 
 
 
@@ -1424,8 +1333,8 @@ tab_comp<-read.table("clipboard",header = T)
 rownames(tab_comp)<-paste(substring(tab_comp[,2],1,5),tab_comp[,1], tab_comp[,3], sep="_")
 
 # Declare las variables
-dep<-"valle"
-answer<-"CentAdmoLaUnion"
+dep<-"santander"
+answer<-"StaIsabel"
 lead<-tab_comp[,"lead"]
 lead_num<-tab_comp[,"lead_num"]
 a<-tab_comp[,"a"]
@@ -1447,7 +1356,7 @@ mop_retro<-rbind(mop_retro,mo_p[-1,])
 ## Cambie el directorio y almacene los archivos. 
 setwd("C:/Users/AESQUIVEL/Google Drive/salidas_afm/")
 getwd()
-write.csv(mop_retro, file = "summary_models_retro.csv", row.names = TRUE)
+write.csv(mop_retro, file = "summary_models_retro_Sant.csv", row.names = TRUE)
 
 
 #RMSE <- sqrt(sum((modelo$fitted.values-results$ind)^2)/length(results$ind))
@@ -1510,7 +1419,7 @@ tab[which(tab[,"a"]==12),"a"]=0 # al trimestre 12 (DEF) asignele el valor de 0 p
 # declare las etiquetas para el gráfico, labels es para los triemstres
 labels<-as_labeller(c("0"="DEF","3"="MAM","6"="JJA", "9"="SON"))
 # labels_e es para cambiar el nombre las estaciones a los sitios de interes. 
-labels_e<-as_labeller(c("AptoYopal"="Yopal","DoctrinaLa"="Lorica","Turipana" ="Cereté", "AptoPerales"="Ibagué", "Nataima" = "Espinal", "CentAdmoLaUnion"="La Unión"))
+labels_e<-as_labeller(c("AptoYopal"="Yopal","DoctrinaLa"="Lorica","Turipana" ="Cereté", "AptoPerales"="Ibagué", "Nataima" = "Espinal", "CentAdmoLaUnion"="La Unión", "StaIsabel"="Villanueva"))
 
 # Gráfique los GI condicionando por sitio de estudio y trimestre
 ggplot(tab,aes(x=good,y=retro,shape=lead_num,color=lead_num, size=0.2))+geom_point()+
