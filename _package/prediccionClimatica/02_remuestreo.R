@@ -387,9 +387,16 @@ for(y in min(data_temp$year):max(data_temp$year)){
     tmin_limit = cbind(data_prob[,1:2],all_min$t_min,all_avg$t_min,all_min$t_max)
     srad_limit = cbind(data_prob[,1:2],all_min$sol_rad,all_avg$sol_rad,all_max$sol_rad)
     
-    # which.min()
-    # which.max()
-    # 
+    tmax_limit_ord = t(apply(tmax_limit[,3:5],1,order,decreasing =F))
+   
+    for(ord in 1:6){
+      tmax_limit[ord,3:5] = tmax_limit[i,3:5][tmax_limit_ord[ord,]]
+      
+    }
+    
+    dir.create(paste(path_output,format.Date(Sys.Date(),"%Y%m%d"),sep="/"),showWarnings=F)
+    dir.create(paste(path_output,"/",format.Date(Sys.Date(),"%Y%m%d"),"/Escenarios_",station,sep=""),showWarnings=F)
+    
     limit.name = c("min","avg", "max")
     for(j in 1:3){
       write.csv(prec_limit[,c(1,2,(j+2))],paste(path_output,"/",format.Date(Sys.Date(),"%Y%m%d"),"/Escenarios_",station,"/prec_",limit.name[j], ".csv",sep=""),row.names=F)
@@ -401,9 +408,7 @@ for(y in min(data_temp$year):max(data_temp$year)){
     #-----------------Exporta los escenarios a nivel diario a .csv--------------------#
     #---------------------------------------------------------------------------------#
     
-    dir.create(paste(path_output,format.Date(Sys.Date(),"%Y%m%d"),sep="/"),showWarnings=F)
-    dir.create(paste(path_output,"/",format.Date(Sys.Date(),"%Y%m%d"),"/Escenarios_",station,sep=""),showWarnings=F)
-    
+     
     for(k in 1:nrow(escenarios_final)){
       write.csv(esc_final_diarios[[k]],paste(path_output,"/",format.Date(Sys.Date(),"%Y%m%d"),"/Escenarios_",station,"/escenario_",nom[k],".csv",sep=""),row.names=F)
     }
