@@ -137,21 +137,6 @@ plot(map) # grafico
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #################################################################################
 #################################################################################
 ######################## Funciones de Correlación 
@@ -350,15 +335,15 @@ sta_complete<-function(dep, lead, a){
 
 ### Nombre de las estaciones y sitios de estudio
 
-estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima","Turipana")
-sitios<-c("Lorica","Yopal","Ibagué","LaUnion","Espinal","Cereté")
+estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima","Turipana", "StaIsabel")
+sitios<-c("Lorica","Yopal","Ibagué","LaUnion","Espinal","Cereté","Villanueva")
 cbind(estaciones, sitios)
 
 
 
 # Declare los argumentos de las funciones
-dep="valle"
-answer="CentAdmoLaUnion"
+dep="santander"
+answer="StaIsabel"
 lead_num<-rep(c(0,3,5), 4)
 
 # Timestre
@@ -416,7 +401,7 @@ for(i in 1:12){ #Corra para todos los lead times
 
 
 # Declare los argumentos de las funciones
-dep<-"valle"
+dep<-"santander"
 # Lead times (nombres)
 lead<-c(paste(rep("MAM",3),c("Feb","Nov","Sep"), sep="_"),
         paste(rep("JJA",3),c("May","Feb","Dec"), sep="_"),
@@ -435,7 +420,7 @@ for(i in 1:length(a)){ # corra para todos los lead
   file<-paste(dep,"_", a[i], "_", lead_num[i], sep="")
   
   # guardado automatico en .tif de los mapas del coeficiente de correlación de pearson completos
-  tiff(paste(ruta, "/results_graphs/",dep,"/corEcp",file,".tif",sep=""), height=650,width=1000,res=100,
+  tiff(paste(ruta, "/results_graphs/",dep,"/graph_dep/corEcp",file,".tif",sep=""), height=650,width=1000,res=100,
        compression="lzw") 
   print(levelplot(all_stations$cor_pear, par.settings=myTheme))
   dev.off()
@@ -443,7 +428,7 @@ for(i in 1:length(a)){ # corra para todos los lead
 
   
   # guardado automatico en .tif de los mapas del coeficiente de correlación de spearman completos
-  tiff(paste(ruta, "/results_graphs/",dep,"/corEcs",file,".tif",sep=""), height=650,width=1000,res=100,
+  tiff(paste(ruta, "/results_graphs/",dep,"/graph_dep/corEcs",file,".tif",sep=""), height=650,width=1000,res=100,
        compression="lzw") 
   print(levelplot(all_stations$cor_spe, par.settings=myTheme))
   dev.off()
@@ -451,7 +436,7 @@ for(i in 1:length(a)){ # corra para todos los lead
   
   # guardado automatico en .tif de los mapas de  los cortes de las regiones
   # inflyentes con la correlacion de pearson para todas las estataciones
-  tiff(paste(ruta, "/results_graphs/",dep,"/corEcp_curt",file,".tif",sep=""), height=650,width=1000,res=100,
+  tiff(paste(ruta, "/results_graphs/",dep,"/graph_dep/corEcp_curt",file,".tif",sep=""), height=650,width=1000,res=100,
        compression="lzw") 
   print(levelplot(all_stations$cut_p, par.settings=myTheme1) + levelplot(map, par.settings=myTheme2))
   dev.off()
@@ -461,10 +446,12 @@ for(i in 1:length(a)){ # corra para todos los lead
   
   # guardado automatico en .tif de los mapas de  los cortes de las regiones
   # inflyentes con la correlacion de spearman para todas las estataciones
-  tiff(paste(ruta, "/results_graphs/",dep,"/corEcs_curt",file,".tif",sep=""), height=650,width=1000,res=100,
+  tiff(paste(ruta, "/results_graphs/",dep,"/graph_dep/corEcs_curt",file,".tif",sep=""), height=650,width=1000,res=100,
        compression="lzw") 
   print(levelplot(all_stations$cut_s, par.settings=myTheme1) + levelplot(map, par.settings=myTheme2))
   dev.off()
+  
+  print(i)
 }
 
 
@@ -475,8 +462,8 @@ for(i in 1:length(a)){ # corra para todos los lead
 
 
 ##### Grafica las zonas mas frecuentes (con alta correlacion para todo el departamento)
-dep<-c("casanare","cordoba","tolima","valle")
-for(j in 1:4){ # corra para los cuatro departamentos
+dep<-c("casanare","cordoba","tolima","valle", "santander")
+for(j in 1:5){ # corra para los cuatro departamentos
   for(i in 1:length(a)){ #para todos los trimestres y lead (en total el vector tiene 12 posiciones)
     #corra los mapas de correlaciones para todas las estaciones del departamento
     all_stations<-sta_complete(dep[j], lead[i], a[i])
@@ -513,9 +500,9 @@ for(j in 1:4){ # corra para los cuatro departamentos
 
 
 ## Parametros con los que se corre la función 
-dep="cordoba"
-lead="DEF_Aug" 
-a=12
+dep="santander"
+lead="SON_Aug" 
+a=9
 # Solo se corrio la función para los modelos que CPT selecciono como los mejores modelos
 all_stations<-sta_complete(dep, lead, a)
 
@@ -527,6 +514,8 @@ plot(all_stations$areas_p, colNA="gray30", col=jet.colors(20), main="Pearson")
 plot(all_stations$areas_s, colNA="gray30", col=jet.colors(20), main="Spearman") 
 graphics.off()
 
+
+x11()
 plot(all_stations$areas_s+all_stations$areas_p, colNA="gray30", col=jet.colors(20), main="Spearman + Pearson") 
 
 ### Con estas funciones se puede realizar el area predictora solo dando click encima de la región deseada
@@ -549,6 +538,7 @@ h<-as.numeric(as.character(h))
 
 
 j<-drawExtent(col="pink")
+j<-as.numeric(as.character(j))
 
 
 rbind(t(e),t(f),t(g),t(h))
@@ -559,80 +549,80 @@ rbind(t(e),t(f),t(g),t(h))
 
 
 
-library("FactoClass")
+#library("FactoClass")
 
 ## Parametros con los que se corre la función 
-dep="cordoba"
-lead="DEF_Nov" 
-a=12
-answer="DoctrinaLa"
+#dep="santander"
+#lead="DEF_Nov" 
+#a=12
+#answer="DoctrinaLa"
 # Solo se corrio la función para los modelos que CPT selecciono como los mejores modelos
-all_stations<-sta_complete(dep, lead, a)
+#all_stations<-sta_complete(dep, lead, a)
 
 
 
 
-all_stations$cor_pear[][which(abs(all_stations$cor_pear)[]<0.5)]=0
+#all_stations$cor_pear[][which(abs(all_stations$cor_pear)[]<0.5)]=0
 
 
 
-plot(all_stations$cor_pear)
+#plot(all_stations$cor_pear)
 
 
 
-cluster <- cbind(rasterToPoints(all_stations$cor_pear), freq=rasterToPoints(all_stations$areas_p)[,3])
+#cluster <- cbind(rasterToPoints(all_stations$cor_pear), freq=rasterToPoints(all_stations$areas_p)[,3])
 #filtro<-cluster[which(cluster$freq>0.2*34),]
 
 #cluster<-rasterToPoints(all_stations$areas_p)
-cluster1<-FactoClass( cluster , dudi.pca, k.clust = 4,
-            scanFC = FALSE,  nfcl = 10)   
+#cluster1<-FactoClass( cluster , dudi.pca, k.clust = 4,
+#            scanFC = FALSE,  nfcl = 10)   
 
-cluster1$carac.cont
+#cluster1$carac.cont
 
-library(dplyr)
-head(cluster)
-cluster_df <- data.frame(cluster, ind_cluster = cluster1$cluster)
+#library(dplyr)
+#head(cluster)
+#cluster_df <- data.frame(cluster, ind_cluster = cluster1$cluster)
 
-summary_cluster <- cluster_df %>%
-  group_by(ind_cluster) %>%
-  summarise_each(funs(mean)) %>%
-  as.data.frame()
+#summary_cluster <- cluster_df %>%
+#  group_by(ind_cluster) %>%
+#  summarise_each(funs(mean)) %>%
+#  as.data.frame()
 
-summary_cluster
+#summary_cluster
 
 
 
 #### Variación de las estaciones
 
 #### Correlación de Pearson 
-ocean=which(!is.na(all_stations$areas_p[])) # tome las posiciones en las que la variable sea diferente de NA
+#ocean=which(!is.na(all_stations$areas_p[])) # tome las posiciones en las que la variable sea diferente de NA
 
-cluster_values<-all_stations$areas_p
-plot(cluster_values)
-cluster_values[ocean]<-cluster1$cluster
-plot(cluster_values, col=c("red","blue", "green", "orange"))
-
-
-table(cluster1$cluster)
+#cluster_values<-all_stations$areas_p
+#plot(cluster_values)
+#cluster_values[ocean]<-cluster1$cluster
+#plot(cluster_values, col=c("red","blue", "green", "orange"))
 
 
-
-
-ocean=which(cluster_values[]==2)#  tome las posiciones en las que la variable sea diferente de NA
-
-cluster_1<-cluster_values
-cluster_1[]=NA
-cluster_1[ocean]<-1
-plot(cluster_1)
-
-
-results<-correlation(dep, lead, a,answer)
-region_2<-mask(results$SST, cluster_1)
+#table(cluster1$cluster)
 
 
 
 
-dim(region_2)
+#ocean=which(cluster_values[]==2)#  tome las posiciones en las que la variable sea diferente de NA
+
+#cluster_1<-cluster_values
+#cluster_1[]=NA
+#cluster_1[ocean]<-1
+#plot(cluster_1)
+
+
+#results<-correlation(dep, lead, a,answer)
+#region_2<-mask(results$SST, cluster_1)
+
+
+
+
+#dim(region_2)
 
 
 
@@ -704,13 +694,13 @@ areas_graph<-function(fila){
     scale_fill_gradient2(low="white",mid = "white", high="white",name = " ") 
   
   ## Gráfique como rectangulos las areas predictoras sobre el mapa
-  plot_areas <- plot_areas + geom_rect(xmin = tabla[fila,4], xmax = tabla[fila,5], ymin = tabla[fila,6], ymax = tabla[fila,7],fill="lightpink", alpha=0.2) #+ geom_text(data = data.frame(), aes(tabla[fila,5]+10, tabla[fila,7]+5, label = "1"))
+  plot_areas <- plot_areas + geom_rect(xmin = tabla[fila,5], xmax = tabla[fila,6], ymin = tabla[fila,7], ymax = tabla[fila,8],fill="lightpink", alpha=0.2) #+ geom_text(data = data.frame(), aes(tabla[fila,5]+10, tabla[fila,7]+5, label = "1"))
   
-  plot_areas <- plot_areas + geom_rect(xmin = tabla[fila,8], xmax = tabla[fila,9], ymin = tabla[fila,10], ymax = tabla[fila,11],fill="yellow", alpha=0.2) #+ geom_text(data = data.frame(), aes(tabla[fila,9]+10, tabla[fila,11]+5, label = "2"))
+  plot_areas <- plot_areas + geom_rect(xmin = tabla[fila,9], xmax = tabla[fila,10], ymin = tabla[fila,11], ymax = tabla[fila,12],fill="yellow", alpha=0.2) #+ geom_text(data = data.frame(), aes(tabla[fila,9]+10, tabla[fila,11]+5, label = "2"))
   
-  plot_areas <- plot_areas + geom_rect(xmin = tabla[fila,12], xmax = tabla[fila,13], ymin = tabla[fila,14], ymax = tabla[fila,15],fill="slateblue", alpha=0.2) #+  geom_text(data = data.frame(), aes(tabla[fila,13]+10, tabla[fila,15]+5, label = "3"))
+  plot_areas <- plot_areas + geom_rect(xmin = tabla[fila,13], xmax = tabla[fila,14], ymin = tabla[fila,15], ymax = tabla[fila,16],fill="slateblue", alpha=0.2) #+  geom_text(data = data.frame(), aes(tabla[fila,13]+10, tabla[fila,15]+5, label = "3"))
   
-  plot_areas <- plot_areas + geom_rect(xmin = tabla[fila,16], xmax = tabla[fila,17], ymin = tabla[fila,18], ymax = tabla[fila,19],fill="yellowgreen", alpha=0.2) #+geom_text(data = data.frame(), aes(tabla[fila,17]+10, tabla[fila,19]+5, label = "4"))
+  plot_areas <- plot_areas + geom_rect(xmin = tabla[fila,17], xmax = tabla[fila,18], ymin = tabla[fila,19], ymax = tabla[fila,20],fill="yellowgreen", alpha=0.2) #+geom_text(data = data.frame(), aes(tabla[fila,17]+10, tabla[fila,19]+5, label = "4"))
   
   # plot_areas <- plot_areas + geom_rect(xmin = tabla[fila,21], xmax = tabla[fila,22], ymin = tabla[fila,23], ymax = tabla[fila,24],fill="darkturquoise", alpha=0.2) #+ geom_text(data = data.frame(), aes(tabla[fila,21]+10, tabla[fila,23]+5, label = "5"))
   
@@ -851,7 +841,7 @@ MFA_C<-function(dep, a, lead,lead_num, num_zone, results, answer){
   # Guarde lo que vaya a entregar en una lista que entrega, la correlaciónm, la contribución y las componentes
   entrega<-list(corr=corr, contrib=res$group$contrib, res_global.pca=res$global.pca$ind$coord[,1:3])
   return(entrega)}
-#rownames(tabla)<-paste(tabla[,"Station"],tabla[,1], sep="_")
+rownames(tabla)<-paste(tabla[,"Station"],tabla[,1], sep="_")
 
 
 
@@ -865,25 +855,16 @@ tabla=read.table("clipboard",header = T)
 
 # Esta información se usa como referencia, son los sitios 
 # de interes en el estudio
-estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima","Turipana")
-sitios<-c("Lorica","Yopal","Ibagué","LaUnion","Espinal","Cereté")
+estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima","Turipana","StaIsabel")
+sitios<-c("Lorica","Yopal","Ibagué","LaUnion","Espinal","Cereté", "Villanueva")
 cbind(estaciones, sitios)
 
 
 
-dep="casanare"
+dep="santander"
 
-## lead
-if(a==12){
-  lead=c("DEF_Nov","DEF_Aug", "DEF_Jun")
-}else  if(a==3){ 
-  lead=c("MAM_Feb","MAM_Nov", "MAM_Sep")}else  if(a==6){
-    lead=c("JJA_May","JJA_Feb","JJA_Dec")
-  }else  if(a==9){
-    lead=c("SON_Aug", "SON_May", "SON_Mar")
-  }
 
-answer= "AptoYopal"
+answer= "StaIsabel"
 lead_num=c(0,3,5)
 a<-c(12,3,6,9)
 num_zone<-tabla[,"num_zone"]
@@ -982,8 +963,8 @@ MFA_P<-function(dep, a, lead, num_zone, results, answer){
 tabla=read.table("clipboard",header = T)
 rownames(tabla)<-paste(tabla[,"Station"],tabla[,1], sep="_")
 
-answer<- "CentAdmoLaUnion"
-dep<-"valle"
+answer<- "StaIsabel"
+dep<-"santander"
 a<-tabla[,"a"]
 num_zone<-tabla[,"num_zone"]
 
@@ -1015,7 +996,7 @@ datosp<-rbind(datosp,datos[-1,])
 names(datosp)<-c("a","Station","lead","cor1", "cor2", "cor3", "test1", "test2","test3")
 row.names(datosp)<-paste(substring(datosp[,2],1,5),datosp[,1], datosp[, "lead"], sep="_")
 ## Guarde en un archivo la tabla
-write.csv(datosp, file = "correlaciones.csv")
+write.csv(datosp, file = "correlaciones_santander.csv")
 
 
 
@@ -1207,8 +1188,8 @@ modelo<-function(dep,lead,lead_num, a, answer, num_zone, comp){
 
 
 # Corra todos los modelos
-dep<-"valle"
-answer<-"CentAdmoLaUnion"
+dep<-"santander"
+answer<-"StaIsabel"
 lead<-tab_comp[,"lead"]
 lead_num<-tab_comp[,"lead_num"]
 a<-tab_comp[,"a"]
@@ -1230,7 +1211,7 @@ mop
 
 setwd("C:/Users/AESQUIVEL/Google Drive/Exp_2_AFM/")
 getwd()
-write.csv(mop, file = "summary_models.csv", row.names = TRUE)
+write.csv(mop, file = "summary_models_sant.csv", row.names = TRUE)
 
 
 
@@ -1543,8 +1524,8 @@ tab_comp<-read.table("clipboard",header = T)
 rownames(tab_comp)<-paste(substring(tab_comp[,2],1,5),tab_comp[,1], tab_comp[,3], sep="_")
 
 # Declare las variables de la función 
-dep<-"valle"
-answer<-"CentAdmoLaUnion"
+dep<-"santander"
+answer<-"StaIsabel"
 lead<-tab_comp[,"lead"]
 lead_num<-tab_comp[,"lead_num"]
 a<-tab_comp[,"a"]
@@ -1577,7 +1558,7 @@ getwd()
 
 
 # Almacene el archivo
-write.csv(mop, file = "summary_models_cv.csv", row.names = TRUE)
+write.csv(mop, file = "summary_models_cv_sant.csv", row.names = TRUE)
 
 
 
@@ -1769,8 +1750,8 @@ rownames(tab_comp)<-paste(substring(tab_comp[,2],1,5),tab_comp[,1], tab_comp[,3]
 
 
 # Declare las variables de la función 
-dep<-"valle"
-answer<-"CentAdmoLaUnion"
+dep<-"santander"
+answer<-"StaIsabel"
 lead<-tab_comp[,"lead"]
 lead_num<-tab_comp[,"lead_num"]
 a<-tab_comp[,"a"]
@@ -1809,7 +1790,7 @@ getwd()
 
 
 # Almacene el archivo
-write.csv(mop, file = "summary_models_retro.csv", row.names = TRUE)
+write.csv(mop, file = "summary_models_retro_sant.csv", row.names = TRUE)
 
 
 
@@ -1851,7 +1832,7 @@ tab[which(tab[,"a"]==12),"a"]=0 # al trimestre 12 (DEF) asignele el valor de 0 p
 # declare las etiquetas para el gráfico, labels es para los triemstres
 labels<-as_labeller(c("0"="DEF","3"="MAM","6"="JJA", "9"="SON"))
 # labels_e es para cambiar el nombre las estaciones a los sitios de interes. 
-labels_e<-as_labeller(c("AptoYopal"="Yopal","DoctrinaLa"="Lorica","Turipana" ="Cereté", "AptoPerales"="Ibagué", "Nataima" = "Espinal", "CentAdmoLaUnion"="La Unión"))
+labels_e<-as_labeller(c("AptoYopal"="Yopal","DoctrinaLa"="Lorica","Turipana" ="Cereté", "AptoPerales"="Ibagué", "Nataima" = "Espinal", "CentAdmoLaUnion"="La Unión", "StaIsabel"="Villanueva"))
 
 # Gráfique los GI condicionando por sitio de estudio y trimestre
 ggplot(tab,aes(x=good,y=retro,shape=as.factor(lead_num),color=as.factor(lead_num), size=0.2))+
