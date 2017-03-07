@@ -384,13 +384,30 @@ for(y in min(data_temp$year):max(data_temp$year)){
     
     prec_limit = cbind(data_prob[,1:2],t(resumen3))
     tmax_limit = cbind(data_prob[,1:2],all_min$t_max,all_avg$t_max,all_max$t_max)
-    tmin_limit = cbind(data_prob[,1:2],all_min$t_min,all_avg$t_min,all_min$t_max)
+    tmin_limit = cbind(data_prob[,1:2],all_min$t_min,all_avg$t_min,all_max$t_min)
     srad_limit = cbind(data_prob[,1:2],all_min$sol_rad,all_avg$sol_rad,all_max$sol_rad)
     
+    names(tmax_limit) = names(prec_limit)
+    names(tmin_limit) = names(prec_limit)
+    names(srad_limit) = names(prec_limit)
+    
     tmax_limit_ord = t(apply(tmax_limit[,3:5],1,order,decreasing =F))
-   
     for(ord in 1:6){
-      tmax_limit[ord,3:5] = tmax_limit[i,3:5][tmax_limit_ord[ord,]]
+      tmax_limit[ord,3:5] = tmax_limit[ord,3:5][tmax_limit_ord[ord,]]
+      
+    }
+    
+    rm(ord)
+    tmin_limit_ord = t(apply(tmin_limit[,3:5],1,order,decreasing =F))
+    for(ord in 1:6){
+      tmin_limit[ord,3:5] = tmin_limit[ord,3:5][tmin_limit_ord[ord,]]
+      
+    }
+    
+    rm(ord)
+    srad_limit_ord = t(apply(srad_limit[,3:5],1,order,decreasing =F))
+    for(ord in 1:6){
+      srad_limit[ord,3:5] = srad_limit[ord,3:5][srad_limit_ord[ord,]]
       
     }
     
@@ -400,6 +417,9 @@ for(y in min(data_temp$year):max(data_temp$year)){
     limit.name = c("min","avg", "max")
     for(j in 1:3){
       write.csv(prec_limit[,c(1,2,(j+2))],paste(path_output,"/",format.Date(Sys.Date(),"%Y%m%d"),"/Escenarios_",station,"/prec_",limit.name[j], ".csv",sep=""),row.names=F)
+      write.csv(tmax_limit[,c(1,2,(j+2))],paste(path_output,"/",format.Date(Sys.Date(),"%Y%m%d"),"/Escenarios_",station,"/t_max_",limit.name[j], ".csv",sep=""),row.names=F)
+      write.csv(tmin_limit[,c(1,2,(j+2))],paste(path_output,"/",format.Date(Sys.Date(),"%Y%m%d"),"/Escenarios_",station,"/t_min_",limit.name[j], ".csv",sep=""),row.names=F)
+      write.csv(srad_limit[,c(1,2,(j+2))],paste(path_output,"/",format.Date(Sys.Date(),"%Y%m%d"),"/Escenarios_",station,"/sol_rad_",limit.name[j], ".csv",sep=""),row.names=F)
       
     }
      
