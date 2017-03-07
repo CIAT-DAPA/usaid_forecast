@@ -43,7 +43,7 @@ resampling <- function(data,prob,añoshistorico){
   matrizcombinaciones=0
   vectorprobabilidades=prob
   datas=0
-  for(i in 1:100){
+  for(i in 1:length(data)){
     r=sample(prob,1,prob=prob)
     if(r==vectorprobabilidades[1]){
       datas=which(data<quantile(data[which(data>0)],0.3333))
@@ -118,10 +118,11 @@ gen_esc_daily <- function(prob,data_d,path_output,station){
   
   t_max_trend = matrix(NA,length(unique(data$year)),6)
   t_min_trend = matrix(NA,length(unique(data$year)),6)
-  
+
+#  month.num = unique(data_prob$month)
   for (i in 1:6){
-    prec_month = data[data$month==i,3]
-    year_month = data[data$month==i,1]
+    prec_month = data[data$month==probabilidades$month[i],3]
+    year_month = data[data$month==probabilidades$month[i],1]
     
     t_max_trend[,i] = data_temp[data_temp$month==probabilidades$month[i],3]
     t_min_trend[,i] = data_temp[data_temp$month==probabilidades$month[i],4]
@@ -217,48 +218,48 @@ for(y in min(data_temp$year):max(data_temp$year)){
   #-------------Generación de datos y resumen de los años mas probables-------------#
   #---------------------------------------------------------------------------------#
 
-    # valores=function(mes,var,Años){
-    #   datos=0
-    #   for(i in 1:length(mes))
-    #     datos[i]=var[which(mes[i]==Años)]
-    #   return(datos)
-    # }
-    # 
-    # todo=sapply(1:dim(probabilidades)[2], function(i) valores(masprobable2[,i],prec_sort[,i],year_sort[,i]))
-    # todo2=as.data.frame(rbind(masprobable2,c("Datos análogos",rep("",dim(probabilidades)[2]-1)),todo)) ###Años y datos analogos
-    # colnames(todo2)=names(probabilidades)
-    # 
-    # resumen=function(x) rbind(min(x),max(x))
-    # resumen2=apply(todo,2,resumen)
-    # 
-    # medias=apply(todo,2,median)
-    # 
-    # dif=t(t(todo)-medias)
-    # 
-    # valores2=function(masprobable2,todo,resumen2,dif){
-    #   datos=0
-    #   for(i in 1:2){
-    #     pos<-which(todo==resumen2[i])
-    #     n=length(pos)
-    #     datos[i]=masprobable2[pos[sample(n,1)]]
-    #   }
-    # 
-    #   pos2=which(abs(dif)==min(abs(dif)))
-    #   n2=length(pos2)
-    #   datos2=masprobable2[pos2[sample(n2,1)]]
-    # 
-    #   datost=c(datos[1],datos2,datos[2])
-    # 
-    #   return(datost)
-    # }
-    # 
-    # todo3=sapply(1:dim(probabilidades)[2], function(i) valores2(masprobable2[,i],todo[,i],resumen2[,i],dif[,i]))
-    # 
-    # resumen3=rbind(resumen2[1,],round(medias,2),resumen2[2,])
-    # row.names(resumen3)=c("Mín","Promedio","Máx")
-    # 
-    # resumenf=rbind(resumen3,c("Años",rep("",dim(probabilidades)[2]-1)),todo3) ###Resumen con min max y prom de los escenarios analogos
-    # colnames(resumenf)=names(probabilidades)
+    valores=function(mes,var,Años){
+      datos=0
+      for(i in 1:length(mes))
+        datos[i]=var[which(mes[i]==Años)]
+      return(datos)
+    }
+
+    todo=sapply(1:dim(probabilidades)[2], function(i) valores(masprobable2[,i],prec_sort[,i],year_sort[,i]))
+    todo2=as.data.frame(rbind(masprobable2,c("Datos análogos",rep("",dim(probabilidades)[2]-1)),todo)) ###Años y datos analogos
+    colnames(todo2)=names(probabilidades)
+
+    resumen=function(x) rbind(min(x),max(x))
+    resumen2=apply(todo,2,resumen)
+
+    medias=apply(todo,2,median)
+
+    dif=t(t(todo)-medias)
+
+    valores2=function(masprobable2,todo,resumen2,dif){
+      datos=0
+      for(i in 1:2){
+        pos<-which(todo==resumen2[i])
+        n=length(pos)
+        datos[i]=masprobable2[pos[sample(n,1)]]
+      }
+
+      pos2=which(abs(dif)==min(abs(dif)))
+      n2=length(pos2)
+      datos2=masprobable2[pos2[sample(n2,1)]]
+
+      datost=c(datos[1],datos2,datos[2])
+
+      return(datost)
+    }
+
+    todo3=sapply(1:dim(probabilidades)[2], function(i) valores2(masprobable2[,i],todo[,i],resumen2[,i],dif[,i]))
+
+    resumen3=rbind(resumen2[1,],round(medias,2),resumen2[2,])
+    row.names(resumen3)=c("min","avg","max")
+
+    resumenf=rbind(resumen3,c("Años",rep("",dim(probabilidades)[2]-1)),todo3) ###Resumen con min max y prom de los escenarios analogos
+    colnames(resumenf)=names(probabilidades)
 
   #---------------------------------------------------------------------------------#
   #----------Generación de todos los escenarios definidos por el usuario------------#
@@ -311,7 +312,7 @@ for(y in min(data_temp$year):max(data_temp$year)){
   
   
   
-      escenarios_final=rbind(escenarios_final1[,ord_col],escenarios_final1[1:3,ord_col])
+      escenarios_final=rbind(escenarios_final1[,ord_col],todo3)
       nom=c(seq(1,num_esc1),"min","prom","max")
 
   # escenarios_final=escenarios_final1[,ord_col]
@@ -371,15 +372,63 @@ for(y in min(data_temp$year):max(data_temp$year)){
       esc_final_diarios[[n]]=esc_final_diarios[[n]][ord,]
     }
     
+    all_min = aggregate(esc_final_diarios[[101]][,4:7],list(esc_final_diarios[[101]]$year,esc_final_diarios[[101]]$month),mean)
+    all_min = all_min[orden,]
+
+    all_avg = aggregate(esc_final_diarios[[102]][,4:7],list(esc_final_diarios[[101]]$year,esc_final_diarios[[101]]$month),mean)
+    all_avg = all_avg[orden,]
     
+    all_max = aggregate(esc_final_diarios[[103]][,4:7],list(esc_final_diarios[[101]]$year,esc_final_diarios[[101]]$month),mean)
+    all_max = all_max[orden,]
+    
+    
+    prec_limit = cbind(data_prob[,1:2],t(resumen3))
+    tmax_limit = cbind(data_prob[,1:2],all_min$t_max,all_avg$t_max,all_max$t_max)
+    tmin_limit = cbind(data_prob[,1:2],all_min$t_min,all_avg$t_min,all_max$t_min)
+    srad_limit = cbind(data_prob[,1:2],all_min$sol_rad,all_avg$sol_rad,all_max$sol_rad)
+    
+    names(tmax_limit) = names(prec_limit)
+    names(tmin_limit) = names(prec_limit)
+    names(srad_limit) = names(prec_limit)
+    
+    tmax_limit_ord = t(apply(tmax_limit[,3:5],1,order,decreasing =F))
+    for(ord in 1:6){
+      tmax_limit[ord,3:5] = tmax_limit[ord,3:5][tmax_limit_ord[ord,]]
+      
+    }
+    
+    rm(ord)
+    tmin_limit_ord = t(apply(tmin_limit[,3:5],1,order,decreasing =F))
+    for(ord in 1:6){
+      tmin_limit[ord,3:5] = tmin_limit[ord,3:5][tmin_limit_ord[ord,]]
+      
+    }
+    
+    rm(ord)
+    srad_limit_ord = t(apply(srad_limit[,3:5],1,order,decreasing =F))
+    for(ord in 1:6){
+      srad_limit[ord,3:5] = srad_limit[ord,3:5][srad_limit_ord[ord,]]
+      
+    }
+    
+    dir.create(paste(path_output,format.Date(Sys.Date(),"%Y%m%d"),sep="/"),showWarnings=F)
+    dir.create(paste(path_output,"/",format.Date(Sys.Date(),"%Y%m%d"),"/Escenarios_",station,sep=""),showWarnings=F)
+    
+    limit.name = c("min","avg", "max")
+    for(j in 1:3){
+      write.csv(prec_limit[,c(1,2,(j+2))],paste(path_output,"/",format.Date(Sys.Date(),"%Y%m%d"),"/Escenarios_",station,"/prec_",limit.name[j], ".csv",sep=""),row.names=F)
+      write.csv(tmax_limit[,c(1,2,(j+2))],paste(path_output,"/",format.Date(Sys.Date(),"%Y%m%d"),"/Escenarios_",station,"/t_max_",limit.name[j], ".csv",sep=""),row.names=F)
+      write.csv(tmin_limit[,c(1,2,(j+2))],paste(path_output,"/",format.Date(Sys.Date(),"%Y%m%d"),"/Escenarios_",station,"/t_min_",limit.name[j], ".csv",sep=""),row.names=F)
+      write.csv(srad_limit[,c(1,2,(j+2))],paste(path_output,"/",format.Date(Sys.Date(),"%Y%m%d"),"/Escenarios_",station,"/sol_rad_",limit.name[j], ".csv",sep=""),row.names=F)
+      
+    }
+     
  
     #---------------------------------------------------------------------------------#
     #-----------------Exporta los escenarios a nivel diario a .csv--------------------#
     #---------------------------------------------------------------------------------#
     
-    dir.create(paste(path_output,format.Date(Sys.Date(),"%Y%m%d"),sep="/"),showWarnings=F)
-    dir.create(paste(path_output,"/",format.Date(Sys.Date(),"%Y%m%d"),"/Escenarios_",station,sep=""),showWarnings=F)
-    
+     
     for(k in 1:nrow(escenarios_final)){
       write.csv(esc_final_diarios[[k]],paste(path_output,"/",format.Date(Sys.Date(),"%Y%m%d"),"/Escenarios_",station,"/escenario_",nom[k],".csv",sep=""),row.names=F)
     }
@@ -401,7 +450,7 @@ path_data_d <- dir_stations
 
 data_d_all = list.files(path_data_d,full.names = T)
 
-data_prob_all=read.csv(path_prob,header=T,dec=".")
+data_prob_all=read.csv(paste0(path_prob,"/",format(Sys.Date(),"%Y%m%d"),"_prob.csv"),header=T,dec=".")
 station_names = gsub('.csv','',list.files(path_data_d))
 
 start.time <- Sys.time()
