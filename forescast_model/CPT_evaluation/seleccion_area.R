@@ -9,7 +9,7 @@ setwd("C:/Users/AESQUIVEL/Google Drive/new_predictor/")
 getwd()
 
 
-prec="U_wind_850"
+prec="vertical_vel_250"
 
 # prec= c("U_wind_250","U_wind_850", "rhum_700", "vertical_vel_250")
 
@@ -74,7 +74,7 @@ rasterize=function(dates, prec) {
     x$overwrite <- TRUE
     layers_crop <- do.call(merge, x)
     names(layers_crop)<-  names(r1)
-    #plot(layers_crop)  
+
   }
   
   
