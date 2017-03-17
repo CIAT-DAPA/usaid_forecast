@@ -11,7 +11,7 @@ library(cowplot)
 
 
 region<-"results_graphs_C"  # "results_graphs_C"    "results_graphs_Op"
-prec<-"U_wind_250"           # prec= c("U_wind_250","U_wind_850", "rhum_700", "vertical_vel_250")
+prec<-"vertical_vel_250"    # prec= c("U_wind_250","U_wind_850", "rhum_700", "vertical_vel_250")
 
 
 
@@ -448,7 +448,7 @@ GoodnessIndex <- function(ruta_c,dep_f){
   names(Sim)[1]="Departamento"
   levels(Sim$Departamento)<-c("Casanare", "Cordoba", "Tolima",  "Valle", "Santander")
   graph_line  <- ggplot(Sim, aes(x =a, y = GoodnessIndex, color=Departamento))
-  graph_line  <- graph_line + geom_line(aes(linetype=Departamento), size=1) + ylim(-0.05,0.5)
+  graph_line  <- graph_line + geom_line(aes(linetype=Departamento), size=1) + ylim(-0.05,0.55)
   graph_line  <- graph_line + geom_point(aes(shape=Departamento), size=2)
   graph_line  <- graph_line + theme_bw()  + labs(x="", y="Goodness Index") 
   graph_line  <- graph_line +  scale_x_continuous(breaks = c(0,3,6,9), labels = c("DEF","MAM", "JJA", "SON"))
@@ -930,6 +930,92 @@ for(i in  1:length(tipo)){
 
 
 
+############## Gráficos de Intervalos 
+
+### ruta_r = ruta donde se encuentran los archivos retrospectivos
+### estacion = estación a la cual se le va a realizar el gráfico
+### dep = departamento en el que se encuentra la estación
+### lead = nombre del lead time ("MAM")
+### lead_num = número del lead time (ejemplo 0 (simultaneo),1 ó 3)
+### length_periodo = tamaño del periodo de tiempo 
+### a = mes de incio, b= segundo mes, c= tercer mes
+### Esta función realiza el gráfico de intervalos para una estación, en el lead time deseado
+### con los prónosticos deterministicos retroespectivos
+# Para esta función se necesita la información de todas las estaciones completas (Estaciones_C)
+
+
+retrospectiva<-function(ruta_r, estacion,sitios, dep, lead, a){
+  # Extraiga trimestralmente la información de todas las estaciones
+  data<-data_trim(Estaciones_C, a)  
+  
+  if(a == 12){
+    year=2012
+    # Lea los limites de los pronosticos deterministicos y extraigalos solo para la estación
+    lower<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=3, nrows = 10)
+    lower<-lower[-1:-2,estacion]
+    upper<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=15, nrows = 10)
+    upper<-upper[-1:-2,estacion]
+  } else if(a != 12){
+    year=2013
+    # Lea los limites de los pronosticos deterministicos y extraigalos solo para la estación
+    lower<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=3, nrows = 11)
+    lower<-lower[-1:-2,estacion]
+    upper<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=16, nrows = 11)
+    upper<-upper[-1:-2,estacion]
+  }
+  # solo deje los datos observados para el periodo de interes 
+  position<-which(data$years_y>2004&data$years_y<=year)
+  obs<-data[position,estacion]
+  # lea la información del pronosticos y elimine las coordenadas de la estación
+  predictions<-read.table(paste(ruta_r,"Retroactive_Predictions_",a,"_",lead,"_precip_",dep,".txt", sep=""),  skip=2)
+  predictions<-predictions[-1:-2,estacion]
+  
+  ## Cree un data frame para el periodo de retrospectivo y la estación deseada
+  estacion_data <- data.frame(year=2005:year, predictions = predictions, lower= lower, upper=upper, obs = obs)
+  
+  # Haga el gráfico de intervalos 
+  retro <-  ggplot(data=estacion_data,aes(x=year,y=predictions))
+  retro <-  retro +  geom_point(aes(y=predictions,fill="steelblue4"),shape=21, size=3) 
+  retro <-  retro +  geom_errorbar(aes(ymin=lower,ymax=upper), colour="steelblue4")
+  retro <-  retro +  geom_point(aes(y=obs, fill="red"), colour="black",shape=21, size=3)
+  retro <-  retro +  theme_bw() + labs(x="",y="Precipitación (mm)")
+  retro <-  retro +  theme(legend.title = element_text(size = 10.5), 
+                           legend.position = "none",
+                           legend.key.height=unit(0.5,"cm"),
+                           legend.key.width=unit(0.8,"cm"),  axis.text.x = element_text(angle = 90, hjust = 1))
+  retro <- retro + scale_fill_manual(values=c("red","blue"), 
+                                     labels=c("Observación","Predicción"), name="")
+  retro <- retro +   scale_x_continuous(breaks = seq(2005,year,1))
+  retro
+  # Almacene la imagen 
+  tiff(paste(ruta,"/results/",dep,"/retrospectivo_",a,"_",lead,"_", sitios,"_",dep,".tif",sep=""), height=720,width=1280,res=200,
+       pointsize=2,compression="lzw")
+  print(retro)
+  dev.off()
+} # retorne el gráfico 
+
+
+
+estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima","Turipana", "StaIsabel")
+sitios<-c("Lorica","Yopal","Ibagué","LaUnion","Espinal","Cereté")
+lead<-c("MAM", "JJA", "SON", "DEF")
+a<- c(rep(3,1),rep(6,1),rep(9,1),rep(12,1))
+dep<-c("cordoba", "casanare", "tolima", "valle","tolima", "cordoba", "santander")
+
+for(i in 1:7){
+  Estaciones_C <- read.delim(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp1/","dep/precip_",dep[i],".txt",sep=""),skip =3, header=T, sep="")
+  for(j in 1:length(a)){
+    retrospectiva(ruta_r, estaciones[i], sitios[i], dep[i], lead[j], a[j])
+  }
+}
+
+
+
+
+
+
+
+
 
 
 ####################################################################################
@@ -1067,17 +1153,79 @@ categorias_dep<-function(Estaciones_C,ruta_r,lead,dep,a){
 
 
 
+##################### Función para calcular el porcentaje de aciertos deterministicos por 
+#### Departamento 
+
+
+
+# Esta función grafica el porcentaje de aciertos deterministicos (es decir si la observación)
+# cae en el intervalo de predición
+# ruta_r = ruta donde se encuentran los archivos del retrospectivos
+# a = mes de inicio del trimestre
+# Estaciones_C = estaciones del departamento que se va a estudiar
+# lead = lead time a pronosticar (nombre del archivo)
+dep_aciertosD <- function(ruta_r, a, Estaciones_C, lead){
+  data<-data_trim(Estaciones_C, a)  # convierta los datos en trimestrales
+  porcentaje<-0 # incialice el vector de porcentaje
+  RMSE<-0 # incialice el vector para el RMSE 
+  
+  
+  for(i in 1:(length(data)-1)){ # Repita el proceso para todas las estaciones del archivo de datos
+    if(a == 12){ # Condicione esto dependiendo del mes de incio del trimestre
+      year=2012 # year cambia de acuerdo a la condición de a
+      # Lea los limites de los pronosticos deterministicos y extraigalos solo para la estación
+      lower<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=3, nrows = 10)
+      lower<-lower[-1:-2,i]
+      upper<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=15, nrows = 10)
+      upper<-upper[-1:-2,i]
+    } else if(a != 12){
+      year=2013
+      # Lea los limites de los pronosticos deterministicos y extraigalos solo para la estación
+      lower<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=3, nrows = 11)
+      lower<-lower[-1:-2,i]
+      upper<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=16, nrows = 11)
+      upper<-upper[-1:-2,i]
+    }
+    # solo deje los datos observados para el periodo de interes 
+    position<-which(data$years_y>2004&data$years_y<=year)
+    obs_1<-data[position,]
+    obs<-obs_1[,(i+1)]
+    # lea la información del pronosticos y elimine las coordenadas de la estación
+    predictions<-read.table(paste(ruta_r,"Retroactive_Predictions_",a,"_",lead,"_precip_",dep,".txt", sep=""),  skip=2)
+    predictions<-predictions[-1:-2,i]
+    
+    ## Cree un data frame para el periodo de retrospectivo y la estación deseada
+    estacion_data <- data.frame(year=2005:year, predictions = predictions, lower= lower, upper=upper, obs = obs)
+    
+    # Identifique si se cumple que la observación cae en el intervalo
+    # si cumple la condición asignele un valor de 1
+    # en caso contrario asignele el valor de cero
+    cumple = ifelse(estacion_data$lower<=estacion_data$obs & estacion_data$upper>=estacion_data$obs, 1,0)
+    estacion_data<-data.frame(estacion_data,cumple) # guadelo en data frame 
+    
+    
+    porcentaje[i] <- sum(estacion_data$cumple) # Sume cuantas veces se cumple esto
+    ## Calcule el RMSE para cada estación y almacenelo. 
+    RMSE[i] <- sqrt(sum((estacion_data$predictions-estacion_data$obs)^2)/dim(estacion_data)[1])
+  }
+  
+  aciertos<-list(por_deter=porcentaje, RMSE=RMSE) # Almacene los dos indicadores. 
+  #, RMSE=RMSE)
+  return(aciertos)}
+
+
+
 #dep=c("casanare",    "cordoba",    "tolima",    "valle", "santander")
 lead<-c("MAM", "JJA", "SON", "DEF")
 a<- c(rep(3,1),rep(6,1),rep(9,1),rep(12,1))
 lead_num<-rep(c("sim"),4)
 
 
-dep="casanare"
+dep="valle"
 Estaciones_C <- read.delim(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp1/","dep/precip_",dep,".txt",sep=""),skip =3, header=T, sep="")
 
 data<-NA
-for(i in 1:12){
+for(i in 1:length(lead)){
   cat_num<-categorias_dep(Estaciones_C,ruta_r,lead[i],dep,a[i])[,2]
   cat_prob<-categorias_dep(Estaciones_C,ruta_r,lead[i],dep,a[i])[,1]
   nombres<-names(cat_num)
@@ -1088,6 +1236,57 @@ for(i in 1:12){
 
 data<-data[-1,]
 names(data)<-c("Trimestre", "Lead", "Estacion", "num_cat_ac", "prob_cat_ac")
+
+
+
+### Corra la función con toda la información 
+
+
+#dep=c("casanare",    "cordoba",    "tolima",    "valle", "santander")
+lead<-c("MAM", "JJA",	"SON", "DEF")
+a<- c(rep(3,1),rep(6,1),rep(9,1),rep(12,1))
+lead_num<-rep(c("sim"),4)
+
+
+#dep="casanare"
+#Estaciones_C <- read.delim(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp1/","dep/precip_",dep,".txt",sep=""),skip =3, header=T, sep="")
+
+
+dato<-NA
+for(i in 1:length(lead)){
+  num<-dep_aciertosD(ruta_r, a[i], Estaciones_C, lead[i])$por_deter
+  RMSE<-dep_aciertosD(ruta_r, a[i], Estaciones_C, lead[i])$RMSE
+  nombres<-names(Estaciones_C)
+  dato_i<-data.frame(rep(a[i],length(num)) , rep(lead_num[i],length(num)),nombres, num,RMSE, row.names = NULL)
+  dato<-rbind(dato, dato_i)
+}
+
+#Depure la base de datos 
+dato<-dato[-1,]
+names(dato)<-c("Trimestre", "Lead", "Estacion", "num_det_ac", "RMSE")
+
+
+getwd()
+
+# Ahora una la base de datos para el porcentaje de aciertos categoricos y el deterministico
+total<-data.frame(dato, num_cat_a=data$num_cat_ac,num_cat_ac=data$prob_cat_ac, row.names = NULL)
+# Ahora almacene esta trama de datos en un rachivo .csv
+write.csv(x = total, file = paste("Tabla_", dep, ".csv", sep=""))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -1139,9 +1139,7 @@ dep_aciertosD <- function(ruta_r, a, Estaciones_C, lead){
   data<-data_trim(Estaciones_C, a)  # convierta los datos en trimestrales
   porcentaje<-0 # incialice el vector de porcentaje
   RMSE<-0 # incialice el vector para el RMSE 
-  
-  #length(data)
-  
+
   
   for(i in 1:(length(data)-1)){ # Repita el proceso para todas las estaciones del archivo de datos
     if(a == 12){ # Condicione esto dependiendo del mes de incio del trimestre
@@ -1373,7 +1371,7 @@ write.csv(x = total, file = paste("Tabla_", dep, ".csv", sep=""))
 #    names(aciertos)<-c("data", "por_cat_est")
 #  }  
   
- return(aciertos)#}
+ #return(aciertos)#}
 
 
 #dep="santander"
@@ -1533,7 +1531,7 @@ for(i in 1:7){
 #  RMSE <- sqrt(sum((estacion_data$predictions-estacion_data$obs)^2)/dim(estacion_data)[1])
   
 #  aciertos<-list(datos=estacion_data, por_deter=porcentaje, RMSE=RMSE)
-return(aciertos)#}
+#return(aciertos)#}
 
 #estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima","Turipana")
 #sitios<-c("Lorica","Yopal","Ibagué","LaUnion","Espinal","Cereté")
