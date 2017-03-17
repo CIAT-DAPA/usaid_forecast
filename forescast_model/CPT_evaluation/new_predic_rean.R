@@ -1288,6 +1288,29 @@ write.csv(x = total, file = paste("Tabla_", dep, ".csv", sep=""))
 
 
 
+#############################################################################
+#############################################################################
+#############################################################################
+#############################################################################
+
+
+data<-read.table("clipboard",header = T)
+
+
+data$a[data$a==12]=0 # Cambiarle el número para que diciembre aparezca primero
+labels_d<-as_labeller(c("casanare"="Casanare","cordoba"="Cordoba","tolima"="Tolima", "valle"="Valle del Cauca", "santander"="Santander"))
+
+ggplot(data, aes(x=a, y=GI, color=Predictor)) + 
+  geom_line(aes(linetype=Predictor), size=1) + geom_point(aes(shape=Predictor)) +
+  scale_x_continuous(breaks = c(0,3,6,9), labels = c("DEF","MAM", "JJA", "SON"))+
+  facet_wrap(~dep, nrow=1, labeller = labeller(dep = labels_d)) +
+  labs(x="Trimestre", y=paste("Goodness Index", sep=""))+ theme_bw() +
+  geom_hline(yintercept = c(0, 0.3), colour = "black", linetype = "dotted")+
+  theme(axis.text.x  = element_text(angle=90, vjust=0.5))
 
 
 
+setwd("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp1/results_graphs_C/")
+getwd()
+
+ggsave("models.png",width =8 ,height =3.5,dpi=200)
