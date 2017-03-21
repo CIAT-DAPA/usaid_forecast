@@ -266,12 +266,9 @@ cca_maps<-function(var_ocanoAt, yserie, Estaciones_C, xserie, names_file, ruta, 
 }
 
 
-
-
-
 ruta_c<-paste(ruta, "Cross_validated/",sep="")
 
-dep= "valle" # variar el departamento
+dep= "casanare" # variar el departamento
 
 # "casanare"    "cordoba"    "tolima"    "valle" "santander"
 # Determinación de los limites departamentales y estaciones a dibular en el cap >.<
