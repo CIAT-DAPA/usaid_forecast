@@ -12,7 +12,7 @@ library(cowplot)
 
 
 region<-"results_graphs_C"  # "results_graphs_C"    "results_graphs_Op"
-prec<-"U_wind_250"    # prec= c("U_wind_250","U_wind_850", "rhum_700", "vertical_vel_250")
+prec<-"vertical_vel_250"    # prec= c("U_wind_250","U_wind_850", "rhum_700", "vertical_vel_250")
 
 
 
@@ -145,7 +145,7 @@ shp=shapefile("C:/Users/AESQUIVEL/Google Drive/shp/mapa_mundi.shp")
 # a = mes de inicio del trimestre, b = segundo mes del trimestre, c = tercer mes del trimestre
 # length_periodo = Longitud del periodo de entrenamiento
 ## cca_Maps función que realiza el gráfico cca_map de CPT, las imagenes se almacenan en la ruta
-cca_maps<-function(var_ocanoAt, yserie, Estaciones_C, xserie, names_file, ruta,  a, xmin, xmax, ymin, ymax, estaciones_in){
+cca_maps<-function(var_ocanoAt, yserie, Estaciones_C, xserie, lead, ruta,  a, xmin, xmax, ymin, ymax, estaciones_in){
   
   ocean=which(!is.na(var_ocanoAt[[1]][])) # tome las posiciones en las que la variable sea diferente de NA
   correl=array(NA,length(ocean)) # relice un arreglo del tamaño de oceano 
@@ -189,8 +189,8 @@ cca_maps<-function(var_ocanoAt, yserie, Estaciones_C, xserie, names_file, ruta, 
   data<-data_trim(Estaciones_C, a)
   
   # La organización de la información se hace de acuerdo al mes de estudio.
-  if(a == 12){ 
-    data<-data[data$years_y!=1982,]
+  if(a == 12 | lead== "MAM_Nov"| lead== "MAM_Sep"| lead== "JJA_Dec"){ 
+    data<-data[data$years_y!=1981 & data$years_y!=1982,]
   } else  data<-data[data$years_y!=1981,]
   
   correl_y=0 # inicialice las correlaciones con x
@@ -258,6 +258,8 @@ cca_maps<-function(var_ocanoAt, yserie, Estaciones_C, xserie, names_file, ruta, 
 }
 
 
+ruta_c<-paste(ruta, "Cross_validated/",sep="")
+
 dep= "casanare" # variar el departamento
 
 # "casanare"    "cordoba"    "tolima"    "valle" "santander"
@@ -296,7 +298,7 @@ length_periodo=rep(c(32,31,32,31,32,31),c(1,2,2,1,3,3)) # Ancho del periodo de e
 Estaciones_C <- read.delim(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp2/dep/precip_",dep,".txt",sep=""),skip =3, header=T, sep="")
 if(region=="results_graphs_C"){
   # Lea los archivos y las estaciones necesarias para todas las corridas del departamento. 
-  for(i in 1:length(lead)){
+  for(i in 1:12){
     xserie <- read.csv(paste(ruta_c, "X_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
     yserie <- read.csv(paste(ruta_c,"Y_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
     names_file <- paste(a[i],"_",lead[i],"_", dep,sep="")
@@ -308,7 +310,7 @@ if(region=="results_graphs_C"){
     SST=rasterize(SST, prec)
     var_ocanoAt <-SST[[1:length_periodo[i]]]
     
-    cca_maps(var_ocanoAt, yserie, Estaciones_C, xserie, names_file, ruta,  a[i], xmin, xmax, ymin, ymax, estaciones_in)
+    cca_maps(var_ocanoAt, yserie, Estaciones_C, xserie, lead[i], ruta,  a[i], xmin, xmax, ymin, ymax, estaciones_in)
     print(i)
   }  
 }else if(region=="results_graphs_Op"){
@@ -331,5 +333,703 @@ if(region=="results_graphs_C"){
 
 
 
+
+#########################################################################################
+#########################################################################################
+#########################################################################################
+
+
+
+
+## Esta función devuelve las gráficas del goodness index, 
+## ruta_c ruta donde se encuentran los archivos
+## dep_f son los departamentos que se van a gráficar
+GoodnessIndex <- function(ruta_c,dep_f){
+  #### Lead times para cada trimestre
+  lead<-c(paste(rep("MAM",3),c("Feb","Nov","Sep"), sep="_"),
+          paste(rep("JJA",3),c("May","Feb","Dec"), sep="_"),
+          paste(rep("SON",3),c("Aug","May","Mar"), sep="_"),
+          paste(rep("DEF",3),c("Nov","Aug","Jun"), sep="_"))
+  ### Trimestres
+  a<- c(rep(3,3),rep(6,3),rep(9,3),rep(12,3))
+  
+  good_index=0 # inicialice el vector
+  GoodnessIndex=NA # inicialice el data frame
+  for(j in 1:length(dep_f)) # realice esto para todos los departamentos
+    for(i in 1:12){ # barra para todos los periodos con sus respectivos lead time
+      # Lea la tabla 
+      goodnex<-read.table(paste(ruta_c,"GoodnessIndex_",a[i],"_",lead[i],"_precip_",dep_f[j],".txt", sep=""),  skip=6, colClasses=c(rep("numeric",3),"character",rep("numeric",4)))
+      # Cambie los nombres del archivo 
+      names(goodnex)<-c("x1","y1","cca1","index1", "x2", "y2","cca2", "index2")
+      # Encuentre el maximo
+      goodnex$index2[dim(goodnex)[1]]==max(goodnex$index2)
+      # Extraiga solo la fila donde estara el maximo y adicione
+      # las columnas departamento, mes de inicio trimestre y lead time
+      good_index<-cbind(dep_f[j], a[i] ,lead[i],goodnex[dim(goodnex)[1],5:8])
+      # Almacene la fila en un data frame
+      GoodnessIndex<-rbind(GoodnessIndex,good_index)
+    }
+  # Quite la primera fila ya que es nula
+  GoodnessIndex<-GoodnessIndex[-1,]
+  # Quite los nombres de las filas
+  rownames(GoodnessIndex)=NULL
+  # Cambie los nombres de las columnas
+  names(GoodnessIndex)=c("dep","a", "lead", "modos_x", "modos_y", "modos_cca", "GoodnessIndex")
+  GoodnessIndex <- cbind(GoodnessIndex,lead_time=rep(rep(c(0,3,5),4),length(dep_f))  )
+  
+  
+  
+  
+  
+  
+  setwd(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp2/results_graphs_C/", prec, "/results/", sep=""))
+  ### Guarde todos los Goodness Index en un archivo .csv
+  write.csv(x = GoodnessIndex, file = "GoodnessIndex.csv",sep = ",")
+  
+  
+  #setwd("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp2/results_graphs_C/", prec,"/results")
+  
+  GoodnessIndex$a[GoodnessIndex$a==12]=0 # Cambiarle el número para que diciembre 
+  #aparezca primero
+  # Realice el gráfico de cajas para todos los departamentos.
+  for(i in 1:length(dep_f)){
+    dep_inf<-  GoodnessIndex[GoodnessIndex$dep==dep_f[i],]
+    to_string  <- as_labeller(c(`0`="DEF",`3` = "MAM", `6` = "JJA", `9` = "SON"))
+    graph_dep  <- ggplot(dep_inf, aes(x = factor(lead_time), y = GoodnessIndex)) 
+    graph_dep  <- graph_dep  + geom_bar(stat = 'identity', fill="gray60") + ylim(-0.06,0.5)
+    graph_dep  <- graph_dep  + facet_wrap(~a, nrow = 1, labeller = to_string )
+    graph_dep  <- graph_dep  + scale_x_discrete(breaks=c(0, 3, 5),
+                                                labels=c("LT-0", "LT-3", "LT-5")) +  labs(x="Lead Time", y=paste("Goodness Index", sep=""))
+    graph_dep  <-graph_dep  + theme_bw() + theme(legend.position = "none") 
+    
+    
+    tiff(paste(ruta,"/results/",dep_f[i],"/GoodnessIndex_dep_",dep_f[i],".tif",sep=""), height=720,width=1280,res=200,
+         pointsize=2,compression="lzw")
+    print(graph_dep)
+    dev.off()
+  }
+  
+  
+  
+  ### Grafico de Linea puede hacerse solopara el lead simultaneo o para los maximos
+  ### modificando la función 
+  Sim=GoodnessIndex[GoodnessIndex$lead_time==0,]
+  names(Sim)[1]="Departamento"
+  levels(Sim$Departamento)<-c("Casanare", "Cordoba", "Tolima",  "Valle", "Santander")
+  graph_line  <- ggplot(Sim, aes(x =a, y = GoodnessIndex, color=Departamento))
+  graph_line  <- graph_line + geom_line(aes(linetype=Departamento), size=1) + ylim(-0.06,0.5) #ylim(-0.05,0.5)
+  graph_line  <- graph_line + geom_point(aes(shape=Departamento), size=2)
+  graph_line  <- graph_line + theme_bw()  + labs(x="", y="Goodness Index") 
+  graph_line  <- graph_line +  scale_x_continuous(breaks = c(0,3,6,9), labels = c("DEF","MAM", "JJA", "SON"))
+  graph_line  <- graph_line + theme(legend.title = element_text(size = 10.5),
+                                    legend.key.height=unit(0.5,"cm"),
+                                    legend.key.width=unit(0.8,"cm"))
+  
+  
+  # Guarde el graph
+  tiff(paste(ruta,"/results/GoodnessIndex_line.tif",sep=""), height=720,width=1280,res=200,
+       pointsize=2,compression="lzw")
+  print(graph_line)
+  dev.off()
+  return(GoodnessIndex)}
+
+
+
+
+## Corrida para todos los archivos
+ruta_c
+dep_f<-c("casanare",    "cordoba",    "tolima",    "valle", "santander")
+table<-GoodnessIndex(ruta_c = ruta_c, dep_f = dep_f)
+
+max_G<-aggregate(table$GoodnessIndex,list(table$dep, table$a), FUN = "max")
+
+### Grafico de Linea puede para los maximos
+### modificando la función 
+names(max_G)[1]="Departamento"
+levels(max_G$Departamento)<-c("Casanare", "Cordoba", "Tolima",  "Valle", "Santander")
+graph_line  <- ggplot(max_G, aes(x = Group.2 , y = x, color=Departamento))
+graph_line  <- graph_line + geom_line(aes(linetype=Departamento), size=1) + ylim(-0.06,0.5)
+graph_line  <- graph_line + geom_point(aes(shape=Departamento), size=2)
+graph_line  <- graph_line + theme_bw()  + labs(x="", y="Goodness Index") 
+graph_line  <- graph_line +  scale_x_continuous(breaks = c(0,3,6,9), labels = c("DEF","MAM", "JJA", "SON"))
+graph_line  <- graph_line + theme(legend.title = element_text(size = 10.5),
+                                  legend.key.height=unit(0.5,"cm"),
+                                  legend.key.width=unit(0.8,"cm"))
+
+
+# Guarde el graph
+tiff(paste(ruta,"/results/Max_line.tif",sep=""), height=720,width=1280,res=200,
+     pointsize=2,compression="lzw")
+print(graph_line)
+dev.off()
+
+
+
+
+
+
+
+### Este gráfico realiza un resumen de un indicador por sitos
+### Gráficando todos los lead times y trimestres de estudio. 
+### Tipo = indicador que se desea gráficar
+### ruta_c <- ruta donde se encuentran los datos de los indicadores. 
+summary_ind<-function(ruta_c, tipo){
+  # lead time (nombres de los archivos)
+  lead<-c(paste(rep("MAM",3),c("Feb","Nov","Sep"), sep="_"),
+          paste(rep("JJA",3),c("May","Feb","Dec"), sep="_"),
+          paste(rep("SON",3),c("Aug","May","Mar"), sep="_"),
+          paste(rep("DEF",3),c("Nov","Aug","Jun"), sep="_"))
+  lead_num<-rep(c(0,3,5),4) # número de los archivos
+  a<- c(rep(3,3),rep(6,3),rep(9,3),rep(12,3)) # trimestres de estudio
+  # nombre de los sitios d eestudios (como apareceran en el gráfico)
+  # nombre de los sitios d eestudios (como apareceran en el gráfico)
+  estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima"
+                ,"Turipana", "StaIsabel")
+  
+  
+  datos<-NA # Creación de una trama de datos
+  
+  # lea los datos y apilelos en una tabla de datos
+  for(j in 1:12){
+    names_below<-list.files(ruta_c, pattern = paste(tipo, "_", a[j], "_", lead[j], sep=""))
+    for(i in 1:5){
+      # Ciclo for que barre el número de departamentos que existan 
+      # En caso de desear más departamentos modificar este argumento
+      data_p<-read.table(paste(ruta_c,names_below[i],sep=""), sep="",  skip=3,colClasses=c("character","numeric","numeric","numeric") )
+      data_p<-data.frame(Trimestre=rep(a[j], dim(data_p)[1]),  lead_num=rep(lead_num[j], dim(data_p)[1]), data_p)
+      datos<-rbind(datos, data_p) # Lectura de los datos y creación de la tabla global
+    }
+  } 
+  
+  
+  
+  
+  # Depuración de la base de datos 
+  datos<-datos[-1,] # Elimine la primera fila NA
+  datos<-datos[,-4:-5]
+  names(datos)<-c("Trimestre", "lead_num", "Estacion","ROC_B") # Asignarle nombres a las columnas
+  datos$ROC_B<-round(datos$ROC_B,3) # Redondear el número de decimales de la curva
+  datos<-datos[datos$ROC_B!=-999,] # Eliminar los datos faltantes
+  datos<-rbind(datos[datos$Trimestre==12, ], datos[datos$Trimestre!=12, ])
+  datos$Trimestre<-factor(datos$Trimestre)
+  levels(datos$Trimestre)<-c("TR2", "TR3", "TR4", "TR1")
+  
+  
+  ## Ahora depure toda la información solo para los sitios de estudio
+  res.shape2<-NA
+  for(i in 1:length(estaciones)){
+    datos_t<-datos[datos$Estacion == estaciones[i],]
+    res.shape2<-rbind(datos_t,res.shape2)
+  }
+  res.shape2<-data.frame(res.shape2, row.names = NULL)
+  res.shape2<-res.shape2[-dim(res.shape2)[1],]
+  
+  
+  # Shape
+  # Cree una nueva variable 
+  res.shape2 <- cbind(res.shape2,f1=rep(1:28,each=3)) # 24 equivale a # de trimestre * sitios
+  
+  ##  Cree los limites del gráfico y el titulo del eje de acuerdo al indicador
+  if(tipo=="Pearsons_correlation"){
+    tit="Pearsons correlation"
+    lim=c(-0.62,1)
+  }else if(tipo=="k_2AFC_Score"){
+    tit="2AFC Score"
+    lim=c(20,80)
+  }else if(tipo=="Hit_Skill_Score"){
+    tit="Hit Skill Score"
+    lim=c(-25,60)
+  }else if(tipo=="ROC_below"){
+    tit="ROC below"
+    lim=c(0,1)
+  }else if(tipo=="ROC_above"){
+    tit="ROC above"
+    lim=c(0,1)
+  }
+  
+  
+  tiff(paste(ruta,"/results/a_",tipo,".tif",sep=""), height=800,width=1800,res=150,
+       compression="lzw")
+  
+  # Cree el gráfico condicionando por la nueva variable
+  plot(ROC_B~f1,data=res.shape2,type="n",xlab=" ",
+       ylab=tit,xaxt="n",bty="n", ylim=lim)#
+  
+  #abline(h=0.95,col=2,lty=2)
+  
+  
+  axis(side=1,labels=rep(c("DEF","MAM","JJA","SON"),7),at=1:28,las=2) # dibuje el eje x
+  
+  abline(v=seq(4.5,28,4),lty=2)# grafique las lineas que dividan lso sitios
+  
+  #sitios = unique(res.shape2$Estacion)
+  sitios<-c("Cereté","Espinal","La Unión","Ibagué","Yopal","Lorica", "Villanueva") # Orden en que se grafican lso sitios
+  # Ponga los titulos
+  text(sitios[7],y=lim[2],x=2.5)
+  text(sitios[1],y=lim[2],x=6.5)
+  text(sitios[2],y=lim[2],x=10.4)
+  text(sitios[3],y=lim[2],x=14.5)
+  text(sitios[4],y=lim[2],x=18.5)
+  text(sitios[5],y=lim[2],x=22.5)
+  text(sitios[6],y=lim[2],x=26.5)
+  
+  
+  # Gráfique los puntos para cada lead time
+  points(ROC_B~f1,data=res.shape2,subset= lead_num==0,pch=1,col=2)
+  points(ROC_B~f1,data=res.shape2,subset= lead_num==3,pch=20)
+  points(ROC_B~f1,data=res.shape2,subset= lead_num==5, col=1)
+  
+  ## Cree la leyenda por separado 
+  #plot(1, type = "n", axes = FALSE, ann = FALSE)
+  #legend("center", "(x,y)",unique(res.shape2$lead_num),
+  #pch=c(1,20,1), col=c(2,1,1),title="Lead-Time")
+  
+  dev.off()
+} # Termine la función 
+
+
+
+
+tipo <- c("Pearsons_correlation","k_2AFC_Score",
+          "Hit_Skill_Score","ROC_below","ROC_above")
+# Corra la función para todos los indicadores
+for(i in  1:length(tipo)){
+  summary_ind(ruta_c = ruta_c, tipo = tipo[i])  
+}
+
+
+
+
+
+
+
+
+###################################################################################
+
+########################### Analisis Retrospectivos 
+
+ruta_r=paste(ruta,"/retroactive/",sep="")
+
+
+
+
+#### Funciones 
+
+summary_ind_r<-function(ruta_r, tipo){
+  
+  # lead time (nombres de los archivos)
+  lead<-c(paste(rep("MAM",3),c("Feb","Nov","Sep"), sep="_"),
+          paste(rep("JJA",3),c("May","Feb","Dec"), sep="_"),
+          paste(rep("SON",3),c("Aug","May","Mar"), sep="_"),
+          paste(rep("DEF",3),c("Nov","Aug","Jun"), sep="_"))
+  lead_num<-rep(c(0,3,5),4) # número de los archivos
+  a<- c(rep(3,3),rep(6,3),rep(9,3),rep(12,3)) # trimestres de estudio
+  # nombre de los sitios d eestudios (como apareceran en el gráfico)
+  estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima"
+                ,"Turipana", "StaIsabel")
+  
+  
+  datos<-NA # Creación de una trama de datos
+  
+  for(j in 1:12){
+    names_below<-list.files(ruta_r, pattern = paste(tipo, "_", a[j], "_", lead[j], sep=""))
+    for(i in 1:5){
+      # Ciclo for que barre el número de departamentos que existan 
+      # En caso de desear más departamentos modificar este argumento
+      data_p<-read.table(paste(ruta_r,names_below[i],sep=""), sep="",  skip=3,colClasses=c("character","numeric","numeric","numeric") )
+      data_p<-data.frame(Trimestre=rep(a[j], dim(data_p)[1]),  lead_num=rep(lead_num[j], dim(data_p)[1]), data_p)
+      datos<-rbind(datos, data_p) # Lectura de los datos y creación de la tabla global
+    }
+  } 
+
+  datos<-datos[-1,] # Elimine la primera fila NA
+  datos<-datos[,-4:-5]
+  names(datos)<-c("Trimestre", "lead_num", "Estacion","ROC_B") # Asignarle nombres a las columnas
+  datos$ROC_B<-round(datos$ROC_B,3) # Redondear el número de decimales de la curva
+  datos<-datos[datos$ROC_B!=-999,] # Eliminar los datos faltantes
+  datos<-rbind(datos[datos$Trimestre==12, ], datos[datos$Trimestre!=12, ])
+  datos$Trimestre<-factor(datos$Trimestre)
+  levels(datos$Trimestre)<-c("TR2", "TR3", "TR4", "TR1")
+
+  
+  res.shape2<-NA
+  for(i in 1:length(estaciones)){
+    datos_t<-datos[datos$Estacion == estaciones[i],]
+    res.shape2<-rbind(datos_t,res.shape2)
+  }
+  res.shape2<-data.frame(res.shape2, row.names = NULL)
+  res.shape2<-res.shape2[-dim(res.shape2)[1],]
+
+  # Shape
+  
+  res.shape2 <- cbind(res.shape2,f1=rep(1:28,each=3))
+  
+  if(tipo=="Pearsons_correlation"){
+    tit="Pearsons correlation"
+    lim=c(-0.62,1)
+  }else if(tipo=="Hit_Skill_Score"){
+    tit="Hit Skill Score"
+    lim=c(-25,60)
+  }else if(tipo=="ROC_below"){
+    tit="ROC below"
+    lim=c(0,1)
+  }else if(tipo=="ROC_above"){
+    tit="ROC above"
+    lim=c(0,1)
+  }
+  
+  
+  tiff(paste(ruta,"/results/retroa_",tipo,".tif",sep=""), height=800,width=1800,res=150,
+       compression="lzw")
+  # layout(matrix(c(1,1,1,1,1,1,1,1,2), 1,9, byrow = TRUE))
+  plot(ROC_B~f1,data=res.shape2,type="n",xlab=" ",
+       ylab=tit,xaxt="n",bty="n", ylim=lim)#
+  
+  #abline(h=0.95,col=2,lty=2)
+  
+  axis(side=1,labels=rep(c("DEF","MAM","JJA","SON"),7),at=1:28,las=2) # dibuje el eje x
+  
+  abline(v=seq(4.5,28,4),lty=2)# grafique las lineas que dividan lso sitios
+  
+  #sitios = unique(res.shape2$Estacion)
+  sitios<-c("Cereté","Espinal","La Unión","Ibagué","Yopal","Lorica", "Villanueva") # Orden en que se grafican lso sitios
+  # Ponga los titulos
+  text(sitios[7],y=lim[2],x=2.5)
+  text(sitios[1],y=lim[2],x=6.5)
+  text(sitios[2],y=lim[2],x=10.4)
+  text(sitios[3],y=lim[2],x=14.5)
+  text(sitios[4],y=lim[2],x=18.5)
+  text(sitios[5],y=lim[2],x=22.5)
+  text(sitios[6],y=lim[2],x=26.5)
+  
+  points(ROC_B~f1,data=res.shape2,subset= lead_num==0,pch=1,col=2)
+  points(ROC_B~f1,data=res.shape2,subset= lead_num==3,pch=20)
+  points(ROC_B~f1,data=res.shape2,subset= lead_num==5, col=1)
+
+  #plot(1, type = "n", axes = FALSE, ann = FALSE)
+  #legend("center", "(x,y)",unique(res.shape2$lead_num),
+  #pch=c(1,20,1), col=c(2,1,1),title="Lead-Time")
+  
+  dev.off()
+}
+
+
+
+ruta_r
+
+tipo <- c("Pearsons_correlation",
+          "Hit_Skill_Score","ROC_below","ROC_above")
+
+for(i in  1:length(tipo)){
+  summary_ind_r(ruta_r, tipo = tipo[i])  
+}
+
+
+
+
+
+
+
+
+###########################################################################
+######################### Gráficos de intervalos validación retrospectiva
+
+
+
+
+
+############## Gráficos de Intervalos 
+
+### ruta_r = ruta donde se encuentran los archivos retrospectivos
+### estacion = estación a la cual se le va a realizar el gráfico
+### dep = departamento en el que se encuentra la estación
+### lead = nombre del lead time ("MAM")
+### lead_num = número del lead time (ejemplo 0 (simultaneo),1 ó 3)
+### length_periodo = tamaño del periodo de tiempo 
+### a = mes de incio, b= segundo mes, c= tercer mes
+### Esta función realiza el gráfico de intervalos para una estación, en el lead time deseado
+### con los prónosticos deterministicos retroespectivos
+# Para esta función se necesita la información de todas las estaciones completas (Estaciones_C)
+
+
+
+retrospectiva<-function(ruta_r, estacion,sitios, dep, lead, a){
+  # Extraiga trimestralmente la información de todas las estaciones
+  data<-data_trim(Estaciones_C, a)  
+
+    if(a == 12 | lead== "MAM_Nov"| lead== "MAM_Sep"| lead== "JJA_Dec"){ 
+    skip_1<-3; skip_2<-15; n_rows <- 10; year<-2006:2013
+    obsc<-data[data$years_y>2005,]
+  } else  if(a != 12 & lead!= "MAM_Nov"& lead!= "MAM_Sep"& lead!= "JJA_Dec"){
+    skip_1<-3; skip_2<-16;  n_rows <- 11; year<-2005:2013
+    obsc<-data[data$years_y>2004,]
+  }
+  
+  lower<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=skip_1, nrows = n_rows)
+  lower<-lower[-1:-2,estacion]
+  upper<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=skip_2, nrows = n_rows)
+  upper<-upper[-1:-2,estacion]
+
+  obs<-obsc[,estacion]
+  
+  # lea la información del pronosticos y elimine las coordenadas de la estación
+  predictions<-read.table(paste(ruta_r,"Retroactive_Predictions_",a,"_",lead,"_precip_",dep,".txt", sep=""),  skip=2)
+  predictions<-predictions[-1:-2,estacion]
+  
+  ## Cree un data frame para el periodo de retrospectivo y la estación deseada
+  estacion_data <- data.frame(year=year, predictions = predictions, lower= lower, upper=upper, obs = obs)
+  
+  # Haga el gráfico de intervalos 
+  retro <-  ggplot(data=estacion_data,aes(x=year,y=predictions))
+  retro <-  retro +  geom_point(aes(y=predictions,fill="steelblue4"),shape=21, size=3) 
+  retro <-  retro +  geom_errorbar(aes(ymin=lower,ymax=upper), colour="steelblue4")
+  retro <-  retro +  geom_point(aes(y=obs, fill="red"), colour="black",shape=21, size=3)
+  retro <-  retro +  theme_bw() + labs(x="",y="Precipitación (mm)")
+  retro <-  retro +  theme(legend.title = element_text(size = 10.5), 
+                           legend.position = "none",
+                           legend.key.height=unit(0.5,"cm"),
+                           legend.key.width=unit(0.8,"cm"),  axis.text.x = element_text(angle = 90, hjust = 1))
+  retro <- retro + scale_fill_manual(values=c("red","blue"), 
+                                     labels=c("Observación","Predicción"), name="")
+  retro <- retro +   scale_x_continuous(breaks = seq(year[1], 2013,1))
+  retro
+  # Almacene la imagen 
+  tiff(paste(ruta, "/results/",dep, "/retrospectivo_",a,"_",lead,"_", sitios,"_",dep,".tif",sep=""), height=720,width=1280,res=200,
+       pointsize=2,compression="lzw")
+  print(retro)
+  dev.off()
+} # retorne el gráfico 
+
+
+
+estaciones<-c("DoctrinaLa","AptoYopal","AptoPerales","CentAdmoLaUnion","Nataima","Turipana", "StaIsabel")
+sitios<-c("Lorica","Yopal","Ibagué","LaUnion","Espinal","Cereté","Villanueva")
+# Lead times (nombres)
+lead<-c(paste(rep("MAM",3),c("Feb","Nov","Sep"), sep="_"),
+        paste(rep("JJA",3),c("May","Feb","Dec"), sep="_"),
+        paste(rep("SON",3),c("Aug","May","Mar"), sep="_"),
+        paste(rep("DEF",3),c("Nov","Aug","Jun"), sep="_"))
+a<- c(rep(3,3),rep(6,3),rep(9,3),rep(12,3))
+dep<-c("cordoba", "casanare", "tolima", "valle","tolima", "cordoba", "santander")
+
+
+for(i in 1:7){
+   Estaciones_C <- read.delim(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp2/dep/precip_",dep[i],".txt",sep=""),skip =3, header=T, sep="")
+  
+  for(j in 1:12){
+    retrospectiva(ruta_r, estaciones[i], sitios[i], dep[i], lead[j], a[j])
+    #retrospectiva(ruta_r, "StaIsabel", "Villanueva", "santander", lead[j], a[j])
+  }
+}
+
+
+
+
+###########################################################################
+###########################################################################
+###########################################################################
+###########################################################################
+###########################################################################
+###########################################################################
+###########################################################################
+###########################################################################
+
+
+#### Calculo de indicadores con las categorías para un departamento
+
+
+categorias_dep<-function(Estaciones_C,ruta_r,lead,dep,a){
+  # Lea los datos de las estaciones
+  data<-data_trim(Estaciones_C, a)  
+  por_cat_est<-matrix(1:2,ncol=2, nrow = (length(data)-1) )
+  
+  if(a == 12 | lead== "MAM_Nov"| lead== "MAM_Sep"| lead== "JJA_Dec"){ 
+    skip_1<-3; skip_2<-15; skip_3<-27;  n_rows <- 10; year<-2006:2013
+    data<-data[data$years_y!=1981&data$years_y!=1982,]
+    obsc<-data[data$years_y>2005,]
+    
+  } else  if(a != 12 & lead!= "MAM_Nov"& lead!= "MAM_Sep"& lead!= "JJA_Dec"){
+    skip_1<-3; skip_2<-16; skip_3<-29;  n_rows <- 11; year<-2005:2013
+    data<-data[data$years_y!=1981,]
+    obsc<-data[data$years_y>2004,]
+  }
+  
+  
+  for(j in 1:(length(data)-1)){
+    
+    ### Organizarlo puede ser a partir de un condicionante para que 
+    # lea la tabla de datos de below (pronosticada)
+    probabilities_1<-read.table(paste(ruta_r,"Retroactive_Forecast_Probabilities_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=skip_1, nrows = n_rows)
+    probabilities_1e<-probabilities_1[-1:-2,j]
+    # lea la tabla de datos de normal (pronosticada)
+    probabilities_2<-read.table(paste(ruta_r,"Retroactive_Forecast_Probabilities_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=skip_2, nrows = n_rows)
+    probabilities_2e<-probabilities_2[-1:-2, j]
+    # lea la tabla de datos de above (pronosticada)
+    probabilities_3<-read.table(paste(ruta_r,"Retroactive_Forecast_Probabilities_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=skip_3, nrows = n_rows)
+    probabilities_3e<-probabilities_3[-1:-2, j]
+    # cree un data frame con la información filtada solo para la estación deseada
+    categorias<-data.frame(year=year, below=probabilities_1e, normal=probabilities_2e,above=probabilities_3e)
+    
+    # Encuentre los quantiles observados 
+    cat_pron<-0
+    
+    for (i in 1:length(year)) { # repita esto por el número de años 
+      # cree el vector de categorías pronosticadas
+      # tomando como base la categoría más probable 
+      if(categorias$below[i]>categorias$normal[i]&categorias$below[i]>categorias$above[i]){
+        cat_pron[i] <-1 
+      } else if (categorias$above[i]>categorias$normal[i]&categorias$above[i]>categorias$below[i]) {
+        cat_pron[i] <-3
+      } else cat_pron[i] <-2
+    }
+    #cree un data frame con todos los datos 
+    categorias<-data.frame(categorias, cat_pron=cat_pron)
+    # retorne el porcentaje y la trama de datos 
+  
+    obs<-obsc[,j+1]
+    
+    quantiles<-matrix(1:(2*length(year)), byrow = TRUE, ncol=2)  
+    cat_obs<-0
+    
+    # Revisar esta parte
+    for(i in 1:length(year)){
+      quantiles[i,]<-quantile(data[data$years_y<(i+(year[1]-1)),j+1],  probs = c(0.33,0.66))
+      cbind(data$years_y[data$years_y<(i+(year[1]-1))],  data[data$years_y<(i+(year[1]-1)),j+1])
+      
+      if(obs[i]<quantiles[i,1]){
+        cat_obs[i]<-1
+      } else if(obs[i]>quantiles[i,2]){
+        cat_obs[i]<-3
+      } else  cat_obs[i]<-2
+    }  
+    
+    observaciones<-data.frame(year = year, quantile_33=quantiles[,1], quantile_66=quantiles[,2], obs = obs, cat_obs)
+    Cat_estacion<-data.frame(observaciones, categorias)
+    
+    por_cat_est[j,1]<-sum(Cat_estacion$cat_obs==Cat_estacion$cat_pron)/length(year) *100
+    por_cat_est[j,2]<-sum(Cat_estacion$cat_obs==Cat_estacion$cat_pron)
+    
+  }
+  
+  
+  dimnames(por_cat_est) <- list(names(data)[-1], c("porc","numero"))
+  
+  return(por_cat_est)}
+
+
+
+##################### Función para calcular el porcentaje de aciertos deterministicos por 
+#### Departamento 
+
+dep_aciertosD <- function(ruta_r, a, Estaciones_C, lead){
+  data<-data_trim(Estaciones_C, a)  # convierta los datos en trimestrales
+  porcentaje<-0 # incialice el vector de porcentaje
+  RMSE<-0 # incialice el vector para el RMSE 
+  count<-0
+  
+  
+  if(a == 12 | lead== "MAM_Nov"| lead== "MAM_Sep"| lead== "JJA_Dec"){ 
+    skip_1<-3; skip_2<-15; n_rows <- 10; year<-2006:2013
+    obsc<-data[data$years_y>2005,]
+  } else  if(a != 12 & lead!= "MAM_Nov"& lead!= "MAM_Sep"& lead!= "JJA_Dec"){
+    skip_1<-3; skip_2<-16;  n_rows <- 11; year<-2005:2013
+    obsc<-data[data$years_y>2004,]
+  }
+  
+  
+  for(i in 1:(length(data)-1)){ # Repita el proceso para todas las estaciones del archivo de datos
+    
+    lower<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=skip_1, nrows = n_rows)
+    lower<-lower[-1:-2,i]
+    upper<-read.table(paste(ruta_r,"Retroactive_Prediction_Limits_",a,"_",lead,"_precip_",dep,".txt", sep=""),  sep="",skip=skip_2, nrows = n_rows)
+    upper<-upper[-1:-2,i]
+
+    # solo deje los datos observados para el periodo de interes 
+    obs<-obsc[,(i+1)]
+    # lea la información del pronosticos y elimine las coordenadas de la estación
+    predictions<-read.table(paste(ruta_r,"Retroactive_Predictions_",a,"_",lead,"_precip_",dep,".txt", sep=""),  skip=2)
+    predictions<-predictions[-1:-2,i]
+    
+    ## Cree un data frame para el periodo de retrospectivo y la estación deseada
+    estacion_data <- data.frame(year=year, predictions = predictions, lower= lower, upper=upper, obs = obs)
+    
+    # Identifique si se cumple que la observación cae en el intervalo
+    # si cumple la condición asignele un valor de 1
+    # en caso contrario asignele el valor de cero
+    cumple = ifelse(estacion_data$lower<=estacion_data$obs & estacion_data$upper>=estacion_data$obs, 1,0)
+    estacion_data<-data.frame(estacion_data,cumple) # guadelo en data frame 
+
+    porcentaje[i] <- sum(estacion_data$cumple)/dim(estacion_data)[1]*100 # Sume cuantas veces se cumple esto
+    count[i] <- sum(estacion_data$cumple) # Sume cuantas veces se cumple esto
+    ## Calcule el RMSE para cada estación y almacenelo. 
+    RMSE[i] <- sqrt(sum((estacion_data$predictions-estacion_data$obs)^2)/dim(estacion_data)[1])
+  }
+  
+  aciertos<-list(por_deter=porcentaje,conteo_det=count, RMSE=RMSE) # Almacene los dos indicadores. 
+  #, RMSE=RMSE)
+  return(aciertos)}
+
+
+#### Calculo de indicadores con las categorías para un departamento
+ruta_r
+#dep=c("casanare",    "cordoba",    "tolima",    "valle", "santander")
+
+dep<-"valle"
+
+# Lead times (nombres)
+lead<-c(paste(rep("MAM",3),c("Feb","Nov","Sep"), sep="_"),
+        paste(rep("JJA",3),c("May","Feb","Dec"), sep="_"),
+        paste(rep("SON",3),c("Aug","May","Mar"), sep="_"),
+        paste(rep("DEF",3),c("Nov","Aug","Jun"), sep="_"))
+
+# Timestre
+a<- c(rep(3,3),rep(6,3),rep(9,3),rep(12,3))
+
+# Lectura d eas estaciones para cada departamento.
+Estaciones_C <- read.delim(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp2/dep/precip_",dep,".txt",sep=""),skip =3, header=T, sep="")
+
+lead_num<-rep(c(0,3,5),4)
+
+
+data<-NA
+for(i in 1:12){
+  cat_num<-categorias_dep(Estaciones_C,ruta_r,lead[i],dep,a[i])[,2]
+  cat_prob<-categorias_dep(Estaciones_C,ruta_r,lead[i],dep,a[i])[,1]
+  nombres<-names(cat_num)
+  data_i<-data.frame(rep(a[i],length(cat_num)) , rep(lead_num[i],length(cat_num)),nombres, cat_num,cat_prob, row.names = NULL)
+  data<-rbind(data, data_i)
+}
+
+
+data<-data[-1,]
+names(data)<-c("Trimestre", "Lead", "Estacion", "num_cat_ac", "prob_cat_ac")
+
+#fix(data)
+
+
+
+
+#################### Función para calcular el porcentaje de aciertos deterministicos por 
+#### Departamento 
+
+dato<-NA
+for(i in 1:12){
+  num<-dep_aciertosD(ruta_r, a[i], Estaciones_C, lead[i])$por_deter
+  RMSE<-dep_aciertosD(ruta_r, a[i], Estaciones_C, lead[i])$RMSE
+  conteo_det<-dep_aciertosD(ruta_r, a[i], Estaciones_C, lead[i])$conteo_det
+  nombres<-names(Estaciones_C)
+  dato_i<-data.frame(rep(a[i],length(num)) , rep(lead_num[i],length(num)),nombres,conteo_det, num,RMSE, row.names = NULL)
+  dato<-rbind(dato, dato_i)
+}
+
+#Depure la base de datos 
+dato<-dato[-1,]
+names(dato)<-c("Trimestre", "Lead", "Estacion", "conteo_det", "num_det_ac", "RMSE")
+
+
+# Ahora una la base de datos para el porcentaje de aciertos categoricos y el deterministico
+total<-data.frame(dato, num_cat_a=data$num_cat_ac,num_cat_ac=data$prob_cat_ac, row.names = NULL)
+# Ahora almacene esta trama de datos en un rachivo .csv
+write.csv(x = total, file = paste("Tabla_", dep, ".csv", sep=""))
 
 
