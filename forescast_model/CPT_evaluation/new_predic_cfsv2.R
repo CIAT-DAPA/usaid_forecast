@@ -12,7 +12,7 @@ library(cowplot)
 
 
 region<-"results_graphs_C"  # "results_graphs_C"    "results_graphs_Op"
-prec<-"vertical_vel_250"    # prec= c("U_wind_250","U_wind_850", "rhum_700", "vertical_vel_250")
+prec<-"rhum_700"    # prec= c("U_wind_250","U_wind_850", "rhum_700", "vertical_vel_250")
 
 
 
@@ -39,19 +39,35 @@ transform_raster=function(x){
 # Con esta función se depura y rasteriza la tabla .tsv
 # El Argumento prec permite tener el cuenta el tipo de predictor
 # cuando se rasteriza el .tsv
+
 rasterize=function(dates, prec) { 
   
   if(require(raster)==FALSE){install.packages("raster")}
   library("raster")
   pos_years=!is.na(dates[1,]) # Muestra en que lugares de la fila 1 hay información
   year_month=dates[1,][pos_years] # Muestra la información d ela fila
+  
+  
   if(substr(year_month[2],6,7)=="12"){year=as.numeric(substr(year_month[-1],1,4))+1
   }else{year=as.numeric(substr(year_month[-1],1,4))}
+  
+  
   ## Muestra las posiciones de las filas en la tabla que no contienen información relevante para el raster
   #total_row_delete=c(-1,-3,-(which(dates[,1]=="90")-2),-which(dates[,1]=="-90"),-which(dates[,1]==""))
   
+  
+  if(prec=="U_wind_250" | prec=="U_wind_850"){
+    
   total_row_delete=c(-1,-3,-(which(dates[,1]=="90.0")-2),-which(dates[,1]=="-90.0"),-which(dates[,1]==""))
   dates_1=dates[total_row_delete,-1] # Elimina la información no relevante
+  
+  } else if(prec== "rhum_700" | prec=="vertical_vel_250"){
+   
+    total_row_delete=c(-1,-3,-(which(dates[,1]=="90")-2),-which(dates[,1]=="-90"),-which(dates[,1]==""))
+    dates_1=dates[total_row_delete,-1] # Elimina la información no relevante
+    
+  }
+    
   #
   list_dates=split(dates_1,sort(rep(year,180))) # Se divide la tabla de datos por año
   all_raster=lapply(list_dates,transform_raster) ## Transforma las tablas de datos en rasters
@@ -90,7 +106,6 @@ rasterize=function(dates, prec) {
 }
 
 
-
 ### Esta función convierte los datos de las estacines en datos trimestrales
 data_trim=function(Estaciones_C, a){ #Los argumentos son el conjunto de las estaciones 
   ## y el mes de incio del periodo (a)
@@ -108,8 +123,6 @@ data_trim=function(Estaciones_C, a){ #Los argumentos son el conjunto de las esta
   data_out_final=data.frame(years_y,data_out_final) # Cree un data frame con los datos finales
   return(data_out_final)
 } # devuelva los datos finales
-
-
 
 
 
@@ -1031,5 +1044,120 @@ names(dato)<-c("Trimestre", "Lead", "Estacion", "conteo_det", "num_det_ac", "RMS
 total<-data.frame(dato, num_cat_a=data$num_cat_ac,num_cat_ac=data$prob_cat_ac, row.names = NULL)
 # Ahora almacene esta trama de datos en un rachivo .csv
 write.csv(x = total, file = paste("Tabla_", dep, ".csv", sep=""))
+
+
+
+
+
+
+
+
+
+
+
+
+#############################################################################
+#############################################################################
+#############################################################################
+#############################################################################
+
+
+
+
+
+
+data<-read.table("clipboard",header = T)
+
+
+data$a[data$a==12]=0 # Cambiarle el número para que diciembre aparezca primero
+
+
+
+
+
+labels<-as_labeller(c("0"="DEF","3"="MAM","6"="JJA", "9"="SON"))
+labels_d<-as_labeller(c("casanare"="Casanare","cordoba"="Cordoba","tolima"="Tolima", "valle"="Valle del Cauca", "santander"="Santander"))
+
+
+col <- colorRampPalette(c("snow","#fee08b","#e6f598","#abdda4","#ddf1da","#d53e4f","#f46d43","#fdae61"))
+p <- ggplot(data, aes(as.factor(lead), Predictor)) + geom_tile(aes(fill = GI),
+     colour = "white") +  scale_fill_gradientn(colours = col(10)) +facet_grid(a~dep, labeller = labeller(a = labels, dep=labels_d))+theme_bw()
+
+p  + geom_text(aes(label = round(GI, 2)), size=3) + xlab("Lead Time") + ylab("Predictor")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+labels_d<-as_labeller(c("casanare"="Casanare","cordoba"="Cordoba","tolima"="Tolima", "valle"="Valle del Cauca", "santander"="Santander"))
+
+
+
+
+
+max_L<-aggregate(data$GI,list(data$dep,  data$Predictor, data$a), FUN = "max")
+names(max_L)<-c("dep", "Predictor", "a", "GI")
+ggplot(max_L, aes(x=a, y=GI, color=Predictor)) + 
+  geom_line(aes(linetype=Predictor), size=1) + geom_point(aes(shape=Predictor)) +
+  scale_x_continuous(breaks = c(0,3,6,9), labels = c("DEF","MAM", "JJA", "SON"))+
+  facet_wrap(~dep, nrow=1, labeller = labeller(dep = labels_d))+
+  labs(x="Trimestre", y=paste("Goodness Index", sep=""))+ theme_bw() +
+  geom_hline(yintercept = c(0, 0.3), colour = "black", linetype = "dotted")+
+  theme(axis.text.x  = element_text(angle=90, vjust=0.5))
+
+
+
+
+
+ggsave("max_allL.png",width =8 ,height =3.5,dpi=200)
+
+
+
+
+
+
+
+
+
+max_G<-aggregate(table$GoodnessIndex,list(table$dep, table$a), FUN = "max")
+
+### Grafico de Linea puede para los maximos
+### modificando la función 
+names(max_G)[1]="Departamento"
+levels(max_G$Departamento)<-c("Casanare", "Cordoba", "Tolima",  "Valle", "Santander")
+graph_line  <- ggplot(max_G, aes(x = Group.2 , y = x, color=Departamento))
+graph_line  <- graph_line + geom_line(aes(linetype=Departamento), size=1) + ylim(-0.06,0.5)
+graph_line  <- graph_line + geom_point(aes(shape=Departamento), size=2)
+graph_line  <- graph_line + theme_bw()  + labs(x="", y="Goodness Index") 
+graph_line  <- graph_line +  scale_x_continuous(breaks = c(0,3,6,9), labels = c("DEF","MAM", "JJA", "SON"))
+graph_line  <- graph_line + theme(legend.title = element_text(size = 10.5),
+                                  legend.key.height=unit(0.5,"cm"),
+                                  legend.key.width=unit(0.8,"cm"))
+
+
+# Guarde el graph
+tiff(paste(ruta,"/results/Max_line.tif",sep=""), height=720,width=1280,res=200,
+     pointsize=2,compression="lzw")
+print(graph_line)
+dev.off()
+
+
+
+
+
 
 
