@@ -12,8 +12,7 @@ library(cowplot)
 
 
 region<-"results_graphs_C"  # "results_graphs_C"    "results_graphs_Op"
-prec<-"rhum_700"    # prec= c("U_wind_250","U_wind_850", "rhum_700", "vertical_vel_250")
-
+prec<-"U_wind_850"    # prec= c("U_wind_250","U_wind_850", "rhum_700", "vertical_vel_250")
 
 
 ### Directorio de trabajo
@@ -146,6 +145,19 @@ shp=shapefile("C:/Users/AESQUIVEL/Google Drive/shp/mapa_mundi.shp")
 
 
 
+####### Organizar el directorio correctamente
+
+dep_f<-c("casanare",    "cordoba",    "tolima",    "valle", "santander")
+if(dir.exists("results")==FALSE){dir.create("results")}
+
+setwd(paste( getwd(),"/results/" ,sep=""))
+print(getwd())
+
+if(list.dirs()=="."){lapply(dep_f, dir.create)}
+
+setwd(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp2/results_graphs_C/", prec, "/", sep=""))
+getwd()
+
 
 #### Gráfico 1 - Correlación entre las componentes y la SST
 
@@ -158,7 +170,7 @@ shp=shapefile("C:/Users/AESQUIVEL/Google Drive/shp/mapa_mundi.shp")
 # a = mes de inicio del trimestre, b = segundo mes del trimestre, c = tercer mes del trimestre
 # length_periodo = Longitud del periodo de entrenamiento
 ## cca_Maps función que realiza el gráfico cca_map de CPT, las imagenes se almacenan en la ruta
-cca_maps<-function(var_ocanoAt, yserie, Estaciones_C, xserie, lead, ruta,  a, xmin, xmax, ymin, ymax, estaciones_in){
+cca_maps<-function(var_ocanoAt, yserie, Estaciones_C, xserie, lead, ruta,  a, xmin, xmax, ymin, ymax, estaciones_in, region){
   
   ocean=which(!is.na(var_ocanoAt[[1]][])) # tome las posiciones en las que la variable sea diferente de NA
   correl=array(NA,length(ocean)) # relice un arreglo del tamaño de oceano 
@@ -175,27 +187,39 @@ cca_maps<-function(var_ocanoAt, yserie, Estaciones_C, xserie, lead, ruta,  a, xm
   
   
   # Realice el mapa de Correlaciones entre la variable y el modo 1 de x
-  Map_x<-gplot(rotate(correl_map)) + geom_tile(aes(fill = value)) + coord_equal() + 
-    scale_fill_gradient2(low="#2166AC",mid = "white", high="#B2182B",name = " ",  limits=c(-1,1)) + 
-    labs(title=" ",x="Long",y="Lat")  + theme(legend.key.height=unit(0.5,"cm"),legend.key.width=unit(2,"cm"),
-                                              legend.text=element_text(size=10),
-                                              panel.background=element_rect(fill="white",colour="black"),
-                                              axis.text=element_text(colour="black",size=10),
-                                              axis.title=element_text(colour="black",size=10,face="bold"),
-                                              legend.position = "bottom", 
-                                              legend.title = element_text(size = 10.5))
+  if(region=="results_graphs_C"){
+    Map_x<-gplot(rotate(correl_map)) + geom_tile(aes(fill = value)) + coord_equal() + 
+      scale_fill_gradient2(low="#2166AC",mid = "white", high="#B2182B",name = " ",  limits=c(-1,1)) + 
+      labs(title=" ",x="Long",y="Lat")  + theme(legend.key.height=unit(0.5,"cm"),legend.key.width=unit(2,"cm"),
+                                                legend.text=element_text(size=10),
+                                                panel.background=element_rect(fill="white",colour="black"),
+                                                axis.text=element_text(colour="black",size=10),
+                                                axis.title=element_text(colour="black",size=10,face="bold"),
+                                                legend.position = "bottom", 
+                                                legend.title = element_text(size = 10.5))
+
+      shp=crop(shp, extent(rotate(correl_map))) #  realizar el coorte
+  }else if(region=="results_graphs_Op"){
+    Map_x<-gplot(correl_map) + geom_tile(aes(fill = value)) + coord_equal() + 
+      scale_fill_gradient2(low="#2166AC",mid = "white", high="#B2182B",name = " ",  limits=c(-1,1)) + 
+      labs(title=" ",x="Long",y="Lat")  + theme(legend.key.height=unit(0.5,"cm"),legend.key.width=unit(2,"cm"),
+                                                legend.text=element_text(size=10),
+                                                panel.background=element_rect(fill="white",colour="black"),
+                                                axis.text=element_text(colour="black",size=10),
+                                                axis.title=element_text(colour="black",size=10,face="bold"),
+                                                legend.position = "bottom", 
+                                                legend.title = element_text(size = 10.5))
+    
+    shp=crop(shp, extent(correl_map)) #  realizar el coorte
+  }
   
   # Corte colombia de acuerdo a las coordenadas asignadas
-  shp=crop(shp, extent(rotate(correl_map))) #  realizar el coorte
   shp@data$id <- rownames(shp@data) # cree una nueva variable en el shp
   shp@data$id <- as.numeric(shp@data$id) # digale que es de caracter númerico
   shp2 <- fortify(shp, region="id") # convierta el shp en una tabla de datos
   
-  
   Map_x<-Map_x + geom_polygon(data = shp2, aes(long, lat, group = group), 
                               colour = alpha("gray30", 1/3), size = 0.7, fill=NA) 
-  
-  
   
   ###### Graficos de y
   # Convierta los datos de las estaciones en trimestrales 
@@ -273,7 +297,7 @@ cca_maps<-function(var_ocanoAt, yserie, Estaciones_C, xserie, lead, ruta,  a, xm
 
 ruta_c<-paste(ruta, "Cross_validated/",sep="")
 
-dep= "casanare" # variar el departamento
+dep= "valle" # variar el departamento
 
 # "casanare"    "cordoba"    "tolima"    "valle" "santander"
 # Determinación de los limites departamentales y estaciones a dibular en el cap >.<
@@ -323,12 +347,37 @@ if(region=="results_graphs_C"){
     SST=rasterize(SST, prec)
     var_ocanoAt <-SST[[1:length_periodo[i]]]
     
-    cca_maps(var_ocanoAt, yserie, Estaciones_C, xserie, lead[i], ruta,  a[i], xmin, xmax, ymin, ymax, estaciones_in)
+    cca_maps(var_ocanoAt, yserie, Estaciones_C, xserie, lead[i], ruta,  a[i], xmin, xmax, ymin, ymax, estaciones_in, region)
     print(i)
   }  
 }else if(region=="results_graphs_Op"){
   ##### Si la region es optimizada correr este for
-  print("En proceso")
+
+  zone<-read.csv("C:/Users/AESQUIVEL/Google Drive/new_predictor/optimizaciones/zone.csv", header=T, sep=",")
+  
+  zone<-subset(zone, prec=="U_wind_250", select=c(a, Coord,  which(names(zone)==dep)))
+  
+  lista<-split(zone, zone$a)
+  lista<-rep(lista, each=3)
+  
+  for(i in 1:12){
+    xserie <- read.csv(paste(ruta_c, "X_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
+    yserie <- read.csv(paste(ruta_c,"Y_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
+    names_file <- paste(a[i],"_",lead[i],"_", dep,sep="")
+    
+    
+    SST<-read.table(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp2/predictors/", prec, "/",lead[i],".tsv", sep=""),sep="\t",dec=".",skip =2,fill=TRUE,na.strings =-999)
+    ## Conversión a raster
+    SST<-rasterize(SST, prec)
+    var_ocanoAt <-SST[[1:length_periodo[i]]]
+    b<-extent(lista[[i]][,3])
+    var_ocanoAt<-crop(rotate(var_ocanoAt), b)
+
+    cca_maps(var_ocanoAt, yserie, Estaciones_C, xserie, lead[i], ruta,  a[i], xmin, xmax, ymin, ymax, estaciones_in, region)
+    print(paste("prueba piloto",i, sep=" "))
+  }
+  
+
 }
 
 
@@ -392,10 +441,7 @@ GoodnessIndex <- function(ruta_c,dep_f){
   
   
   
-  
-  
-  
-  setwd(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp2/results_graphs_C/", prec, "/results/", sep=""))
+  setwd(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp2/", region,"/", prec, "/results/", sep=""))
   ### Guarde todos los Goodness Index en un archivo .csv
   write.csv(x = GoodnessIndex, file = "GoodnessIndex.csv",sep = ",")
   
@@ -621,7 +667,7 @@ for(i in  1:length(tipo)){
 
 ########################### Analisis Retrospectivos 
 
-ruta_r=paste(ruta,"/retroactive/",sep="")
+ruta_r=paste(ruta,"retroactive/",sep="")#revisar siempre la cantida de / 
 
 
 
@@ -1025,6 +1071,7 @@ names(data)<-c("Trimestre", "Lead", "Estacion", "num_cat_ac", "prob_cat_ac")
 #################### Función para calcular el porcentaje de aciertos deterministicos por 
 #### Departamento 
 
+
 dato<-NA
 for(i in 1:12){
   num<-dep_aciertosD(ruta_r, a[i], Estaciones_C, lead[i])$por_deter
@@ -1044,6 +1091,151 @@ names(dato)<-c("Trimestre", "Lead", "Estacion", "conteo_det", "num_det_ac", "RMS
 total<-data.frame(dato, num_cat_a=data$num_cat_ac,num_cat_ac=data$prob_cat_ac, row.names = NULL)
 # Ahora almacene esta trama de datos en un rachivo .csv
 write.csv(x = total, file = paste("Tabla_", dep, ".csv", sep=""))
+
+
+
+
+
+
+
+#### Creación del goodneex index retrospectivo
+
+ruta_r<-paste(ruta,"retroactive/",sep="")
+
+
+
+dep_f=c("casanare","cordoba","tolima","valle", "santander")
+lead<-c(paste(rep("MAM",3),c("Feb","Nov","Sep"), sep="_"),
+        paste(rep("JJA",3),c("May","Feb","Dec"), sep="_"),
+        paste(rep("SON",3),c("Aug","May","Mar"), sep="_"),
+        paste(rep("DEF",3),c("Nov","Aug","Jun"), sep="_"))
+a<- c(rep(3,3),rep(6,3),rep(9,3),rep(12,3))
+
+
+good_index=0 # inicialice el vector
+GoodnessIndex=NA # inicialice el data frame
+for(j in 1:5){
+  for(i in 1:12){
+    file= paste(ruta_r,"Retroactive_GoodnessIndex_",a[i],"_",lead[i],"_precip_",dep_f[j],".txt", sep="")
+    data=read.table(file,dec=".",skip =2,fill=TRUE,na.strings =-999)
+    index<-data[which(data[,1]=="Training")-1,8]
+    index<-as.numeric(as.character(index))
+    ind<-mean(index)
+    
+    
+    good_index<-cbind.data.frame(dep_f[j], a[i] ,lead[i],ind)
+    GoodnessIndex<-rbind(GoodnessIndex,good_index)
+  }
+}
+
+GoodnessIndex<-GoodnessIndex[-1,]
+# Quite los nombres de las filas
+rownames(GoodnessIndex)=NULL
+# Cambie los nombres de las columnas
+names(GoodnessIndex)=c("dep","a", "lead", "GoodnessIndex")
+GoodnessIndex <- cbind.data.frame(GoodnessIndex,lead_time=rep(rep(c(0,3,5),4),length(dep_f))  )
+
+
+
+
+setwd(paste(ruta, "results/",sep="" ))
+### Guarde todos los Goodness Index en un archivo .csv
+write.csv(x = GoodnessIndex, file = "GoodnessIndex_ret_Op.csv")
+
+
+
+
+
+
+
+#############################################################################
+#############################################################################
+#############################################################################
+#############################################################################
+
+
+########## Creación de los gráficos resumen finales del modelo basados 
+########## en una unica variable. 
+
+
+
+
+### Hacer un codigo para que la tabla automatico se organice
+data<-read.table("clipboard",header = T)
+
+
+
+#####  Gráfico de cajas
+
+data1<-data[which(data$validacion=="cv"),]
+good_cv<-cbind(data1[which(data1$region=="Teo"),"GoodnessIndex"],data1[which(data1$region=="Op"),"GoodnessIndex"])
+maxCV<-apply(good_cv, 1, max)
+data_cv<-data.frame(data1[,c(1, 3:5,7)], max=maxCV)
+
+data2<-data[which(data$validacion=="retro"),]
+good_retro<-cbind(data2[which(data2$region=="Teo"),"GoodnessIndex"],data2[which(data2$region=="Op"),"GoodnessIndex"])
+maxRetro<-apply(good_retro, 1, max)
+data_Retro<-data.frame(data2[,c(1, 3:5,7)], max=round(maxRetro,digits = 3))
+
+
+dataT<-rbind(data_cv, data_Retro)
+
+dataT[which(dataT$a==12),]$a=0
+
+
+graph_box  <- ggplot(dataT, aes(x =as.factor(a), y = max, fill=dep))
+graph_box  <- graph_box + geom_boxplot() + ylim(0,0.5)
+graph_box  <- graph_box +  scale_x_discrete(breaks = c(0,3,6,9), labels = c("DEF","MAM", "JJA", "SON"))
+graph_box <-  graph_box + theme_bw()  + labs(x="", y="Goodness Index")
+graph_box
+
+
+ggsave("box.png",width =6 ,height =3,dpi=200 )
+
+
+
+
+#####  Gráfico comparativo doble
+
+
+data1<-data[which(data$validacion=="cv"),]
+data2<-data[which(data$validacion=="retro"),]
+
+tabla=data.frame(data1[,c(2:5,7) ] , GI_cv=data1$GoodnessIndex,   GI_retro=round(data2$GoodnessIndex,3))
+tabla[which(tabla$a==12),]$a=0
+
+
+
+
+labels<-as_labeller(c("0"="DEF","3"="MAM","6"="JJA", "9"="SON"))
+labels_d<-as_labeller(c("casanare"="Casanare","cordoba"="Cordoba","tolima"="Tolima", "valle"="Valle del Cauca", "santander"="Santander"))
+#x11()
+ggplot(tabla,aes(x=GI_cv,y=GI_retro,shape=as.factor(lead_time),color=region,size=0.2))+
+  geom_point() +
+  facet_grid(a~dep, labeller = labeller(a = labels, dep=labels_d))+theme_bw()+
+  scale_size(guide=F)+scale_shape(name="Lead Time")+ scale_color_discrete(name="Region", labels=c("Optimized", "Theoretical")) + 
+  ylab("Goodness Index - Retroactive")+xlab("Goodness Index - Cross Validated")+
+  theme(strip.text.x = element_text(size = 11)) + 
+  geom_vline(xintercept = 0.3, colour = "black", linetype = "dotted") + geom_hline(yintercept = 0.3, colour = "black", linetype = "dotted")
+
+
+ggsave("best_model.png",width =12 ,height =6,dpi=200 )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1086,14 +1278,7 @@ p <- ggplot(data, aes(as.factor(lead), Predictor)) + geom_tile(aes(fill = GI),
 p  + geom_text(aes(label = round(GI, 2)), size=3) + xlab("Lead Time") + ylab("Predictor")
 
 
-
-
-
-
-
-
-
-
+ggsave("models.png",width =8 ,height =3.5,dpi=200)
 
 
 
@@ -1124,40 +1309,4 @@ ggplot(max_L, aes(x=a, y=GI, color=Predictor)) +
 
 
 ggsave("max_allL.png",width =8 ,height =3.5,dpi=200)
-
-
-
-
-
-
-
-
-
-max_G<-aggregate(table$GoodnessIndex,list(table$dep, table$a), FUN = "max")
-
-### Grafico de Linea puede para los maximos
-### modificando la función 
-names(max_G)[1]="Departamento"
-levels(max_G$Departamento)<-c("Casanare", "Cordoba", "Tolima",  "Valle", "Santander")
-graph_line  <- ggplot(max_G, aes(x = Group.2 , y = x, color=Departamento))
-graph_line  <- graph_line + geom_line(aes(linetype=Departamento), size=1) + ylim(-0.06,0.5)
-graph_line  <- graph_line + geom_point(aes(shape=Departamento), size=2)
-graph_line  <- graph_line + theme_bw()  + labs(x="", y="Goodness Index") 
-graph_line  <- graph_line +  scale_x_continuous(breaks = c(0,3,6,9), labels = c("DEF","MAM", "JJA", "SON"))
-graph_line  <- graph_line + theme(legend.title = element_text(size = 10.5),
-                                  legend.key.height=unit(0.5,"cm"),
-                                  legend.key.width=unit(0.8,"cm"))
-
-
-# Guarde el graph
-tiff(paste(ruta,"/results/Max_line.tif",sep=""), height=720,width=1280,res=200,
-     pointsize=2,compression="lzw")
-print(graph_line)
-dev.off()
-
-
-
-
-
-
 
