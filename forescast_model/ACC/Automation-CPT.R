@@ -1,4 +1,3 @@
-
 ####### Functions #########
 ###########################
 
@@ -173,7 +172,7 @@ selection_area=function(x,y){
       cor_tsm=cor(x,mode1[,1])
       count=count+1
       all_cor[count,]=cor_tsm[,1]
-     print(c(i,j))
+    
     }
    
   }
@@ -266,6 +265,14 @@ cross_val=function(x,y){
   
 }
 
+#####Input forescast#####
+## (x) datos de la tsm seleccionada para correr en el modelo.
+## (Y) datos de las estaciones en el formato predefinido.
+## (x_fores) datos de las tsm para pronosticar la precipitación.
+#####Otuput forescast#####
+## (all_out) Una lista donde el [[1]] son los pronosticos deterministico
+## de las estaciones [[2]] el valor que toma el modo X para realizar 
+## la predicción.
 
 forecast=function(x,y,x_fores,set){
   
@@ -301,6 +308,13 @@ forecast=function(x,y,x_fores,set){
   
 }
 
+#####Input probabilities#####
+## (fores) pronosticos deterministicos.
+## (Y) datos de las estaciones en el formato predefinido.
+## (sd_s) desviación de las estaciones para calcular las probabilidades.
+#####Otuput probabilities#####
+## (prob_output) un dataframe que contiene 
+## las probabilidades y el nombre de las estaciones. 
 
 probabilities=function(fores,Y,sd_s){
   
@@ -314,6 +328,13 @@ probabilities=function(fores,Y,sd_s){
   return(prob_output)
 }
 
+#####Input prob_output#####
+## (p) numero de estaciones disponibles por dpto en la corrida.
+## (m) mes actual.
+## (y) año actual.
+#####Otuput prob_output#####
+## (table_order) un dataframe que contiene el año y el mes del 
+## pronostico para todas las estaciones.
 
 prob_output=function(p,m,y){
   
@@ -328,24 +349,38 @@ prob_output=function(p,m,y){
   
 }
 
+
+
 #########RUN#########
 #####################
+
+
+########## Descarga archivos de la TSM #############
+####################################################
 
 start.time <- Sys.time()
 dir_save="C:/Users/dagudelo/Desktop/Ejemplo_descarga"
 month=as.numeric(format(Sys.Date(),"%m"))
 year=format(Sys.Date(),"%Y")
-y=download.cpt(dir_save,month,year)
+y=download.cpt(dir_save,month-1,year)
 end.time <- Sys.time()
 time.taken <- end.time - start.time
 time.taken
 
+cat("\n Archivos de la TSM descargados \n")
+
+########## Carga y descomprime archivos de la TSM #####
+#######################################################
 
 files_gz=list.files(dir_save,pattern =as.character(Sys.Date()))
 dir_files=paste(dir_save,files_gz,sep="/")
 p=lapply(dir_files,function(x)gzfile(x,'rt'))
 y_k=lapply(dir_files,function(x)read.table(x,sep="\t",dec=".",skip =2,fill=TRUE,na.strings =-999))
 
+cat("\n Archivos de TSM cargados y descomprimidos \n")
+
+########## Convierte los datos de la TSM en tablas #######
+##########################################################
 
 data_x=lapply(y_k,data_table)
 data_tsm=unlist(lapply(data_x,"[", 1),recursive=FALSE)
@@ -355,23 +390,37 @@ names(year_predictor)=names(data_tsm)
 data_tsm_fore=lapply(data_tsm,function(x) x[dim(x)[1],,drop=F])
 names(data_tsm_fore)=names(data_tsm)
 
+cat("\n Datos de la TSM organizados en formato Años X Pixeles \n")
+
+######### Carga las estaciones de precipitación ######
+######################################################
 
 dir_response="C:/Users/dagudelo/Desktop/Estaciones"
 dir_res=paste(dir_response,list.files(dir_response),sep="/")
 data_y=lapply(dir_res,function(x)read.table(x,dec=".",sep = ",",header = T))
 names(data_y)=basename(dir_res)
 
+cat("\n Datos de precipitación cargados \n")
+
+######## Carga el nombre de las estaciones de interes #######
+#############################################################
 
 dir_stations="Y:/USAID_Project/Product_1_web_interface/test/clima/daily_data"
 stations_selec=substr(list.files(dir_stations),1,nchar(list.files(dir_stations))-4)
 
+cat("\n Nombres de las estaciones de interes cargados \n")
 
-data_quar=lapply(data_y,quarterly_data,month)
+####### Convierte los datos respuesta a trimestrales ########
+#############################################################
+
+data_quar=lapply(data_y,quarterly_data,month-1)
 data_quartely=unlist(lapply(data_quar,"[", 1),recursive=FALSE)
 year_response=unlist(lapply(data_quar,"[", 2),recursive=FALSE)
 
-########## seleccion area ###########
-####################################
+cat("\n Datos de precipitación organizados de forma trimestral \n")
+
+####### Seleciona el area de la TSM ##############
+##################################################
 
 year_model=lapply(year_response,function(x) Map(function(x1,y1) years_model=intersect(x1,y1),year_predictor, x))
 years_final_res=Map(function(x,y) Map(function(x1,y1) pos_x=x1%in%y1 ,x,y),year_response,year_model)
@@ -382,13 +431,17 @@ data_res_final=Map(function(x,y) Map(function(x1,y1) x1[y1,] ,x,y),data_quartely
 
 data_tsm_selec=Map(function(x,y) Map(selection_area,x,y),data_tsm_final,data_res_final)
 
-########## Cross Validation ##########
-######################################
+cat("\n Area de la TSM selecionada \n")
+
+######## Realiza validación cruzada ############
+################################################
 
 cross_obj=Map(function(x,y) Map(cross_val,x,y),data_tsm_selec,data_res_final)
 
-######### deterministic forecast ###########
-############################################
+cat("\n Validación cruzada realizada \n")
+
+######### Calcula las predicciones deterministicas ########
+###########################################################
 
 fores_tsm_selec=lapply(data_tsm_selec,function(x) Map(function(x1,y1) y1[,match(colnames(x1),colnames(y1)),drop=F],x,data_tsm_fore ))
 settings=lapply(cross_obj,function(x) lapply(x,"[[",2))
@@ -397,8 +450,10 @@ forescast_obj=Map(function(x,y,x_fores,set)Map(forecast,x,y,x_fores,set),data_ts
 forescast_all=lapply(forescast_obj,function(x) lapply(x,"[[",1))
 Value_modo_x=lapply(forescast_obj,function(x) lapply(x,"[[",2))
 
-######### Probabilistic forecast ###########
-############################################
+cat("\n Predicciones deterministicas calculadas \n")
+
+######### Calcula las predicciones probabilisticas ########
+###########################################################
 
 sd_cross=Map(function(x,y) Map(function(x1, y1) sqrt(colSums(((x1-y1)^2)/dim(x1)[1]-1-1)),x,y),cross_all,data_res_final)
 n_all=lapply(data_res_final,function(x)lapply(x,function(x)dim(x)[1]))
@@ -406,30 +461,35 @@ sd_final=Map(function(sd,value_modo,n)Map(function(sd1,value_modo1,n1) sd1*sqrt(
 probabilities_final=Map(function(fores,Y,sd_s) Map(probabilities,fores,Y,sd_s),forescast_all,data_res_final,sd_final)
 probabilities_join=lapply(probabilities_final,function(x) do.call(rbind,x))
 
-######### Probability table ################
-############################################
+cat("\n Predicciones probabilisticas calculadas \n")
+
+#### Genera el formato de salida para las probabilidades ####
+#############################################################
 
 p_all=lapply(data_y,function(x)dim(x)[2]-2)
-table_year_month=lapply(p_all,prob_output,month,year)
+table_year_month=lapply(p_all,prob_output,month-1,year)
 prob_output_list=Map(function(x,y)cbind(x,y),table_year_month,probabilities_join)
 prob_output_final=do.call(rbind,prob_output_list)
 
-path_prob="Y:/USAID_Project/Product_1_web_interface/test/clima/prob_forecast"
-#path_prob="C:/Users/dagudelo/Desktop"
-write.csv(prob_output_final,paste0(path_prob,"/",format(Sys.Date(),"%Y%m%d"),"_prob.csv"),row.names = F)
+#path_save="Y:/USAID_Project/Product_1_web_interface/test/clima/prob_forecast"
+path_save="C:/Users/dagudelo/Desktop"
+write.csv(prob_output_final,paste0(path_save,"/","probabilities.csv"),row.names = F)
 
-######### Metrics table ###############
-#######################################
+cat("\n Pronosticos probabilisticos almacenados \n")
+
+###### Genera el formato de salida para las metricas ########
+#############################################################
 
 pearson_cor=Map(function(x,y) Map(function(x1, y1){pearson=diag(cor(x1,y1));id=substr(names(x1),2,nchar(names(x1)));data.frame(id,pearson)},x,y),data_res_final,cross_all)
 kendall_cor=Map(function(x,y) Map(function(x1, y1){kendall=diag(cor(x1,y1,method = "kendall"));data.frame(kendall)},x,y),data_res_final,cross_all)
+goodness_index=lapply(settings,function(x) lapply(x,function(x1)x1[3]) )
+kendall_goodness=Map(function(x,y) Map(function(x1, y1) data.frame(x1,goodness=y1),x,y),kendall_cor,goodness_index)
 pearson_join=lapply(pearson_cor,function(x) do.call(rbind,x))
-kendall_join=lapply(kendall_cor,function(x) do.call(rbind,x))
+kendall_googness_join=lapply(kendall_goodness,function(x) do.call(rbind,x))
 
+metrics_output_list=Map(function(x,y,z) cbind(x,y,z),table_year_month,pearson_join,kendall_googness_join)
+metrics_output_all=do.call(rbind,metrics_output_list)
 
-lapply(settings,function(x) lapply(x,function(x1)x1[3]) )
+write.csv(metrics_output_all,paste0(path_save,"/","metrics.csv"),row.names = F)
 
-u=Map(function(x,y,z) cbind(x,y,z),table_year_month,pearson_join,kendall_join)
-
-
-
+cat("\n Metricas de validación almacenadas \n")
