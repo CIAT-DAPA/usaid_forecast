@@ -3,18 +3,19 @@ library(raster)
 library(ggplot2)
 library(grid)
 library(rasterVis)
+library(rgeos)
 
-
+# directorio de trabajo
 setwd("C:/Users/AESQUIVEL/Google Drive/new_predictor/")
 getwd()
 
-
-prec="vertical_vel_250"
+# Predictor que se desea analizar 
+prec="rhum_700"
 
 # prec= c("U_wind_250","U_wind_850", "rhum_700", "vertical_vel_250")
 
 
-#### Primero se corre para u-wind 250  y u-wind 850 la lectura inicial de la grilla. 
+#### Crea un raster a partir de la tabla .tsv, pero esta funcion es un apoyo de rasterize
 
 transform_raster=function(x){ 
   # Primero se crea un raster teniendo encuenta la resolución espacial de la tabla .tsv  
@@ -86,7 +87,7 @@ rasterize=function(dates, prec) {
 
 
 
-########## solo pasa los datos en formato tabla
+########## Pasa los datos en formato tabla
 data_base=function(list_stack){
   
   data=lapply(list_stack,function(x) t(rasterToPoints(x)))
@@ -196,31 +197,29 @@ selection_area=function(x,y){
   return(loadings_stack)
 }
 
-
+# Lectura del mapamundi para adicionar el los graficos 
 shp=shapefile("C:/Users/AESQUIVEL/Google Drive/shp/mapa_mundi.shp")
 
+
+# Guarda automaticamente las imagenes de los rasters
 plots=function(prec, dep, x,y){
   
   if(require(rasterVis)==FALSE){install.packages("rasterVis")}
   library("rasterVis")
+  
   tiff(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/optimizaciones/", dep, "/", prec, "/",y,".tiff",sep=""),compression = 'lzw',height = 5,width = 16,units="in", res=150)
+  
+  # Creación de la paleta de colores para los gráficos en rasterVis
   myThemec <- BuRdTheme()
   myThemec$regions$col=colorRampPalette(c("snow","red4"))
   myThemec$panel.background$col = "gray"
-    
   
-  shp=shapefile("C:/Users/AESQUIVEL/Google Drive/shp/mapa_mundi.shp")
-  
-  
-  #myThemec$panel.background$col = "gray30"
+  # creacion del grafico
   e=levelplot(rotate(x)>quantile(x,0.7,na.rm=T), main=y,par.settings=myThemec,margin=F,colorkey=list(space="right"))+ latticeExtra::layer(sp::sp.lines(shp, lwd=0.8, col="gray30"))
   print(e)
-  #writeSpatialShape(sur2, "torn")
+  
   dev.off()
 }
-
-
-
 
 
 
@@ -233,14 +232,16 @@ plots=function(prec, dep, x,y){
 ### la primera es la ruta donde estabas los archivos de la tsm
 path<-paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp1/predictors/", prec, sep="")
 
-files_tsm<-list.files(path)
-rutes<-paste(path,files_tsm,sep = "/")
+files_tsm<-list.files(path)# busque los archivos en el directorio path
+rutes<-paste(path,files_tsm,sep = "/")# guarde las rutas de los archivos
 
+
+# Lea los archivos .tsv en las rutas especificadas
 data_tsm<-lapply(rutes,function(x)read.table(x,sep="\t",dec=".",skip =2,fill=TRUE,na.strings =-999))
 
-data_stack=lapply(data_tsm,rasterize, prec)
-data_raw=data_base(data_stack)
-data_tsm=data_raw[[1]]
+data_stack=lapply(data_tsm,rasterize, prec) # rasterize los archivos de acuerdo al predictor objetivo
+data_raw=data_base(data_stack) #
+data_tsm=data_raw[[1]] #
 years_predictor=data_raw[[2]]
 
 
@@ -272,7 +273,7 @@ data_res_final=Map(function(x1,y1) x1[y1,,drop=FALSE] ,data_quartely,years_final
 
 
 final=Map(selection_area,data_tsm_final,data_res_final)
-#Map(plots,prec, dep, final,month_ini)
+Map(plots,prec, dep, final,month_ini)
 
 #levelplot(final[[1]]>quantile(final[[1]],0.7,na.rm=T,marge=F))
 
@@ -285,18 +286,6 @@ plot(shp, add=T)
 x<-drawExtent(col="red")
 x
 as.numeric(as.character(x))
-
-
-
-#prueba<-raster("C:/Users/AESQUIVEL/Google Drive/new_predictor/map.tif")
-#plot(final[[1]])
-#extent(prueba)<-extent(0,357.5,-30,30)
-#plot(prueba, add=T, col="snow")
-#s=writeRaster(final[[1]], "C:/Users/AESQUIVEL/Google Drive/new_predictor/optimizaciones/9.tiff")
-
-
-
-
 
 
 
