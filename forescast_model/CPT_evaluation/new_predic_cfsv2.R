@@ -7,12 +7,12 @@ library(maptools)
 library(rgeos)
 library(gridExtra)
 library(cowplot)
+library(readxl)
 
 
 
-
-region<-"results_graphs_C"  # "results_graphs_C"    "results_graphs_Op"
-prec<-"U_wind_850"    # prec= c("U_wind_250","U_wind_850", "rhum_700", "vertical_vel_250")
+region<-"results_graphs_C" # "results_graphs_C"    "results_graphs_Op"
+prec<-"vertical_vel_250"    # prec= c("U_wind_250","U_wind_850", "rhum_700", "vertical_vel_250")
 
 
 ### Directorio de trabajo
@@ -132,7 +132,7 @@ data_trim=function(Estaciones_C, a){ #Los argumentos son el conjunto de las esta
 
 
 ## Ruta principal donde se encuentran las carpetas con los archivos  
-ruta = paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp2/", region, "/", prec, "/" ,sep="")
+ruta <- paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp2/", region, "/", prec, "/" ,sep="")
 
 
 
@@ -297,7 +297,7 @@ cca_maps<-function(var_ocanoAt, yserie, Estaciones_C, xserie, lead, ruta,  a, xm
 
 ruta_c<-paste(ruta, "Cross_validated/",sep="")
 
-dep= "valle" # variar el departamento
+dep<- "valle" # variar el departamento
 
 # "casanare"    "cordoba"    "tolima"    "valle" "santander"
 # Determinación de los limites departamentales y estaciones a dibular en el cap >.<
@@ -355,7 +355,12 @@ if(region=="results_graphs_C"){
 
   zone<-read.csv("C:/Users/AESQUIVEL/Google Drive/new_predictor/optimizaciones/zone.csv", header=T, sep=",")
   
-  zone<-subset(zone, prec=="U_wind_250", select=c(a, Coord,  which(names(zone)==dep)))
+  # Si se quiere leer directo desde excel
+  #prueba<-read_excel("C:/Users/AESQUIVEL/Google Drive/new_predictor/optimizaciones/areas.xlsx", sheet = 5, col_names = TRUE, col_types = NULL, na = "",
+  #           skip = 0)
+ 
+  zone<-zone[which(zone$prec==prec),c("a", "Coord", dep)]
+  print(c("a", "Coord", dep))
   
   lista<-split(zone, zone$a)
   lista<-rep(lista, each=3)
@@ -646,9 +651,6 @@ summary_ind<-function(ruta_c, tipo){
   dev.off()
 } # Termine la función 
 
-
-
-
 tipo <- c("Pearsons_correlation","k_2AFC_Score",
           "Hit_Skill_Score","ROC_below","ROC_above")
 # Corra la función para todos los indicadores
@@ -667,7 +669,7 @@ for(i in  1:length(tipo)){
 
 ########################### Analisis Retrospectivos 
 
-ruta_r=paste(ruta,"retroactive/",sep="")#revisar siempre la cantida de / 
+ruta_r<-paste(ruta,"retroactive/",sep="")#revisar siempre la cantida de / 
 
 
 
@@ -1263,8 +1265,8 @@ data<-read.table("clipboard",header = T)
 
 data$a[data$a==12]=0 # Cambiarle el número para que diciembre aparezca primero
 
-
-
+setwd("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp2/results_graphs_Op/")
+getwd()
 
 
 labels<-as_labeller(c("0"="DEF","3"="MAM","6"="JJA", "9"="SON"))
@@ -1272,12 +1274,12 @@ labels_d<-as_labeller(c("casanare"="Casanare","cordoba"="Cordoba","tolima"="Toli
 
 
 col <- colorRampPalette(c("snow","#fee08b","#e6f598","#abdda4","#ddf1da","#d53e4f","#f46d43","#fdae61"))
+
+
 p <- ggplot(data, aes(as.factor(lead), Predictor)) + geom_tile(aes(fill = GI),
      colour = "white") +  scale_fill_gradientn(colours = col(10)) +facet_grid(a~dep, labeller = labeller(a = labels, dep=labels_d))+theme_bw()
 
 p  + geom_text(aes(label = round(GI, 2)), size=3) + xlab("Lead Time") + ylab("Predictor")
-
-
 ggsave("models.png",width =8 ,height =3.5,dpi=200)
 
 
@@ -1285,14 +1287,7 @@ ggsave("models.png",width =8 ,height =3.5,dpi=200)
 
 
 
-
-
-
 labels_d<-as_labeller(c("casanare"="Casanare","cordoba"="Cordoba","tolima"="Tolima", "valle"="Valle del Cauca", "santander"="Santander"))
-
-
-
-
 
 max_L<-aggregate(data$GI,list(data$dep,  data$Predictor, data$a), FUN = "max")
 names(max_L)<-c("dep", "Predictor", "a", "GI")
@@ -1309,4 +1304,97 @@ ggplot(max_L, aes(x=a, y=GI, color=Predictor)) +
 
 
 ggsave("max_allL.png",width =8 ,height =3.5,dpi=200)
+
+
+
+
+
+
+
+
+
+#################################################################################
+#################################################################################
+#################################################################################
+
+### Paquetes Necesarios
+library(raster) 
+library(ggplot2)
+library(grid)
+library(rasterVis)
+library(maptools)
+library(rgeos)
+library(gridExtra)
+library(cowplot)
+
+
+setwd("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp2/")
+getwd()
+
+
+data<-read.table("clipboard",header = T)
+
+
+data$a[data$a==12]=0 # Cambiarle el número para que diciembre aparezca primero
+
+
+
+labels<-as_labeller(c("0"="DEF","3"="MAM","6"="JJA", "9"="SON"))
+labels_d<-as_labeller(c("casanare"="Casanare","cordoba"="Cordoba","tolima"="Tolima", "valle"="Valle del Cauca", "santander"="Santander"))
+
+
+datap<-data[data$Region=="Teo",]
+dataq<-data[data$Region=="Op",]
+
+
+
+
+col <- colorRampPalette(c("snow","#fee08b","#e6f598","#abdda4","#ddf1da","#d53e4f","#f46d43","#fdae61"))
+
+
+p <- ggplot(datap, aes(as.factor(lead), Predictor)) + geom_tile(aes(fill = GI),colour = "white") +  scale_fill_gradientn(colours = col(10)) +facet_grid(a~dep, labeller = labeller(a = labels, dep=labels_d))+theme_bw() #+ theme(legend.position="top")
+p <- p  + geom_text(aes(label = round(GI, 2)), size=3) + xlab("Lead Time") + ylab("Predictor")
+p <-p +  labs(title="Theoretical Region ") 
+
+q <- ggplot(dataq, aes(as.factor(lead), Predictor)) + geom_tile(aes(fill = GI),colour = "white") +  scale_fill_gradientn(colours = col(10)) +facet_grid(a~dep, labeller = labeller(a = labels, dep=labels_d))+theme_bw() #+ theme(legend.position="top")
+q <-q  + geom_text(aes(label = round(GI, 2)), size=3) + xlab("Lead Time") + ylab("Predictor") 
+q <-q +  labs(title="Optimized Region ") 
+
+
+
+
+tiff(paste(getwd(),"/head_map_cv.tif",sep=""), height=550,width=1600,res=80,
+     compression="lzw") # height=1280, width=2048, pointsize=2, res=200,
+grid.arrange(p,q, ncol=2)
+dev.off()
+
+
+
+
+
+#####################################################################
+prueba<-read.table("clipboard",header = T)
+
+### Graphs densidades\
+
+labels_Val<-as_labeller(c("Cv"="Cv", "retro"="Rv"))
+labels_R<-as_labeller(c("Op"="Optimized", "Teo"= "Theoretical"))
+
+ggplot(prueba, aes(GI, fill = Predictor))+
+  geom_density(alpha = 0.4)+ facet_grid(Val~Region, labeller = labeller(Val=labels_Val, Region=labels_R))+  theme_bw() + xlab("Goodness Index") + 
+  geom_vline(xintercept = c(0,0.3), color="gray30", linetype="dashed", size=1) #+ scale_color_discrete(name="Predictor") + 
+ 
+ 
+ggsave("densityR.png",width =8 ,height =5,dpi=200 )
+  
+
+
+
+ggplot(prueba, aes(GI, fill = Predictor))+
+  geom_density(alpha = 0.4)+ facet_wrap(~Val, labeller = labeller(Val=labels_Val))+  theme_bw() + xlab("Goodness Index") + 
+  geom_vline(xintercept = c(0,0.3), color="gray30", linetype="dashed", size=1)
+
+ggsave("density.png",width =6 ,height =3,dpi=200 )
+
+
 
