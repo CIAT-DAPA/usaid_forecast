@@ -1375,14 +1375,14 @@ dev.off()
 #####################################################################
 prueba<-read.table("clipboard",header = T)
 
-### Graphs densidades\
+### Graphs densidades
 
 labels_Val<-as_labeller(c("Cv"="Cv", "retro"="Rv"))
 labels_R<-as_labeller(c("Op"="Optimized", "Teo"= "Theoretical"))
 
 ggplot(prueba, aes(GI, fill = Predictor))+
   geom_density(alpha = 0.4)+ facet_grid(Val~Region, labeller = labeller(Val=labels_Val, Region=labels_R))+  theme_bw() + xlab("Goodness Index") + 
-  geom_vline(xintercept = c(0,0.3), color="gray30", linetype="dashed", size=1) #+ scale_color_discrete(name="Predictor") + 
+  geom_vline(xintercept = c(0,0.3), color="gray30", linetype="dashed", size=1)
  
  
 ggsave("densityR.png",width =8 ,height =5,dpi=200 )
@@ -1395,6 +1395,129 @@ ggplot(prueba, aes(GI, fill = Predictor))+
   geom_vline(xintercept = c(0,0.3), color="gray30", linetype="dashed", size=1)
 
 ggsave("density.png",width =6 ,height =3,dpi=200 )
+
+
+
+
+
+#### Para manana graphs de maximos, boxplots, graphs de barras 
+#### con polar haber como salen y no se que mas que Dios me apiade :(
+
+
+
+prueba<-read.table("clipboard",header = T)
+
+prueba$a[prueba$a==12]=0 # Cambiarle el número para que diciembre aparezca primero
+
+
+
+labels_d<-as_labeller(c("casanare"="Casanare","cordoba"="Cordoba","tolima"="Tolima", "valle"="Valle del Cauca", "santander"="Santander"))
+
+library("RColorBrewer")
+
+ggplot(prueba, aes(x=as.factor(a) , y=GI)) + 
+  geom_boxplot(aes(fill = Predictor)) +  scale_x_discrete(breaks = c(0,3,6,9), labels = c("DEF","MAM", "JJA", "SON")) +  
+  scale_fill_brewer(palette="Set3") +
+  facet_grid(Region~dep, labeller = labeller(dep=labels_d, Region=labels_R))+
+  theme_bw() + ylab("Goodness Index") +xlab("") +
+ geom_hline(yintercept = c(0,0.3), colour = "black", linetype = "dotted")
+
+
+ggsave("Box_RD.png",width =11 ,height =6,dpi=100 )
+
+
+
+ggplot(prueba, aes(x=as.factor(a) , y=GI)) + 
+  geom_boxplot(aes(fill = Predictor)) +  scale_x_discrete(breaks = c(0,3,6,9), labels = c("DEF","MAM", "JJA", "SON")) +  
+  scale_fill_brewer(palette="Set3") +
+  facet_wrap(~dep, ncol=5, labeller = labeller(dep=labels_d))+
+  theme_bw() + ylab("Goodness Index") +xlab("") +
+  geom_hline(yintercept = c(0,0.3), colour = "black", linetype = "dotted")
+
+
+ggsave("Box_D.png",width =11 ,height =4,dpi=100 )
+
+
+
+
+
+
+ggplot(prueba, aes(x=as.factor(a) , y=GI)) + 
+  geom_boxplot(aes(fill = Predictor)) +  scale_x_discrete(breaks = c(0,3,6,9), labels = c("DEF","MAM", "JJA", "SON")) +  
+  scale_fill_brewer(palette="Set3") +
+  theme_bw() + ylab("Goodness Index") +xlab("") +
+  geom_hline(yintercept = c(0,0.3), colour = "black", linetype = "dotted")
+
+
+ggsave("Box_T.png",width =8 ,height =4,dpi=100 )
+
+
+
+
+
+#### Para manana graphs de maximos, graphs de barras 
+#### con polar haber como salen y no se que mas que Dios me apiade
+
+
+prueba_cv<-read.table("clipboard",header = T)
+
+prueba_cv<-cbind.data.frame(prueba_cv,Com=paste(prueba_cv$Predictor,"_",prueba_cv$Region,sep=""))
+prueba_cv$a[prueba_cv$a==12]=0 # Cambiarle el número para que diciembre aparezca primero
+
+
+
+
+
+max_G<-aggregate(prueba_cv$GI,list(prueba_cv$Region, prueba_cv$Predictor, prueba_cv$dep, prueba_cv$a), FUN = "max")
+names(max_G)=c("Region","Predictor","Departamento", "trim", "GI")
+
+
+ggplot(max_G, aes(x=as.factor(trim), y=GI, shape=Region, colour=Predictor))+
+  geom_point()+ facet_grid(~Departamento,labeller = labeller(Departamento=labels_d)) + 
+  theme_bw() +  scale_x_discrete(breaks = c(0,3,6,9), labels = c("DEF","MAM", "JJA", "SON")) +  
+  geom_hline(yintercept = c(0,0.3), colour = "black", linetype = "dotted") + xlab("") +
+  ylab("Goodness Index")
+
+ggsave("points.png",width =10 ,height =4,dpi=100 )
+
+
+
+
+
+
+
+
+#################################################################
+
+
+prueba<-read.table("clipboard",header = T)
+
+prueba$a[prueba$a==12]=0 # Cambiarle el número para que diciembre aparezca primero
+
+labels<-as_labeller(c("0"="DEF","3"="MAM","6"="JJA", "9"="SON"))
+labels_d<-as_labeller(c("casanare"="Casanare","cordoba"="Cordoba","tolima"="Tolima", "valle"="Valle del Cauca", "santander"="Santander"))
+
+#x11()
+ggplot(prueba,aes(x=cv,y=rt,shape=Predictor))+
+  geom_point(colour="gray30", stroke = 1, alpha=0.7)+geom_point(aes(colour =Region , alpha=as.factor(lead)),size=4) +
+  facet_grid(a~dep, labeller = labeller(a = labels, dep=labels_d))+theme_bw()+
+  scale_color_discrete(name="Region", labels=c("Optimized", "Theoretical")) + 
+  labs(y="Goodness Index - Retroactive", x="Goodness Index - Cross Validated", shape="Predictor", alpha="Lead Time")+
+  theme(strip.text.x = element_text(size = 11)) + 
+  geom_vline(xintercept = 0.3, colour = "black", linetype = "dotted") + geom_hline(yintercept = 0.3, colour = "black", linetype = "dotted")
+
+
+ggsave("best_model.png",width =12 ,height =6,dpi=200 )
+
+
+
+
+
+
+
+
+
+
 
 
 
