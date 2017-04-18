@@ -1,10 +1,15 @@
 
-# library(lubridate)
-# library(reshape)
-# #require(ggplot2)
-# library(stringr)
+library(lubridate)
+library(reshape)
+require(ggplot2)
+library(stringr)
 
-
+library(raster)
+library(rgdal)
+library(R.utils)
+library(stringr)
+library(parallel)
+library(trend)
 
 #---------------------------------------------------------------------------------#
 #-------------------Función para generar barra de progreso\-----------------------#
@@ -70,6 +75,92 @@ resampling <- function(data,prob,añoshistorico){
   
 }
 
+#---------------------------------------------------------------------------------#
+#----------------Función sacar número de días del mes-----------------------------#
+#---------------------------------------------------------------------------------#
+# INPUT
+# date: fecha de interés
+# OUTPUT
+# Número de días del mes de interés
+
+numberOfDays <- function(date) {
+  m <- format(date, format="%m")
+  
+  while (format(date, format="%m") == m) {
+    date <- date + 1
+  }
+  
+  return(as.integer(format(date - 1, format="%d")))
+}
+
+#---------------------------------------------------------------------------------#
+#----------------Función sacar datos diarios NASA POWER---------------------------#
+#---------------------------------------------------------------------------------#
+# INPUT
+# lat: latitud de la estación/sitio de interés
+# lon: longitud de la estación/sitio de interés
+# year_to: año actual
+# month_to: mes actual
+# OUTPUT
+# Datos diarios de temperatura máxima, mínima y radiación solar de NASA POWER
+
+download_data_nasa = function(lat,lon,year_to,month_to,data_d){
+  
+  url_all = paste0("https://power.larc.nasa.gov/cgi-bin/agro.cgi?email=&area=area&latmin=",lat,"&lonmin=",lon,"&latmax=",lat,"&lonmax=",lon,"&ms=1&ds=1&ys=1983&me=12&de=31&ye=",year_to,"&p=swv_dwn&p=T2MN&p=T2MX&submit=Submit")
+  data_nasa = read.table(url_all,skip = 15,header = F, na.strings = "-")
+  names(data_nasa) = c("year","julian","sol_rad","t_min","t_max")
+  dates = seq(as.Date("1983/1/1"), as.Date(paste0(year_to,"/12/31")), "days")
+  month = as.numeric(format(dates,"%m"))
+  #data_d = read.csv("D:/_Scripts/usaid_forecast/_package/prediccionClimatica/dailyData/58504f1a006cb93ed40eebe3.csv",header=T,dec=".")
+  
+  sel_obs = data_d[data_d$year %in% unique(data_nasa$year),]
+  sel_nasa = data_nasa[data_nasa$year %in% unique(data_d$year),c(-1,-2)]
+  
+  ses_tmax = mean(sel_obs$t_max-sel_nasa$t_max,na.rm=T)
+  ses_tmin = mean(sel_obs$t_min-sel_nasa$t_min,na.rm=T)
+  ses_srad = mean(sel_obs$sol_rad-sel_nasa$sol_rad,na.rm=T)
+  
+  data_sel_m = data_nasa[data_nasa$year %in% year_to & month %in% month_to,3:5]
+  data_sel_m$sol_rad = data_sel_m$sol_rad+ses_srad
+  data_sel_m$t_min = data_sel_m$t_min+ses_tmin
+  data_sel_m$t_max = data_sel_m$t_max+ses_tmax
+  
+  data_sel_m$sol_rad[is.na(data_sel_m$sol_rad)] = mean(data_sel_m$sol_rad,na.rm=T)
+  data_sel_m$t_max[is.na(data_sel_m$t_max)] = mean(data_sel_m$t_max,na.rm=T)
+  data_sel_m$t_min[is.na(data_sel_m$t_min)] = mean(data_sel_m$t_min,na.rm=T)
+  
+  return(data_sel_m)
+}
+
+#---------------------------------------------------------------------------------#
+#----------------Función sacar datos diarios CHIRP--------------------------------#
+#---------------------------------------------------------------------------------#
+# INPUT
+# lat: latitud de la estación/sitio de interés
+# lon: longitud de la estación/sitio de interés
+# ini.date: fecha inicio de descarga
+# end.date: fecha final de descarga
+# outDir: Directorio donde se guardarán las imagenes de chirps
+# OUTPUT
+# Datos diarios de precipitación de CHIRP
+
+download_data_chirp = function(ini.date,end.date,outDir,cl){
+  
+  z=seq(as.Date(ini.date), as.Date(end.date), "days")
+  fechas=str_replace_all(z, "-", ".")  
+  
+  urls <- paste("ftp://ftp.chg.ucsb.edu/pub/org/chg/products/CHIRP/daily/2017/chirp.",fechas,".tif",sep="")
+  file <- basename(urls)
+  outDir_all = paste0(outDir,"/",file)
+  
+  
+  clusterMap(cl, download.file, url = urls, destfile = outDir_all, mode = "wb", 
+             .scheduling = 'dynamic')
+  
+  
+  
+  return("Datos de CHIRPS descargados!")
+}
 
 
 #---------------------------------------------------------------------------------#
@@ -81,11 +172,11 @@ resampling <- function(data,prob,añoshistorico){
 # path_output: Ruta donde se guardarán las salidas
 # station: Nombre de la estación de interés
 
-#OUTPUT
+# OUTPUT
 # Al correr esta función se generarán los 100 escenarios (en formato .csv) de datos diarios 
 # para la estaciónde interés
 
-gen_esc_daily <- function(prob,data_d,path_output,station){
+gen_esc_daily <- function(prob,data_d,path_output,station,lat,lon){
   
   cat("\n Inicio del remuestreo... \n")
   
@@ -235,8 +326,8 @@ for(y in min(data_temp$year):max(data_temp$year)){
     medias=apply(todo,2,median)
 
     dif=t(t(todo)-medias)
-
     valores2=function(masprobable2,todo,resumen2,dif){
+
       datos=0
       for(i in 1:2){
         pos<-which(todo==resumen2[i])
@@ -427,10 +518,32 @@ for(y in min(data_temp$year):max(data_temp$year)){
     #---------------------------------------------------------------------------------#
     #-----------------Exporta los escenarios a nivel diario a .csv--------------------#
     #---------------------------------------------------------------------------------#
+    cat("\n Descargando datos observados de NASA POWER... \n")
     
-     
+    year_to = format(Sys.Date(),"%Y")
+    month_to = as.numeric(format(Sys.Date(),"%m"))-1
+    
+    data_nasa = download_data_nasa(lat,lon,year_to,month_to,data_d)
+    
+    cat("\n Extrayendo datos estimados de CHIRP... \n")
+    
+    
+    outDir_all = list.files(path_output,pattern = ".tif",full.names = T )
+    trs = list()
+    for(j in 1:length(outDir_all)){ trs[[j]] <- raster(outDir_all[j]) }
+  
+    trs_st = stack(trs)
+ 
+    extr_vals <- raster::extract(trs_st, data.frame(x=lon,y=lat))
+    data_chirp <- as.numeric(extr_vals)
+    
+    
+    
+    z=seq(as.Date(ini.date), as.Date(end.date), "days")
+    data_obs_m =  cbind.data.frame("day" = as.numeric(format(z,"%d")),"month" = as.numeric(format(z,"%m")), "year" = as.numeric(format(z,"%Y")),"t_max"= data_nasa$t_max,"t_min"=data_nasa$t_min,"prec" = data_chirp,"sol_rad" = data_nasa$sol_rad)
     for(k in 1:nrow(escenarios_final)){
-      write.csv(esc_final_diarios[[k]],paste(path_output,"/",format.Date(Sys.Date(),"%Y%m%d"),"/Escenarios_",station,"/escenario_",nom[k],".csv",sep=""),row.names=F)
+      to.write = rbind.data.frame( data_obs_m,esc_final_diarios[[k]])
+      write.csv(to.write,paste(path_output,"/",format.Date(Sys.Date(),"%Y%m%d"),"/Escenarios_",station,"/escenario_",nom[k],".csv",sep=""),row.names=F)
     }
     
   cat("\n Proceso finalizado exitosamente \n \n")
@@ -446,20 +559,73 @@ for(y in min(data_temp$year):max(data_temp$year)){
 # path_output = "Y:/USAID_Project/Product_1_web_interface/test/clima/resampling/" 
 # path_prob = "Y:/USAID_Project/Product_1_web_interface/test/clima/prob_forecast/20170120_prob.csv"
 # path_data_d = "Y:/USAID_Project/Product_1_web_interface/test/clima/daily_data/"
-path_data_d <- dir_stations
+    
+    lat = 5.320
+    lon = -72.388
 
-data_d_all = list.files(path_data_d,full.names = T)
+    path_data_d <- dir_stations
+    
+    data_d_all = list.files(path_data_d,full.names = T)
+    
+    data_prob_all=read.csv(paste0(path_prob,"/",format(Sys.Date(),"%Y%m%d"),"_prob.csv"),header=T,dec=".")
+    station_names = gsub('.csv','',list.files(path_data_d))
+    cl <- makeCluster(detectCores())
+    
+    ini.date = paste0(substring(Sys.Date(),1,4),"-",str_pad(as.numeric(substring(Sys.Date(),7,7))-1,2,pad = "0"),"-01")
+    ini.date = as.Date(ini.date)
+    
+    end.date = paste0(substring(Sys.Date(),1,4),"-",str_pad(as.numeric(substring(Sys.Date(),7,7))-1,2,pad = "0"),"-",numberOfDays(ini.date))
+    end.date = as.Date(end.date)
+    
+     
+    download_data_chirp(ini.date,end.date,outDir = path_output,cl)
+    
 
-data_prob_all=read.csv(paste0(path_prob,"/",format(Sys.Date(),"%Y%m%d"),"_prob.csv"),header=T,dec=".")
-station_names = gsub('.csv','',list.files(path_data_d))
 
 start.time <- Sys.time()
 
 for(x in 1:length(data_d_all)){
     data_prob = data_prob_all[which(data_prob_all$id==station_names[x]),]
-    gen_esc_daily(prob = data_prob,data_d = data_d_all[x],path_output,station = station_names[x])
+    gen_esc_daily(prob = data_prob,data_d = data_d_all[x],path_output,station = station_names[x],lat,lon)
       }
 
+file.remove(list.files(path_output,pattern = ".tif",full.names=T))
 end.time <- Sys.time()
 time.taken <- end.time - start.time
 time.taken
+
+
+
+
+
+
+#########################################################
+
+#########################################################
+
+
+
+
+
+
+
+
+
+# plot(sel_nasa[500:600,1]+ses_srad,type="l")
+# lines(sel_obs[500:600,7],type="l",col="red")
+# 
+# plot(sel_nasa[500:600,2]+ses_tmin,type="l")
+# lines(sel_obs[500:600,5],type="l",col="red")
+# 
+# plot(sel_nasa[500:600,3]+ses_tmax,type="l")
+# lines(sel_obs[500:600,4],type="l",col="red")
+
+# 
+# 
+# srad_cum_nasa = aggregate(sel_nasa$sol_rad,list(sel_obs$month,sel_obs$year),sum,na.rm=T)
+# srad_cum_obs = aggregate(sel_obs$sol_rad,list(sel_obs$month,sel_obs$year),sum,na.rm=T)
+# plot(srad_cum_nasa[,3],type="l",ylim=c(350,700))
+# lines(srad_cum_obs[,3],type="l",col="red")
+
+
+
