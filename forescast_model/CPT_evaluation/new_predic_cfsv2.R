@@ -155,7 +155,7 @@ print(getwd())
 
 if(list.dirs()=="."){lapply(dep_f, dir.create)}
 
-setwd(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp2/results_graphs_C/", prec, "/", sep=""))
+#setwd(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp2/results_graphs_C/", prec, "/", sep=""))
 getwd()
 
 
@@ -1398,11 +1398,7 @@ ggsave("density.png",width =6 ,height =3,dpi=200 )
 
 
 
-
-
-#### Para manana graphs de maximos, boxplots, graphs de barras 
-#### con polar haber como salen y no se que mas que Dios me apiade :(
-
+###### Boxplot
 
 
 prueba<-read.table("clipboard",header = T)

@@ -5,30 +5,78 @@ library(grid)
 library(rasterVis)
 library(rgeos)
 
-# directorio de trabajo
-setwd("C:/Users/AESQUIVEL/Google Drive/new_predictor/")
-getwd()
 
-# Predictor que se desea analizar 
-prec="rhum_700"
+# directorio de trabajo, en este directorio se guardan las imagenes y tablas.csv
+setwd("C:/Users/AESQUIVEL/Desktop/CPT_Linux/cpt_requerimientos/")
+getwd() # imprima en la consola cual es la ruta. 
 
-# prec= c("U_wind_250","U_wind_850", "rhum_700", "vertical_vel_250")
+# Este shp solo es necesario en el caso de los nuevos predictores no para la SST.  
+shp=shapefile("C:/Users/AESQUIVEL/Google Drive/shp/mapa_mundi.shp")
+
+# Predictor del cfsv2 que se desea analizar 
+prec="SST"
+
+# Estas son las variables para las que se puede utilizar, no olvidar 
+# utilizar los mismos nombres que estan aquí para que funcionen bien los codigos
+# prec= c("SST" ,"U_wind_250","U_wind_850", "rhum_700", "vertical_vel_250")
+
+
+
+################################################################
+################################################################
+
+################         Funciones         #####################
+
+################################################################
+################################################################
 
 
 #### Crea un raster a partir de la tabla .tsv, pero esta funcion es un apoyo de rasterize
+##
+if(prec=="SST"){
+#####################################################
+#### Para la TSM 
+#### Crea un raster a partir de la tabla .tsv, pero esta funcion es un apoyo de rasterize
+transform_raster=function(x){
+  mapa_base=raster()
+  val=c(as.matrix(t(x),ncol=1,byrow = T))
+  val=as.numeric(val)
+  val[val==-999.000]=NA
+  values(mapa_base)=val
+  return(mapa_base)
+}
+# Con esta función se depura y rasteriza la tabla .tsv
+rasterize=function(dates, prec) { 
+  
+  if(require(raster)==FALSE){install.packages("raster")}
+  library("raster")
+  pos_years=!is.na(dates[1,])
+  year_month=dates[1,][pos_years]
+  if(substr(year_month[2],6,7)=="12"){year=as.numeric(substr(year_month[-1],1,4))+1
+  }else{year=as.numeric(substr(year_month[-1],1,4))}
+  total_row_delete=c(-1,-3,-(which(dates[,1]=="90.0")-2),-which(dates[,1]=="-90.0"),-which(dates[,1]==""))
+  dates=dates[total_row_delete,-1]
+  list_dates=split(dates,sort(rep(year,180)))
+  all_raster=lapply(list_dates,transform_raster)
+  layers=stack(all_raster)
+  layers_crop=crop(layers,extent(-180, 180, -30, 30))
+  
+  return(layers_crop)
+}
 
+} else if(prec!="SST"){
+####################################################
+#### Para los nuevos predictores 
+#### Crea un raster a partir de la tabla .tsv, pero esta funcion es un apoyo de rasterize
 transform_raster=function(x){ 
   # Primero se crea un raster teniendo encuenta la resolución espacial de la tabla .tsv  
-  mapa_base=raster(nrows=74, ncols=144,xmn=0,xmx=357.5, ymn=-90,ymx=90) # Dimensiones del raster
+  mapa_base=raster(nrows=180, ncols=360,xmn=0,xmx=359, ymn=-90,ymx=90) # Dimensiones del raster
   val=c(as.matrix(t(x),ncol=1,byrow = T)) 
   val=as.numeric(val)
   val[val==-999.000]=NA
   values(mapa_base)=val
   return(mapa_base)
 }
-
-
-
 # Con esta función se depura y rasteriza la tabla .tsv
 # El Argumento prec permite tener el cuenta el tipo de predictor
 # cuando se rasteriza el .tsv
@@ -38,18 +86,34 @@ rasterize=function(dates, prec) {
   library("raster")
   pos_years=!is.na(dates[1,]) # Muestra en que lugares de la fila 1 hay información
   year_month=dates[1,][pos_years] # Muestra la información d ela fila
-  year=substr(year_month[-1],1,4) # Substrae el año de las fehcas
+  
+  
+  if(substr(year_month[2],6,7)=="12"){year=as.numeric(substr(year_month[-1],1,4))+1
+  }else{year=as.numeric(substr(year_month[-1],1,4))}
+  
+  
   ## Muestra las posiciones de las filas en la tabla que no contienen información relevante para el raster
   #total_row_delete=c(-1,-3,-(which(dates[,1]=="90")-2),-which(dates[,1]=="-90"),-which(dates[,1]==""))
-
-  total_row_delete=c(-1,-(which(dates[,1]=="90")-2),-which(dates[,1]==""))
   
-  dates_1=dates[total_row_delete,-1] # Elimina la información no relevante
   
-  list_dates=split(dates_1,sort(rep(year,74))) # Se divide la tabla de datos por año
+  if(prec=="U_wind_250" | prec=="U_wind_850"){
+    
+    total_row_delete=c(-1,-3,-(which(dates[,1]=="90.0")-2),-which(dates[,1]=="-90.0"),-which(dates[,1]==""))
+    dates_1=dates[total_row_delete,-1] # Elimina la información no relevante
+    
+  } else if(prec== "rhum_700" | prec=="vertical_vel_250"){
+    
+    total_row_delete=c(-1,-3,-(which(dates[,1]=="90")-2),-which(dates[,1]=="-90"),-which(dates[,1]==""))
+    dates_1=dates[total_row_delete,-1] # Elimina la información no relevante
+    
+  }
+  
+  #
+  list_dates=split(dates_1,sort(rep(year,180))) # Se divide la tabla de datos por año
   all_raster=lapply(list_dates,transform_raster) ## Transforma las tablas de datos en rasters
   layers=stack(all_raster) # Crea un stack
-
+  
+  
   if(prec=="U_wind_250"){
     r1 <- crop(layers,extent(0, 50, -25, 25))
     r2 <- crop(layers,extent(220, 357.5, -25, 25))
@@ -75,19 +139,16 @@ rasterize=function(dates, prec) {
     x$overwrite <- TRUE
     layers_crop <- do.call(merge, x)
     names(layers_crop)<-  names(r1)
-
+    #plot(layers_crop)  
   }
   
-  
-  
-  
-    
   return(layers_crop)
+}
 }
 
 
 
-########## Pasa los datos en formato tabla
+#### Pasa los datos raster a formato tabla
 data_base=function(list_stack){
   
   data=lapply(list_stack,function(x) t(rasterToPoints(x)))
@@ -97,10 +158,7 @@ data_base=function(list_stack){
   return(all_output)
 }
 
-
-
-
-#################  genera los trimestres acumulados de las estaciones de precipitacion
+####  genera los trimestres acumulados de las estaciones de precipitacion
 quarterly_data=function(sy_month,data){
   
   l=(sy_month)+(0:2)
@@ -116,11 +174,9 @@ quarterly_data=function(sy_month,data){
   names(all_output)=c("data_stations","year_response")
   
   return(all_output)
-  }
+}
 
-
-
-#################  algoritmo Nipals
+####  algoritmo Nipals
 nipals<-function(X,modos){
   
   n<-nrow(X)
@@ -153,9 +209,7 @@ nipals<-function(X,modos){
   
 }
 
-
-
-#################  algoritmo Nipals
+####  algoritmo Nipals
 selection_area=function(x,y){
   
   loadings_modos=list()
@@ -197,17 +251,34 @@ selection_area=function(x,y){
   return(loadings_stack)
 }
 
-# Lectura del mapamundi para adicionar el los graficos 
-shp=shapefile("C:/Users/AESQUIVEL/Google Drive/shp/mapa_mundi.shp")
 
-
+######
 # Guarda automaticamente las imagenes de los rasters
-plots=function(prec, dep, x,y){
+if(prec=="SST"){
+####################################################
+#### Para la TSM
+plots=function(prec, x,y){
   
   if(require(rasterVis)==FALSE){install.packages("rasterVis")}
   library("rasterVis")
+  tiff(paste(getwd(), "/", prec, "_" , dep, "_" ,y,".tiff",sep=""),compression = 'lzw',height = 5,width = 16,units="in", res=150)
   
-  tiff(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/optimizaciones/", dep, "/", prec, "/",y,".tiff",sep=""),compression = 'lzw',height = 5,width = 16,units="in", res=150)
+  myThemec <- BuRdTheme()
+  myThemec$regions$col=colorRampPalette(c("snow","red4"))
+  myThemec$panel.background$col = "gray"
+  
+  e<-levelplot(x>quantile(x,0.7,na.rm=T), main=y,par.settings=myThemec,margin=F,colorkey=list(space="right"))
+  print(e)
+  dev.off()
+} } else if(prec!="SST"){
+####################################################
+#### Para los nuevos predictores 
+# Guarda automaticamente las imagenes de los rasters
+plots=function(prec, x,y){
+  
+  if(require(rasterVis)==FALSE){install.packages("rasterVis")}
+  library("rasterVis")
+  tiff(paste(getwd(), "/", prec,  "_" , dep, "_"  ,y,".tiff",sep=""),compression = 'lzw',height = 5,width = 16,units="in", res=150)
   
   # Creación de la paleta de colores para los gráficos en rasterVis
   myThemec <- BuRdTheme()
@@ -215,31 +286,32 @@ plots=function(prec, dep, x,y){
   myThemec$panel.background$col = "gray"
   
   # creacion del grafico
-  e=levelplot(rotate(x)>quantile(x,0.7,na.rm=T), main=y,par.settings=myThemec,margin=F,colorkey=list(space="right"))+ latticeExtra::layer(sp::sp.lines(shp, lwd=0.8, col="gray30"))
+  e<-levelplot(rotate(x)>quantile(x,0.7,na.rm=T), main=y,par.settings=myThemec,margin=F,colorkey=list(space="right"))+ latticeExtra::layer(sp::sp.lines(shp, lwd=0.8, col="gray30"))
   print(e)
   
-  dev.off()
+  dev.off()}
 }
 
 
 
 
 
+
+
+#####################
+#####################
 ######## Run ########
 #####################
+#####################
 
-
-### la primera es la ruta donde estabas los archivos de la tsm
-path<-paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp1/predictors/", prec, sep="")
-
-files_tsm<-list.files(path)# busque los archivos en el directorio path
-rutes<-paste(path,files_tsm,sep = "/")# guarde las rutas de los archivos
-
+# Ruta donde 
+rutes<-"C:/Users/AESQUIVEL/Desktop/CPT_Linux/cpt_requerimientos/SST/DEF_Aug.tsv"# guarde las rutas de los archivos
+rutes
 
 # Lea los archivos .tsv en las rutas especificadas
-data_tsm<-lapply(rutes,function(x)read.table(x,sep="\t",dec=".",skip =2,fill=TRUE,na.strings =-999))
-
+data_tsm<-lapply(rutes,function(x)read.table(x,sep="\t",dec=".",skip = 2, fill=TRUE,na.strings =-999))
 data_stack=lapply(data_tsm,rasterize, prec) # rasterize los archivos de acuerdo al predictor objetivo
+
 data_raw=data_base(data_stack) #
 data_tsm=data_raw[[1]] #
 years_predictor=data_raw[[2]]
@@ -248,20 +320,14 @@ years_predictor=data_raw[[2]]
 #########################################################
 dep="casanare"
 
-
-
 precp=read.table(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/optimizaciones/",dep,".csv", sep = ""),header=T,dec=".",sep=",")
 
-month_ini=c(12,6,3,9)
+month_ini=12 # Mes de inicio del trimestre
 
 sta_quar=lapply(month_ini,quarterly_data,precp)
 
-
-
-
-data_quartely=unlist(lapply(sta_quar,"[", 1),recursive=FALSE)
-years_response=unlist(lapply(sta_quar,"[", 2),recursive=FALSE)
-
+data_quartely= unlist(lapply(sta_quar,"[", 1),recursive=FALSE)
+years_response= unlist(lapply(sta_quar,"[", 2),recursive=FALSE)
 
 
 year_model=Map(function(x1,y1) years_model=intersect(x1,y1),years_predictor, years_response)
@@ -271,27 +337,24 @@ years_final_prec=Map(function(x1,y1) pos_x=x1%in%y1 ,years_predictor, year_model
 data_tsm_final=Map(function(x1,y1) x1[y1,] , data_tsm ,years_final_prec)
 data_res_final=Map(function(x1,y1) x1[y1,,drop=FALSE] ,data_quartely,years_final_res)
 
-
 final=Map(selection_area,data_tsm_final,data_res_final)
-Map(plots,prec, dep, final,month_ini)
-
-#levelplot(final[[1]]>quantile(final[[1]],0.7,na.rm=T,marge=F))
+Map(plots,prec, final,month_ini)
 
 
+
+#### En esta parte se realiza la seleccion del area predictora 
 x11()
-pos<-4
-plot(rotate(final[[pos]])>quantile(rotate(final[[pos]]),0.7,na.rm=T)
-     , colNA="gray30", main=paste(dep,month_ini[pos]))
-plot(shp, add=T)
+if(prec=="SST"){
+  plot(final[[1]]>quantile(rotate(final[[1]]),0.7,na.rm=T)
+       , colNA="gray30", main=paste(dep,month_ini[1]))
+}else if(prec!="SST"){
+  plot(rotate(final[[1]])>quantile(rotate(final[[1]]),0.7,na.rm=T)
+       , colNA="gray30", main=paste(dep,month_ini[1]))
+  plot(shp, add=T)
+}
+
 x<-drawExtent(col="red")
-x
-as.numeric(as.character(x))
+x<-as.numeric(as.character(x))
+x<-cbind.data.frame(class=c("xmin", "xmax", "ymin", "ymax"), x=round(x,2))
 
-
-
-################################################################
-################################################################
-################################################################
-################################################################
-################################################################
-
+write.csv(x, paste(prec, "_coor_",dep,"_", month_ini,".csv", sep=""), sep = " ")

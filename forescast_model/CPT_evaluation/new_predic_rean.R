@@ -6,11 +6,13 @@ library(rasterVis)
 library(maptools)
 library(rgeos)
 library(gridExtra)
+library(margins)
 library(cowplot)
 
 
 
-region<-"results_graphs_C"  # "results_graphs_C"    "results_graphs_Op"
+
+region<-"results_graphs_Op"  # "results_graphs_C"    "results_graphs_Op"
 prec<-"vertical_vel_250"    # prec= c("U_wind_250","U_wind_850", "rhum_700", "vertical_vel_250")
 
 
@@ -24,7 +26,6 @@ getwd()
 
 
 #### Primero se corre para u-wind 250  y u-wind 850 la lectura inicial de la grilla. 
-
 transform_raster=function(x){ 
   # Primero se crea un raster teniendo encuenta la resolución espacial de la tabla .tsv  
   mapa_base=raster(nrows=74, ncols=144,xmn=0,xmx=357.5, ymn=-90,ymx=90) # Dimensiones del raster
@@ -119,15 +120,31 @@ data_trim=function(Estaciones_C, a){ #Los argumentos son el conjunto de las esta
 
 
 ## Ruta principal donde se encuentran las carpetas con los archivos  
-ruta = paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp1/", region, "/", prec, "/" ,sep="")
+ruta <- paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp1/", region, "/", prec, "/" ,sep="")
 
 
 
-ruta_l="C:/Users/AESQUIVEL/Google Drive/Experimento_1/Salidas_corrida_DEF/salidas/"
+ruta_l<-"C:/Users/AESQUIVEL/Google Drive/Experimento_1/Salidas_corrida_DEF/salidas/"
 ### Lectura del shp
 colombia=shapefile(paste(ruta_l,"/colombia/colombia_depts.shp",sep=""))
 
 shp=shapefile("C:/Users/AESQUIVEL/Google Drive/shp/mapa_mundi.shp")
+
+
+
+
+####### Organizar el directorio correctamente
+dep_f<-c("casanare",    "cordoba",    "tolima",    "valle", "santander")
+if(dir.exists("results")==FALSE){dir.create("results")}
+
+setwd(paste( getwd(),"/results/" ,sep=""))
+print(getwd())
+
+if(list.dirs()=="."){lapply(dep_f, dir.create)}
+
+#setwd(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp1/results_graphs_C/", prec, "/", sep=""))
+getwd()
+
 
 
 
@@ -143,7 +160,7 @@ shp=shapefile("C:/Users/AESQUIVEL/Google Drive/shp/mapa_mundi.shp")
 # a = mes de inicio del trimestre, b = segundo mes del trimestre, c = tercer mes del trimestre
 # length_periodo = Longitud del periodo de entrenamiento
 ## cca_Maps función que realiza el gráfico cca_map de CPT, las imagenes se almacenan en la ruta
-cca_maps<-function(var_ocanoAt, yserie, Estaciones_C, xserie, names_file, ruta,  a, xmin, xmax, ymin, ymax, estaciones_in){
+cca_maps<-function(var_ocanoAt, yserie, Estaciones_C, xserie, lead, ruta,  a, xmin, xmax, ymin, ymax, estaciones_in, region){
   
   ocean=which(!is.na(var_ocanoAt[[1]][])) # tome las posiciones en las que la variable sea diferente de NA
   correl=array(NA,length(ocean)) # relice un arreglo del tamaño de oceano 
@@ -160,30 +177,40 @@ cca_maps<-function(var_ocanoAt, yserie, Estaciones_C, xserie, names_file, ruta, 
   
   
   # Realice el mapa de Correlaciones entre la variable y el modo 1 de x
-  Map_x<-gplot(rotate(correl_map)) + geom_tile(aes(fill = value)) + coord_equal() + 
-    scale_fill_gradient2(low="#2166AC",mid = "white", high="#B2182B",name = " ",  limits=c(-1,1)) + 
-    labs(title=" ",x="Long",y="Lat")  + theme(legend.key.height=unit(0.5,"cm"),legend.key.width=unit(2,"cm"),
-                                              legend.text=element_text(size=10),
-                                              panel.background=element_rect(fill="white",colour="black"),
-                                              axis.text=element_text(colour="black",size=10),
-                                              axis.title=element_text(colour="black",size=10,face="bold"),
-                                              legend.position = "bottom", 
-                                              legend.title = element_text(size = 10.5))
-  
-  
+  if(region=="results_graphs_C"){
+    Map_x<-gplot(rotate(correl_map)) + geom_tile(aes(fill = value)) + coord_equal() + 
+      scale_fill_gradient2(low="#2166AC",mid = "white", high="#B2182B",name = " ",  limits=c(-1,1)) + 
+      labs(title=" ",x="Long",y="Lat")  + theme(legend.key.height=unit(0.5,"cm"),legend.key.width=unit(2,"cm"),
+                                                legend.text=element_text(size=10),
+                                                panel.background=element_rect(fill="white",colour="black"),
+                                                axis.text=element_text(colour="black",size=10),
+                                                axis.title=element_text(colour="black",size=10,face="bold"),
+                                                legend.position = "bottom", 
+                                                legend.title = element_text(size = 10.5))
+    
+    shp=crop(shp, extent(rotate(correl_map))) #  realizar el coorte
+  }else if(region=="results_graphs_Op"){
+    Map_x<-gplot(correl_map) + geom_tile(aes(fill = value)) + coord_equal() + 
+      scale_fill_gradient2(low="#2166AC",mid = "white", high="#B2182B",name = " ",  limits=c(-1,1)) + 
+      labs(title=" ",x="Long",y="Lat")  + theme(legend.key.height=unit(0.5,"cm"),legend.key.width=unit(2,"cm"),
+                                                legend.text=element_text(size=10),
+                                                panel.background=element_rect(fill="white",colour="black"),
+                                                axis.text=element_text(colour="black",size=10),
+                                                axis.title=element_text(colour="black",size=10,face="bold"),
+                                                legend.position = "bottom", 
+                                                legend.title = element_text(size = 10.5))
+    
+    shp=crop(shp, extent(correl_map)) #  realizar el coorte
+  }
   
   # Corte colombia de acuerdo a las coordenadas asignadas
-  shp=crop(shp, extent(rotate(correl_map))) #  realizar el coorte
   shp@data$id <- rownames(shp@data) # cree una nueva variable en el shp
   shp@data$id <- as.numeric(shp@data$id) # digale que es de caracter númerico
   shp2 <- fortify(shp, region="id") # convierta el shp en una tabla de datos
   
-  
-  
-  
-  
   Map_x<-Map_x + geom_polygon(data = shp2, aes(long, lat, group = group), 
-               colour = alpha("gray30", 1/3), size = 0.7, fill=NA) 
+                              colour = alpha("gray30", 1/3), size = 0.7, fill=NA) 
+  
   
   
   
@@ -268,7 +295,7 @@ cca_maps<-function(var_ocanoAt, yserie, Estaciones_C, xserie, names_file, ruta, 
 
 ruta_c<-paste(ruta, "Cross_validated/",sep="")
 
-dep= "casanare" # variar el departamento
+dep<- "valle" # variar el departamento
 
 # "casanare"    "cordoba"    "tolima"    "valle" "santander"
 # Determinación de los limites departamentales y estaciones a dibular en el cap >.<
@@ -298,7 +325,6 @@ a<- c(3,6,9,12)
 
 ## Para cada estación lea las estaciones de interes. 
 
-
 # Lectura d eas estaciones para cada departamento.
 Estaciones_C <- read.delim(paste(ruta_l,"dep/precip_",dep,".txt",sep=""),skip =3, header=T, sep="")
 
@@ -309,12 +335,7 @@ if(region=="results_graphs_C"){
     xserie <- read.csv(paste(ruta_c, "X_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
     yserie <- read.csv(paste(ruta_c,"Y_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
     names_file <- paste(a[i],"_",lead[i],"_", dep,sep="")
-    
-    ##### Cambiar las rutas para leer los archivos
-    
-    
-    
-    
+  
     SST<-read.table(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp1/predictors/", prec, "/",lead[i],".tsv", sep=""),sep="\t",dec=".",skip =2,fill=TRUE,na.strings =-999)
     ## Conversión a raster
     SST=rasterize(SST, prec)
@@ -324,51 +345,35 @@ if(region=="results_graphs_C"){
   }  
 }else if(region=="results_graphs_Op"){
   ##### Si la region es optimizada correr este for
+
+  zone<-read.csv("C:/Users/AESQUIVEL/Google Drive/new_predictor/optimizaciones/zone.csv", header=T, sep=",")
   
-  #if(dep=="casanare"){
-  #  coor_ymin<-c(rep(0,3), rep(-5,3), rep(-13,3), rep(-8,3))
-  #  coor_ymax<-c(rep(25,3), rep(22,3), rep(18,3), rep(7,3))
-  #  coor_xmin<-c(rep(252,3), rep(274,3), rep(178,3), rep(184,3))
-  #  coor_xmax<-c(rep(336,3), rep(340,3), rep(284,3), rep(283,3))
-  #}else if(dep=="cordoba"){
-  #  coor_ymin<-c(rep(-4,3), rep(-13,3), rep(-15,3), rep(-15,3))
-  #  coor_ymax<-c(rep(27,3), rep(12,3), rep(14,3), rep(12,3))
-  #  coor_xmin<-c(rep(293,3), rep(177,3), rep(173,3), rep(175,3))
-  #  coor_xmax<-c(rep(340,3), rep(252,3), rep(283,3), rep(283,3))
-  #}else if(dep=="tolima"){
-  #  coor_ymin<-c(rep(-13,3), rep(-12,3), rep(-16,3), rep(-16,3))
-  #  coor_ymax<-c(rep(9,3), rep(14,3), rep(14,3), rep(12,3))
-  #  coor_xmin<-c(rep(180,3), rep(177,3), rep(172,3), rep(190,3))
-  #  coor_xmax<-c(rep(252,3), rep(255,3), rep(250,3), rep(286,3))
-  #}else if(dep=="valle"){
-  #  coor_ymin<-c(rep(-9,3), rep(-12,3), rep(-16,3), rep(-16,3))
-  #  coor_ymax<-c(rep(27,3), rep(12,3), rep(14,3), rep(12,3))
-  #  coor_xmin<-c(rep(305,3), rep(175,3), rep(172,3), rep(171,3))
-  #  coor_xmax<-c(rep(340,3), rep(255,3), rep(250,3), rep(286,3))
-  #}else if(dep=="santander"){
-  #  coor_ymin<-c(rep(-16,3), rep(-13,3), rep(-10,3), rep(-7,3))
-  #  coor_ymax<-c(rep(30,3), rep(19,3), rep(16,3), rep(31,3))
-  #  coor_xmin<-c(rep(289,3), rep(273,3), rep(288,3), rep(301,3))
-  #  coor_xmax<-c(rep(350,3), rep(358,3), rep(354,3), rep(330,3))
-  #}
+  # Si se quiere leer directo desde excel
+  #prueba<-read_excel("C:/Users/AESQUIVEL/Google Drive/new_predictor/optimizaciones/areas.xlsx", sheet = 5, col_names = TRUE, col_types = NULL, na = "",
+  #           skip = 0)
   
-  #for(i in 1:12){
-  #  xserie <- read.csv(paste(ruta_c, "X_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
-  #  yserie <- read.csv(paste(ruta_c,"Y_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
-  #  names_file <- paste(a[i],"_",lead[i],"_", dep,sep="")
+  zone<-zone[which(zone$prec==prec),c("a", "Coord", dep)]
+  print(c("a", "Coord", dep))
+  
+  lista<-split(zone, zone$a)
+  #lista<-rep(lista, each=3)
+  
+  for(i in 1:length(lead)){
+    xserie <- read.csv(paste(ruta_c, "X_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
+    yserie <- read.csv(paste(ruta_c,"Y_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
+    names_file <- paste(a[i],"_",lead[i],"_", dep,sep="")
     
-    
-  #  SST<-read.table(paste(ruta1,"ERSST_CPT/",lead[i],".tsv",sep=""),sep="\t",dec=".",skip =3,fill=TRUE,na.strings =-999)
+    SST<-read.table(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp1/predictors/", prec, "/",lead[i],".tsv", sep=""),sep="\t",dec=".",skip =2,fill=TRUE,na.strings =-999)
     ## Conversión a raster
-  #  SST=rasterize(SST)
+    SST<-rasterize(SST, prec)
+    var_ocanoAt <-SST[[1:length_periodo[i]]]
+    b<-extent(lista[[i]][,3])
+    var_ocanoAt<-crop(rotate(var_ocanoAt), b)
     
-  #  var_ocanoAt <-SST[[1:length_periodo[i]]]
-  #  var_ocanoAt=crop(var_ocanoAt, extent(coor_xmin[i], coor_xmax[i], coor_ymin[i], coor_ymax[i]))
-    
-  #  cca_maps(var_ocanoAt, yserie, Estaciones_C, xserie, names_file, ruta,  a[i], xmin, xmax, ymin, ymax, estaciones_in)
-  #}
-  
-  print("En proceso")
+    cca_maps(var_ocanoAt, yserie, Estaciones_C, xserie, lead[i], ruta,  a[i], xmin, xmax, ymin, ymax, estaciones_in, region)
+    print(paste("prueba piloto",i, sep=" "))
+  }
+
 }
 
 
@@ -1220,7 +1225,6 @@ lead_num<-rep(c("sim"),4)
 
 dep="valle"
 Estaciones_C <- read.delim(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp1/","dep/precip_",dep,".txt",sep=""),skip =3, header=T, sep="")
-
 data<-NA
 for(i in 1:length(lead)){
   cat_num<-categorias_dep(Estaciones_C,ruta_r,lead[i],dep,a[i])[,2]
@@ -1230,25 +1234,10 @@ for(i in 1:length(lead)){
   data<-rbind(data, data_i)
 }
 
-
 data<-data[-1,]
 names(data)<-c("Trimestre", "Lead", "Estacion", "num_cat_ac", "prob_cat_ac")
 
-
-
 ### Corra la función con toda la información 
-
-
-#dep=c("casanare",    "cordoba",    "tolima",    "valle", "santander")
-lead<-c("MAM", "JJA",	"SON", "DEF")
-a<- c(rep(3,1),rep(6,1),rep(9,1),rep(12,1))
-lead_num<-rep(c("sim"),4)
-
-
-#dep="casanare"
-#Estaciones_C <- read.delim(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp1/","dep/precip_",dep,".txt",sep=""),skip =3, header=T, sep="")
-
-
 dato<-NA
 for(i in 1:length(lead)){
   num<-dep_aciertosD(ruta_r, a[i], Estaciones_C, lead[i])$por_deter
@@ -1262,7 +1251,6 @@ for(i in 1:length(lead)){
 dato<-dato[-1,]
 names(dato)<-c("Trimestre", "Lead", "Estacion", "num_det_ac", "RMSE")
 
-
 getwd()
 
 # Ahora una la base de datos para el porcentaje de aciertos categoricos y el deterministico
@@ -1275,20 +1263,72 @@ write.csv(x = total, file = paste("Tabla_", dep, ".csv", sep=""))
 
 
 
-
-
-
-
-
-
-
-
-
-
 #############################################################################
 #############################################################################
 #############################################################################
 #############################################################################
+
+
+
+#### Creación del goodneex index retrospectivo
+
+dep_f=c("casanare","cordoba","tolima","valle", "santander")
+lead<-c("MAM", "JJA",	"SON", "DEF")
+a<- c(rep(3,1),rep(6,1),rep(9,1),rep(12,1))
+
+
+good_index=0 # inicialice el vector
+GoodnessIndex=NA # inicialice el data frame
+for(j in 1:length(dep_f)){
+  for(i in 1:length(lead)){
+    file= paste(ruta_r,"Retroactive_GoodnessIndex_",a[i],"_",lead[i],"_precip_",dep_f[j],".txt", sep="")
+    data=read.table(file,dec=".",skip =2,fill=TRUE,na.strings =-999)
+    index<-data[which(data[,1]=="Training")-1,8]
+    index<-as.numeric(as.character(index))
+    ind<-mean(index)
+    
+    
+    good_index<-cbind.data.frame(dep_f[j], a[i] ,lead[i],ind)
+    GoodnessIndex<-rbind(GoodnessIndex,good_index)
+  }
+}
+
+GoodnessIndex<-GoodnessIndex[-1,]
+# Quite los nombres de las filas
+rownames(GoodnessIndex)=NULL
+# Cambie los nombres de las columnas
+names(GoodnessIndex)=c("dep","a", "lead", "GoodnessIndex")
+
+
+setwd(paste(ruta, "results/",sep="" ))
+### Guarde todos los Goodness Index en un archivo .csv
+write.csv(x = GoodnessIndex, file = "GoodnessIndex_ret_Op.csv")
+
+
+
+
+
+
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+
+
 
 
 data<-read.table("clipboard",header = T)
@@ -1307,7 +1347,217 @@ ggplot(data, aes(x=a, y=GI, color=Predictor)) +
 
 
 
-setwd("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp1/results_graphs_C/")
+setwd("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp1/results_graphs_Op/")
 getwd()
 
 ggsave("models.png",width =8 ,height =3.5,dpi=200)
+
+
+
+
+##########################################################################
+
+
+
+#region<-"results_graphs_C" # "results_graphs_C"    "results_graphs_Op"
+#prec<-"vertical_vel_250"    # prec= c("U_wind_250","U_wind_850", "rhum_700", "vertical_vel_250")
+### Directorio de trabajo
+setwd(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp1/",sep=""))
+getwd()
+
+
+data<-read.table("clipboard",header = T)
+
+
+data$a[data$a==12]=0 # Cambiarle el número para que diciembre aparezca primero
+
+labels<-as_labeller(c("0"="DEF","3"="MAM","6"="JJA", "9"="SON"))
+labels_d<-as_labeller(c("casanare"="Casanare","cordoba"="Cordoba","tolima"="Tolima", "valle"="Valle del Cauca", "santander"="Santander"))
+#x11()
+ggplot(data,aes(x=cv,y=rt,shape=Predictor,color=Region,size=0.2))+
+  geom_point() +
+  facet_grid(a~dep, labeller = labeller(a = labels, dep=labels_d))+theme_bw()+
+  scale_size(guide=F)+scale_shape(name="Lead Time")+ scale_color_discrete(name="Region", labels=c("Optimized", "Theoretical")) + 
+  ylab("Goodness Index - Retroactive")+xlab("Goodness Index - Cross Validated")+
+  theme(strip.text.x = element_text(size = 11)) + 
+  geom_vline(xintercept = 0.3, colour = "black", linetype = "dotted") + geom_hline(yintercept = 0.3, colour = "black", linetype = "dotted")
+
+
+ggsave("best_model.png",width =12 ,height =6,dpi=200 )
+
+
+
+
+
+
+
+
+
+
+
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+#######################################################################
+
+
+### Directorio de trabajo
+setwd(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp1/",sep=""))
+getwd()
+
+
+
+
+###### Boxplot
+
+
+prueba<-read.table("clipboard",header = T)
+
+prueba$a[prueba$a==12]=0 # Cambiarle el número para que diciembre aparezca primero
+
+
+
+labels_d<-as_labeller(c("casanare"="Casanare","cordoba"="Cordoba","tolima"="Tolima", "valle"="Valle del Cauca", "santander"="Santander"))
+labels_R<-as_labeller(c("Op"="Optimized", "Teo"= "Theoretical"))
+
+
+library("RColorBrewer")
+
+
+
+ggplot(prueba, aes(x=as.factor(a) , y=GI)) + 
+  geom_boxplot(aes(fill = Predictor)) +  scale_x_discrete(breaks = c(0,3,6,9), labels = c("DEF","MAM", "JJA", "SON")) +  
+  scale_fill_brewer(palette="Set3") +
+  facet_wrap(~dep, ncol=5, labeller = labeller(dep=labels_d))+
+  theme_bw() + ylab("Goodness Index") +xlab("") +
+  geom_hline(yintercept = c(0,0.3), colour = "black", linetype = "dotted")
+
+
+ggsave("Box_D.png",width =11 ,height =4,dpi=100 )
+
+
+
+ggplot(prueba, aes(x=as.factor(a) , y=GI)) + 
+  geom_boxplot(aes(fill = Predictor)) +  scale_x_discrete(breaks = c(0,3,6,9), labels = c("DEF","MAM", "JJA", "SON")) +  
+  scale_fill_brewer(palette="Set3") +
+  theme_bw() + ylab("Goodness Index") +xlab("") +
+  geom_hline(yintercept = c(0,0.3), colour = "black", linetype = "dotted")
+
+
+ggsave("Box_T.png",width =8 ,height =4,dpi=100 )
+
+
+
+
+
+
+
+
+
+#####################################################################
+prueba<-read.table("clipboard",header = T)
+
+### Graphs densidades
+
+labels_Val<-as_labeller(c("Cv"="Cv", "retro"="Rv"))
+labels_R<-as_labeller(c("Op"="Optimized", "Teo"= "Theoretical"))
+
+ggplot(prueba, aes(GI, fill = Predictor))+
+  geom_density(alpha = 0.4)+ facet_grid(Val~Region, labeller = labeller(Val=labels_Val, Region=labels_R))+  theme_bw() + xlab("Goodness Index") + 
+  geom_vline(xintercept = c(0,0.3), color="gray30", linetype="dashed", size=1)
+
+
+ggsave("densityR.png",width =8 ,height =5,dpi=200 )
+
+
+
+
+ggplot(prueba, aes(GI, fill = Predictor))+
+  geom_density(alpha = 0.4)+ facet_wrap(~Val, labeller = labeller(Val=labels_Val))+  theme_bw() + xlab("Goodness Index") + 
+  geom_vline(xintercept = c(0,0.3), color="gray30", linetype="dashed", size=1)
+
+ggsave("density.png",width =6 ,height =3,dpi=200 )
+
+
+
+
+
+########################################################################
+
+
+##### Head Map
+
+
+
+data<-read.table("clipboard",header = T)
+col <- colorRampPalette(c("snow","#fee08b","#e6f598","#abdda4","#ddf1da","#d53e4f","#f46d43","#fdae61"))
+labels<-as_labeller(c("0"="DEF","3"="MAM","6"="JJA", "9"="SON"))
+
+
+
+data$a[data$a==12]=0 # Cambiarle el número para que diciembre aparezca primero
+
+
+
+p <- ggplot(data, aes(Region, Predictor)) + geom_tile(aes(fill = GI),colour = "white") + 
+  facet_grid(a~dep, labeller = labeller(a = labels, dep=labels_d)) + theme_bw() #+ theme(legend.position="top")
+p <- p  + geom_text(aes(label = round(GI, 2)), size=3) + xlab("Región") + ylab("Predictor")
+p <-p +  scale_fill_gradientn(colours = col(10)) 
+
+
+
+tiff(paste(getwd(),"/head_map_retro.tif",sep=""), height=500,width=800,res=80,
+     compression="lzw") # height=1280, width=2048, pointsize=2, res=200,
+print(p)
+dev.off()
+
+
+
+
+
+#########################################################
+#########################################################
+################ Box Graphs   ###########################
+#########################################################
+#########################################################
+
+data<-read.table("clipboard",header = T)
+data$a[data$a==12]=0 # Cambiarle el número para que diciembre aparezca primero
+
+
+
+
+cfsv2<-ggplot(data, aes(x=Predictor , y=GI)) + 
+  geom_boxplot(aes(fill = as.factor(lead))) +scale_fill_brewer(palette="Set2") + 
+  theme_bw() + ylab("Goodness Index") +xlab("") + labs(fill="Lead Time")+
+  geom_hline(yintercept = c(0,0.3), colour = "black", linetype = "dotted") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
+
+
+datos2<-read.table("clipboard",header = T)
+datos2$a[datos2$a==12]=0 # Cambiarle el número para que diciembre aparezca primero
+
+
+re<-ggplot(data, aes(x=Predictor , y=GI)) + 
+  geom_boxplot(fill="gray") +scale_fill_brewer(palette="Set2") + 
+  theme_bw() + ylab("Goodness Index") +xlab("") + 
+  geom_hline(yintercept = c(0,0.3), colour = "black", linetype = "dotted") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
+
+
+grid.arrange(re,cfsv2, layout_matrix=matrix(c(1,2,2),ncol=3))
+
