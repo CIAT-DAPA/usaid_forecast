@@ -446,13 +446,17 @@ if(prec=="SST"){
 }
 }
 
-
+#### Declaración de las constantes
 lead<- c("DEF_Nov", "DEF_Aug", "DEF_Jun")
 a<- rep(12,3)
-
-#### Declaración de las constantes
 length_periodo<- rep(31,3)  # Ancho del periodo de estudio para cada trimestre
 cbind.data.frame(a, lead, length_periodo)
+
+
+
+
+
+
 
 dep<-"valle"
 maps_dep(dep,a,lead,length_periodo)
@@ -470,24 +474,31 @@ sapply(dep, maps_dep, a, lead, length_periodo, simplify = T)
 ###########################################################
 ###########################################################
 
+
+
+
+
+
+
+lead<- c("DEF_Nov", "DEF_Aug", "DEF_Jun")
+a<- rep(12,3)
+length_periodo<- rep(31,3)  # Ancho del periodo de estudio para cada trimestre
+cbind.data.frame(a, lead, length_periodo)
+
+
+
+
 ## Esta función devuelve las gráficas del goodness index, 
 ## ruta_c ruta donde se encuentran los archivos
 ## dep_f son los departamentos que se van a gráficar
-GoodnessIndex <- function(ruta_c,dep_f){
-  #### Lead times para cada trimestre
-  lead<-c(paste(rep("MAM",3),c("Feb","Nov","Sep"), sep="_"),
-          paste(rep("JJA",3),c("May","Feb","Dec"), sep="_"),
-          paste(rep("SON",3),c("Aug","May","Mar"), sep="_"),
-          paste(rep("DEF",3),c("Nov","Aug","Jun"), sep="_"))
-  ### Trimestres
-  a<- c(rep(3,3),rep(6,3),rep(9,3),rep(12,3))
-  
+GoodnessIndex <- function(ruta_c, dep_f, a, lead){
+
   good_index=0 # inicialice el vector
   GoodnessIndex=NA # inicialice el data frame
   for(j in 1:length(dep_f)) # realice esto para todos los departamentos
-    for(i in 1:12){ # barra para todos los periodos con sus respectivos lead time
+    for(i in 1:length(a)){ # barra para todos los periodos con sus respectivos lead time
       # Lea la tabla 
-      goodnex<-read.table(paste(ruta_c,"GoodnessIndex_",a[i],"_",lead[i],"_precip_",dep_f[j],".txt", sep=""),  skip=6, colClasses=c(rep("numeric",3),"character",rep("numeric",4)))
+      goodnex<-read.table(paste(ruta_c,"/GoodnessIndex_",a[i],"_",lead[i],"_precip_",dep_f[j],".txt", sep=""),  skip=6, colClasses=c(rep("numeric",3),"character",rep("numeric",4)))
       # Cambie los nombres del archivo 
       names(goodnex)<-c("x1","y1","cca1","index1", "x2", "y2","cca2", "index2")
       # Encuentre el maximo
@@ -498,71 +509,337 @@ GoodnessIndex <- function(ruta_c,dep_f){
       # Almacene la fila en un data frame
       GoodnessIndex<-rbind(GoodnessIndex,good_index)
     }
+  
   # Quite la primera fila ya que es nula
   GoodnessIndex<-GoodnessIndex[-1,]
   # Quite los nombres de las filas
   rownames(GoodnessIndex)=NULL
   # Cambie los nombres de las columnas
-  names(GoodnessIndex)=c("dep","a", "lead", "modos_x", "modos_y", "modos_cca", "GoodnessIndex")
-  GoodnessIndex <- cbind(GoodnessIndex,lead_time=rep(rep(c(0,3,5),4),length(dep_f))  )
-  
-  
-  
-  setwd(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp2/", region,"/", prec, "/results/", sep=""))
-  ### Guarde todos los Goodness Index en un archivo .csv
-  write.csv(x = GoodnessIndex, file = "GoodnessIndex.csv",sep = ",")
-  
-  
-  #setwd("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp2/results_graphs_C/", prec,"/results")
-  
-  GoodnessIndex$a[GoodnessIndex$a==12]=0 # Cambiarle el número para que diciembre 
-  #aparezca primero
-  # Realice el gráfico de cajas para todos los departamentos.
-  for(i in 1:length(dep_f)){
-    dep_inf<-  GoodnessIndex[GoodnessIndex$dep==dep_f[i],]
-    to_string  <- as_labeller(c(`0`="DEF",`3` = "MAM", `6` = "JJA", `9` = "SON"))
-    graph_dep  <- ggplot(dep_inf, aes(x = factor(lead_time), y = GoodnessIndex)) 
-    graph_dep  <- graph_dep  + geom_bar(stat = 'identity', fill="gray60") + ylim(-0.06,0.5)
-    graph_dep  <- graph_dep  + facet_wrap(~a, nrow = 1, labeller = to_string )
-    graph_dep  <- graph_dep  + scale_x_discrete(breaks=c(0, 3, 5),
-                                                labels=c("LT-0", "LT-3", "LT-5")) +  labs(x="Lead Time", y=paste("Goodness Index", sep=""))
-    graph_dep  <-graph_dep  + theme_bw() + theme(legend.position = "none") 
-    
-    
-    tiff(paste(ruta,"/results/",dep_f[i],"/GoodnessIndex_dep_",dep_f[i],".tif",sep=""), height=720,width=1280,res=200,
-         pointsize=2,compression="lzw")
-    print(graph_dep)
-    dev.off()
+  names(GoodnessIndex)=c("Dep","Mes_ini_Trim", "lead", "modos_x", "modos_y", "modos_cca", "GoodnessIndex")
+
+  Trim<-0
+  for(i in 1:dim( GoodnessIndex)[1]){
+    if(GoodnessIndex$Mes_ini_Trim[i]<11){
+      Trim[i] <- paste0(substr(month.abb[GoodnessIndex$Mes_ini_Trim[i]:(GoodnessIndex$Mes_ini_Trim[i]+2)],1,1), collapse = "")
+    }else if(GoodnessIndex$Mes_ini_Trim[i]==11){
+      Trim[i] <-  paste(paste0(substr(month.abb[11:12],1,1), collapse = ""), substr(month.abb[1],1,1), sep="")
+    }else if(GoodnessIndex$Mes_ini_Trim[i]==12){
+      Trim[i] <- paste(substr(month.abb[12],1,1), paste0(substr(month.abb[1:2],1,1), collapse = ""), sep="")
+    }
   }
   
   
+  GoodnessIndex<-cbind.data.frame(Trimestre=Trim, GoodnessIndex)
   
-  ### Grafico de Linea puede hacerse solopara el lead simultaneo o para los maximos
-  ### modificando la función 
-  Sim=GoodnessIndex[GoodnessIndex$lead_time==0,]
-  names(Sim)[1]="Departamento"
-  levels(Sim$Departamento)<-c("Casanare", "Cordoba", "Tolima",  "Valle", "Santander")
-  graph_line  <- ggplot(Sim, aes(x =a, y = GoodnessIndex, color=Departamento))
-  graph_line  <- graph_line + geom_line(aes(linetype=Departamento), size=1) + ylim(-0.06,0.5) #ylim(-0.05,0.5)
-  graph_line  <- graph_line + geom_point(aes(shape=Departamento), size=2)
-  graph_line  <- graph_line + theme_bw()  + labs(x="", y="Goodness Index") 
-  graph_line  <- graph_line +  scale_x_continuous(breaks = c(0,3,6,9), labels = c("DEF","MAM", "JJA", "SON"))
-  graph_line  <- graph_line + theme(legend.title = element_text(size = 10.5),
-                                    legend.key.height=unit(0.5,"cm"),
-                                    legend.key.width=unit(0.8,"cm"))
+  #######
   
+  setwd(paste(ruta, "/results/", sep=""))
+  ### Guarde todos los Goodness Index en un archivo .csv
+  write.csv(x = GoodnessIndex, file = "GoodnessIndex.csv",sep = ",")
   
-  # Guarde el graph
-  tiff(paste(ruta,"/results/GoodnessIndex_line.tif",sep=""), height=720,width=1280,res=200,
-       pointsize=2,compression="lzw")
-  print(graph_line)
-  dev.off()
-  return(GoodnessIndex)}
+ return(GoodnessIndex)}
 
 
 
 
 ## Corrida para todos los archivos
 ruta_c
-dep_f<-c("casanare",    "cordoba",    "tolima",    "valle", "santander")
-table<-GoodnessIndex(ruta_c = ruta_c, dep_f = dep_f)
+table<-GoodnessIndex(ruta_c = ruta_c, dep_f = dep_f, a = a, lead = lead)
+
+
+
+ggplot(table, aes(x = Trimestre, y= GoodnessIndex)) + geom_point(aes(colour=Trimestre)) +
+  facet_grid(~Dep) + theme_bw() + theme(legend.position = "none")+
+  geom_hline(yintercept = 0, colour = "black", linetype = "dotted")
+
+ggsave("summary_GI.png", width = 7, height = 3)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###########################################################
+###########################################################
+###########################################################
+
+ind<-function(tipo, a, lead, dep, ruta_c){
+  
+  datos<-NA # Creación de una trama de datos
+  
+  # lea los datos y apilelos en una tabla de datos
+  for(j in 1:length(a)){
+    names_below<-list.files(ruta_c, pattern = paste(tipo, "_", a[j], "_", lead[j], "_precip_", dep, sep=""))
+    
+      # Ciclo for que barre el número de departamentos que existan 
+      # En caso de desear más departamentos modificar este argumento
+      data_p<-read.table(paste(ruta_c,"/",names_below,sep=""), sep="",  skip=3,colClasses=c("character","numeric","numeric","numeric") )
+      data_p<-data.frame(Trimestre=rep(a[j], dim(data_p)[1]), rep(lead[j], dim(data_p)[1]), data_p)
+      datos<-rbind(datos, data_p) # Lectura de los datos y creación de la tabla global
+    }
+  
+  # Depuración de la base de datos 
+  datos<-datos[-1,] # Elimine la primera fila NA
+
+  names(datos)<-c("Mes_ini", "lead", "Estacion", "Lat", "Lon",tipo) # Asignarle nombres a las columnas
+  datos[,6]<-round(datos[,6],3) # Redondear el número de decimales de la curva
+  datos<-datos[datos[,6]!=-999,] # Eliminar los datos faltantes
+  
+  
+  Trim<-0
+  for(i in 1:dim(datos)[1]){
+    if(datos$Mes_ini[i]<11){
+      Trim[i] <- paste0(substr(month.abb[datos$Mes_ini[i]:(datos$Mes_ini[i]+2)],1,1), collapse = "")
+    }else if(datos$Mes_ini[i]==11){
+      Trim[i] <-  paste(paste0(substr(month.abb[11:12],1,1), collapse = ""), substr(month.abb[1],1,1), sep="")
+    }else if(datos$Mes_ini[i]==12){
+      Trim[i] <- paste(substr(month.abb[12],1,1), paste0(substr(month.abb[1:2],1,1), collapse = ""), sep="")
+    }
+  }
+  
+  datos<-cbind.data.frame(Trimestre=Trim, datos)
+  
+return(datos)}
+
+
+summary_ind<-function(dep,  ruta_c,  a, lead){
+
+  
+ tipo <- list("Pearsons_correlation", "Spearmans_correlation", "k_2AFC_Score",
+               "Hit_Score", "Hit_Skill_Score", "LEPS_score", "Gerrity_Score",
+               "k_2AFC_cat", "k_2AFC_cont", "ROC_below", "ROC_above")
+  
+ lista<-list()  
+ for(i in 1:length(tipo)){
+   lista[[i]] <- ind(tipo = tipo[[i]], a, lead, dep, ruta_c)
+   names(lista)[i] <-tipo[[i]] 
+ }
+  
+
+ summary<-Reduce(function(x, y) merge(x, y, all=TRUE), lista)
+ 
+ 
+ setwd(paste(ruta, "results/", dep, sep = ""))
+ 
+ write.csv(x = summary, file = paste("Perfomance_Measures_",dep,".csv", sep=""))
+ # Determinación de los limites departamentales y estaciones a dibular en el cap >.<
+ if(dep=="casanare"){
+   xmin<- -73.5; xmax<- -71; ymin<-  4; ymax<-  6
+   estaciones_in=data.frame(name="Yopal", Long=-72.388, Lat = 	5.320)
+ }else if(dep=="cordoba"){
+   xmin<- -76.6; xmax<- -74.6; ymin<-  7; ymax<-  10
+   estaciones_in=data.frame(name=c("Lorica","Cereté"), Long=c(-75.913,-75.802), Lat = c(9.302,8.840))
+ }else if(dep=="tolima"){
+   xmin<- -76.2; xmax<- -74; ymin<-  2.8; ymax<-  5.5
+   estaciones_in=data.frame(name=c("Ibagué","Espinal"), Long=c(-75.148,-74.960), Lat = c(4.430,4.188))
+ }else if(dep=="valle"){
+   xmin<- -77.5; xmax<- -75.6; ymin<-  3; ymax<-  5
+   estaciones_in=data.frame(name="La Unión", Long=-76.062, Lat = 4.531)
+ }else if(dep=="santander"){
+   xmin<- -75; xmax<- -72; ymin<- 5; ymax<- 8
+   estaciones_in=data.frame(name="Villanueva", Long=-73.21, Lat = 6.64)
+ }
+ 
+ 
+ # Corte colombia de acuerdo a las coordenadas asignadas
+ col2=extent(xmin, xmax, ymin, ymax) # Coordenadas por departamento
+ colombia_1=crop(colombia,col2) #  realizar el coorte
+ colombia_1@data$id <- rownames(colombia_1@data) # cree una nueva variable en el shp
+ colombia_1@data$id <- as.numeric(colombia_1@data$id) # digale que es de caracter númerico
+ colombia2 <- fortify(colombia_1, region="id") # convierta el shp en una tabla de datos
+ 
+ 
+ 
+ 
+ # Realice el gráfico de las correlaciones entre las estaciones y el modo 1 de y 
+ p <- ggplot(colombia2, aes(x=long,y=lat)) # gráfique el país
+ p <- p + geom_polygon(aes(fill=hole,group=group),fill="grey 80")
+ p <- p + scale_fill_manual(values=c("grey 80","grey 80"))
+ p <- p + geom_path(aes(long,lat,group=group,fill=hole),color="white",size=0.3)
+ 
+ 
+ 
+ 
+ 
+ for(i in 1:length(a)){
+ #############
+ datos2<-summary[summary$Mes_ini==a[i] & summary$lead==lead[i],]
+ 
+
+ # Aqui se ingresan los datos de las estaciones
+ pe <- p + geom_point(data=datos2, aes(x=Lon, y=Lat, map_id=Estacion,colour=Pearsons_correlation),size=2.5)
+ pe <- pe + scale_colour_gradientn(colours = colorRampPalette(c("midnightblue","#2166AC", "steelblue2" , "snow", "pink", "violetred4","#B2182B"))(20),limits=c(-1,1))+ 
+   coord_equal() + theme(legend.key.height=unit(1,"cm"),legend.key.width=unit(0.5,"cm"),
+                legend.text=element_text(size=8),
+                panel.background=element_rect(fill="white",colour="black"),
+                axis.text=element_text(colour="black",size=10),
+                axis.title=element_text(colour="black",size=10,face="bold"),
+                #legend.position = "bottom", 
+                legend.title = element_text(size = 10.5)) 
+ # Aqui se colocan los nombres de las estaciones
+ pe <- pe + geom_text(data=estaciones_in,aes(label = substring(name,1,9), x = Long, y=Lat-0.05),size=3) 
+ pe <- pe + labs(title="Pearsons correlation")
+ 
+ tiff(filename = paste("Pearsons_correlation_", dep, "_", a[i], "_",lead[i], ".tif", sep=""), height=400,width=650,res=100)
+ print(pe)
+ dev.off()
+ 
+ 
+ sp<- p + geom_point(data=datos2, aes(x=Lon, y=Lat, map_id=Estacion,colour=Spearmans_correlation),size=2.5)
+ sp <- sp + scale_colour_gradientn(colours = colorRampPalette(c("midnightblue","#2166AC", "steelblue2" , "snow", "pink", "violetred4","#B2182B"))(20),limits=c(-1,1))+
+   coord_equal() + theme(legend.key.height=unit(1,"cm"),legend.key.width=unit(0.5,"cm"),
+                   legend.text=element_text(size=8),
+                   panel.background=element_rect(fill="white",colour="black"),
+                   axis.text=element_text(colour="black",size=10),
+                   axis.title=element_text(colour="black",size=10,face="bold"),
+                   #legend.position = "bottom", 
+                   legend.title = element_text(size = 10.5)) 
+ # Aqui se colocan los nombres de las estaciones
+ sp <- sp + geom_text(data=estaciones_in,aes(label = substring(name,1,9), x = Long, y=Lat-0.05),size=3) 
+ sp <- sp + labs(title="Spearmans correlation") 
+
+ tiff(filename = paste("Spearmans_correlation_", dep, "_", a[i], "_",lead[i], ".tif", sep=""), height=400,width=650,res=100)
+ print(sp)
+ dev.off()
+ 
+ 
+ 
+ afc<- p + geom_point(data=datos2, aes(x=Lon, y=Lat, map_id=Estacion,colour=k_2AFC_Score),size=2.5)
+ afc <-  afc + scale_colour_gradientn(colours = colorRampPalette(c("midnightblue", "steelblue2" , "snow", "khaki", "orange1"))(20),limits=c(0,100))+
+   coord_equal() + theme(legend.key.height=unit(1,"cm"),legend.key.width=unit(0.5,"cm"),
+                         legend.text=element_text(size=8),
+                         panel.background=element_rect(fill="white",colour="black"),
+                         axis.text=element_text(colour="black",size=10),
+                         axis.title=element_text(colour="black",size=10,face="bold"),
+                         #legend.position = "bottom", 
+                         legend.title = element_text(size = 10.5)) 
+ # Aqui se colocan los nombres de las estaciones
+ afc <-  afc + geom_text(data=estaciones_in,aes(label = substring(name,1,9), x = Long, y=Lat-0.05),size=3) 
+ afc <-  afc + labs(title="2AFC Score") 
+ 
+ tiff(filename = paste("2AFC_Score_", dep, "_", a[i], "_",lead[i], ".tif", sep=""), height=400,width=650,res=100)
+ print(afc)
+ dev.off()
+ 
+ 
+ HS<- p + geom_point(data=datos2, aes(x=Lon, y=Lat, map_id=Estacion,colour=Hit_Score),size=2.5)
+ HS <-  HS + scale_colour_gradientn(colours = colorRampPalette(c("midnightblue", "steelblue2" , "snow", "khaki", "orange1"))(20),limits=c(0,100))+
+   coord_equal() + theme(legend.key.height=unit(1,"cm"),legend.key.width=unit(0.5,"cm"),
+                         legend.text=element_text(size=8),
+                         panel.background=element_rect(fill="white",colour="black"),
+                         axis.text=element_text(colour="black",size=10),
+                         axis.title=element_text(colour="black",size=10,face="bold"),
+                         #legend.position = "bottom", 
+                         legend.title = element_text(size = 10.5)) 
+ # Aqui se colocan los nombres de las estaciones
+ HS <-  HS + geom_text(data=estaciones_in,aes(label = substring(name,1,9), x = Long, y=Lat-0.05),size=3) 
+ HS <-  HS + labs(title="Hit Score") 
+ 
+ tiff(filename = paste("Hit_Score_", dep, "_", a[i], "_",lead[i], ".tif", sep=""), height=400,width=650,res=100)
+ print(HS)
+ dev.off()
+ 
+ 
+ 
+ HSS<- p + geom_point(data=datos2, aes(x=Lon, y=Lat, map_id=Estacion,colour=Hit_Skill_Score),size=2.5)
+ HSS <- HSS + scale_colour_gradientn(colours = colorRampPalette(c("midnightblue","#2166AC", "steelblue2" , "snow", "pink", "violetred4","#B2182B"))(20),limits=c(-100,100))+
+   coord_equal() + theme(legend.key.height=unit(1,"cm"),legend.key.width=unit(0.5,"cm"),
+                         legend.text=element_text(size=8),
+                         panel.background=element_rect(fill="white",colour="black"),
+                         axis.text=element_text(colour="black",size=10),
+                         axis.title=element_text(colour="black",size=10,face="bold"),
+                         #legend.position = "bottom", 
+                         legend.title = element_text(size = 10.5)) 
+ # Aqui se colocan los nombres de las estaciones
+ HSS <- HSS + geom_text(data=estaciones_in,aes(label = substring(name,1,9), x = Long, y=Lat-0.05),size=3) 
+ HSS <- HSS + labs(title="Hit Skill Score") 
+ 
+ tiff(filename = paste("Hit_Skill_", dep, "_", a[i], "_",lead[i], ".tif", sep=""), height=400,width=650,res=100)
+ print(HSS)
+ dev.off()
+ 
+ 
+ 
+ 
+ be<- p + geom_point(data=datos2, aes(x=Lon, y=Lat, map_id=Estacion,colour=ROC_below),size=2.5)
+ be <-  be + scale_colour_gradientn(colours = colorRampPalette(c("midnightblue", "steelblue2" , "snow", "khaki", "orange1"))(20),limits=c(0,1))+
+   coord_equal() + theme(legend.key.height=unit(1,"cm"),legend.key.width=unit(0.5,"cm"),
+                         legend.text=element_text(size=8),
+                         panel.background=element_rect(fill="white",colour="black"),
+                         axis.text=element_text(colour="black",size=10),
+                         axis.title=element_text(colour="black",size=10,face="bold"),
+                         #legend.position = "bottom", 
+                         legend.title = element_text(size = 10.5)) 
+ # Aqui se colocan los nombres de las estaciones
+ be <-  be + geom_text(data=estaciones_in,aes(label = substring(name,1,9), x = Long, y=Lat-0.05),size=3) 
+ be <-  be + labs(title="ROC below") 
+ 
+
+ tiff(filename = paste("ROC_below_", dep, "_", a[i], "_",lead[i], ".tif", sep=""), height=400,width=650,res=100)
+ print(be)
+ dev.off()
+ 
+ 
+ 
+ 
+ ab<- p + geom_point(data=datos2, aes(x=Lon, y=Lat, map_id=Estacion,colour=ROC_above),size=2.5)
+ ab<- ab + scale_colour_gradientn(colours = colorRampPalette(c("midnightblue", "steelblue2" , "snow", "khaki", "orange1"))(20),limits=c(0,1))+
+   coord_equal() + theme(legend.key.height=unit(1,"cm"),legend.key.width=unit(0.5,"cm"),
+                         legend.text=element_text(size=8),
+                         panel.background=element_rect(fill="white",colour="black"),
+                         axis.text=element_text(colour="black",size=10),
+                         axis.title=element_text(colour="black",size=10,face="bold"),
+                         #legend.position = "bottom", 
+                         legend.title = element_text(size = 10.5)) 
+ # Aqui se colocan los nombres de las estaciones
+ ab <-  ab + geom_text(data=estaciones_in,aes(label = substring(name,1,9), x = Long, y=Lat-0.05),size=3) 
+ ab <-  ab + labs(title="ROC above") 
+ 
+ tiff(filename = paste("ROC_above_", dep, "_", a[i], "_",lead[i], ".tif", sep=""), height=400,width=650,res=100)
+ print(ab)
+ dev.off()
+ 
+}
+ 
+} 
+
+
+
+cbind.data.frame(a,lead)
+
+
+summary_ind("cordoba",  ruta_c,  a, lead)
+
+
+
+### Para todas las regiones en caso que tenga 
+dep<-list("casanare", "cordoba", "santander", "tolima", "valle")
+sapply(dep, summary_ind, ruta_c,  a, lead, simplify = T)
+
+
+
+
+
+
+
+
+#################################################################
+#################################################################
+#################################################################
+
+
+
+
+
+
+
+
