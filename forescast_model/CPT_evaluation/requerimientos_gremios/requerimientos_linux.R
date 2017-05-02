@@ -64,6 +64,10 @@ getwd()
 
 
 
+####################################################################
+####################################################################
+
+
 
 
 
@@ -310,9 +314,11 @@ cca_maps<-function(var_ocanoAt, names_file, yserie, Estaciones_C, xserie, lead, 
   
   # Realice el gráfico de las correlaciones entre las estaciones y el modo 1 de y 
   p <- ggplot(colombia2, aes(x=long,y=lat)) # gráfique el país
-  p <- p + geom_polygon(aes(fill=hole,group=group),fill="grey 80")
+  p <- p + geom_polygon(aes(fill=hole,group=group),fill="snow")
   p <- p + scale_fill_manual(values=c("grey 80","grey 80"))
-  p <- p + geom_path(aes(long,lat,group=group,fill=hole),color="white",size=0.3)
+  p <- p + geom_path(aes(long,lat,group=group,fill=hole),color="black",size=0.3)
+  
+  
   # Aqui se ingresan los datos de las estaciones
   p <- p + geom_point(data=datos2, aes(x=Long, y=Lat, map_id=Estacion,col=Correly),size=2.5)
   p <- p + scale_color_gradient2(low="#2166AC",mid = "white", high="#B2182B", name=" ", limits=c(-1,1))+ coord_equal()
@@ -612,7 +618,25 @@ return(datos)}
 
 
 summary_ind<-function(dep,  ruta_c,  a, lead){
-
+  
+  # Determinación de los limites departamentales y estaciones a dibular en el cap >.<
+  if(dep=="casanare"){
+    xmin<- -73.5; xmax<- -71; ymin<-  4; ymax<-  6
+    estaciones_in=data.frame(name="Yopal", Long=-72.388, Lat = 	5.320)
+  }else if(dep=="cordoba"){
+    xmin<- -76.6; xmax<- -74.6; ymin<-  7; ymax<-  10
+    estaciones_in=data.frame(name=c("Lorica","Cereté"), Long=c(-75.913,-75.802), Lat = c(9.302,8.840))
+  }else if(dep=="tolima"){
+    xmin<- -76.2; xmax<- -74; ymin<-  2.8; ymax<-  5.5
+    estaciones_in=data.frame(name=c("Ibagué","Espinal"), Long=c(-75.148,-74.960), Lat = c(4.430,4.188))
+  }else if(dep=="valle"){
+    xmin<- -77.5; xmax<- -75.6; ymin<-  3; ymax<-  5
+    estaciones_in=data.frame(name="La Unión", Long=-76.062, Lat = 4.531)
+  }else if(dep=="santander"){
+    xmin<- -75; xmax<- -72; ymin<- 5; ymax<- 8
+    estaciones_in=data.frame(name="Villanueva", Long=-73.21, Lat = 6.64)
+  }
+  
   
  tipo <- list("Pearsons_correlation", "Spearmans_correlation", "k_2AFC_Score",
                "Hit_Score", "Hit_Skill_Score", "LEPS_score", "Gerrity_Score",
@@ -631,23 +655,6 @@ summary_ind<-function(dep,  ruta_c,  a, lead){
  setwd(paste(ruta, "results/", dep, sep = ""))
  
  write.csv(x = summary, file = paste("Perfomance_Measures_",dep,".csv", sep=""))
- # Determinación de los limites departamentales y estaciones a dibular en el cap >.<
- if(dep=="casanare"){
-   xmin<- -73.5; xmax<- -71; ymin<-  4; ymax<-  6
-   estaciones_in=data.frame(name="Yopal", Long=-72.388, Lat = 	5.320)
- }else if(dep=="cordoba"){
-   xmin<- -76.6; xmax<- -74.6; ymin<-  7; ymax<-  10
-   estaciones_in=data.frame(name=c("Lorica","Cereté"), Long=c(-75.913,-75.802), Lat = c(9.302,8.840))
- }else if(dep=="tolima"){
-   xmin<- -76.2; xmax<- -74; ymin<-  2.8; ymax<-  5.5
-   estaciones_in=data.frame(name=c("Ibagué","Espinal"), Long=c(-75.148,-74.960), Lat = c(4.430,4.188))
- }else if(dep=="valle"){
-   xmin<- -77.5; xmax<- -75.6; ymin<-  3; ymax<-  5
-   estaciones_in=data.frame(name="La Unión", Long=-76.062, Lat = 4.531)
- }else if(dep=="santander"){
-   xmin<- -75; xmax<- -72; ymin<- 5; ymax<- 8
-   estaciones_in=data.frame(name="Villanueva", Long=-73.21, Lat = 6.64)
- }
  
  
  # Corte colombia de acuerdo a las coordenadas asignadas
@@ -660,11 +667,12 @@ summary_ind<-function(dep,  ruta_c,  a, lead){
  
  
  
+ 
  # Realice el gráfico de las correlaciones entre las estaciones y el modo 1 de y 
  p <- ggplot(colombia2, aes(x=long,y=lat)) # gráfique el país
- p <- p + geom_polygon(aes(fill=hole,group=group),fill="grey 80")
+ p <- p + geom_polygon(aes(fill=hole,group=group),fill="snow")
  p <- p + scale_fill_manual(values=c("grey 80","grey 80"))
- p <- p + geom_path(aes(long,lat,group=group,fill=hole),color="white",size=0.3)
+ p <- p + geom_path(aes(long,lat,group=group,fill=hole),color="black",size=0.3)
  
  
  
@@ -684,7 +692,7 @@ summary_ind<-function(dep,  ruta_c,  a, lead){
                 axis.text=element_text(colour="black",size=10),
                 axis.title=element_text(colour="black",size=10,face="bold"),
                 #legend.position = "bottom", 
-                legend.title = element_text(size = 10.5)) 
+                legend.title=element_blank()) 
  # Aqui se colocan los nombres de las estaciones
  pe <- pe + geom_text(data=estaciones_in,aes(label = substring(name,1,9), x = Long, y=Lat-0.05),size=3) 
  pe <- pe + labs(title="Pearsons correlation")
@@ -702,7 +710,7 @@ summary_ind<-function(dep,  ruta_c,  a, lead){
                    axis.text=element_text(colour="black",size=10),
                    axis.title=element_text(colour="black",size=10,face="bold"),
                    #legend.position = "bottom", 
-                   legend.title = element_text(size = 10.5)) 
+                   legend.title=element_blank()) 
  # Aqui se colocan los nombres de las estaciones
  sp <- sp + geom_text(data=estaciones_in,aes(label = substring(name,1,9), x = Long, y=Lat-0.05),size=3) 
  sp <- sp + labs(title="Spearmans correlation") 
@@ -721,7 +729,7 @@ summary_ind<-function(dep,  ruta_c,  a, lead){
                          axis.text=element_text(colour="black",size=10),
                          axis.title=element_text(colour="black",size=10,face="bold"),
                          #legend.position = "bottom", 
-                         legend.title = element_text(size = 10.5)) 
+                         legend.title=element_blank()) 
  # Aqui se colocan los nombres de las estaciones
  afc <-  afc + geom_text(data=estaciones_in,aes(label = substring(name,1,9), x = Long, y=Lat-0.05),size=3) 
  afc <-  afc + labs(title="2AFC Score") 
@@ -739,7 +747,7 @@ summary_ind<-function(dep,  ruta_c,  a, lead){
                          axis.text=element_text(colour="black",size=10),
                          axis.title=element_text(colour="black",size=10,face="bold"),
                          #legend.position = "bottom", 
-                         legend.title = element_text(size = 10.5)) 
+                         legend.title=element_blank()) 
  # Aqui se colocan los nombres de las estaciones
  HS <-  HS + geom_text(data=estaciones_in,aes(label = substring(name,1,9), x = Long, y=Lat-0.05),size=3) 
  HS <-  HS + labs(title="Hit Score") 
@@ -758,7 +766,7 @@ summary_ind<-function(dep,  ruta_c,  a, lead){
                          axis.text=element_text(colour="black",size=10),
                          axis.title=element_text(colour="black",size=10,face="bold"),
                          #legend.position = "bottom", 
-                         legend.title = element_text(size = 10.5)) 
+                         legend.title=element_blank()) 
  # Aqui se colocan los nombres de las estaciones
  HSS <- HSS + geom_text(data=estaciones_in,aes(label = substring(name,1,9), x = Long, y=Lat-0.05),size=3) 
  HSS <- HSS + labs(title="Hit Skill Score") 
@@ -778,7 +786,7 @@ summary_ind<-function(dep,  ruta_c,  a, lead){
                          axis.text=element_text(colour="black",size=10),
                          axis.title=element_text(colour="black",size=10,face="bold"),
                          #legend.position = "bottom", 
-                         legend.title = element_text(size = 10.5)) 
+                         legend.title=element_blank()) 
  # Aqui se colocan los nombres de las estaciones
  be <-  be + geom_text(data=estaciones_in,aes(label = substring(name,1,9), x = Long, y=Lat-0.05),size=3) 
  be <-  be + labs(title="ROC below") 
@@ -799,7 +807,7 @@ summary_ind<-function(dep,  ruta_c,  a, lead){
                          axis.text=element_text(colour="black",size=10),
                          axis.title=element_text(colour="black",size=10,face="bold"),
                          #legend.position = "bottom", 
-                         legend.title = element_text(size = 10.5)) 
+                         legend.title=element_blank()) 
  # Aqui se colocan los nombres de las estaciones
  ab <-  ab + geom_text(data=estaciones_in,aes(label = substring(name,1,9), x = Long, y=Lat-0.05),size=3) 
  ab <-  ab + labs(title="ROC above") 
@@ -817,7 +825,7 @@ summary_ind<-function(dep,  ruta_c,  a, lead){
 cbind.data.frame(a,lead)
 
 
-summary_ind("cordoba",  ruta_c,  a, lead)
+#summary_ind("cordoba",  ruta_c,  a, lead)
 
 
 
@@ -837,9 +845,176 @@ sapply(dep, summary_ind, ruta_c,  a, lead, simplify = T)
 #################################################################
 
 
+###### Forecast
 
 
 
+dep<- "casanare"
+ruta_c
 
 
+lead<- c("DEF_Nov", "DEF_Aug", "DEF_Jun")
+a<- rep(12,3)
+
+
+
+ForecastP<-function(dep, ruta_c, a, lead){
+  Total<-0
+ 
+  
+   # Determinación de los limites departamentales y estaciones a dibular en el cap >.<
+  if(dep=="casanare"){
+    xmin<- -73.5; xmax<- -71; ymin<-  4; ymax<-  6
+    estaciones_in=data.frame(name="Yopal", Long=-72.388, Lat = 	5.320)
+  }else if(dep=="cordoba"){
+    xmin<- -76.6; xmax<- -74.6; ymin<-  7; ymax<-  10
+    estaciones_in=data.frame(name=c("Lorica","Cereté"), Long=c(-75.913,-75.802), Lat = c(9.302,8.840))
+  }else if(dep=="tolima"){
+    xmin<- -76.2; xmax<- -74; ymin<-  2.8; ymax<-  5.5
+    estaciones_in=data.frame(name=c("Ibagué","Espinal"), Long=c(-75.148,-74.960), Lat = c(4.430,4.188))
+  }else if(dep=="valle"){
+    xmin<- -77.5; xmax<- -75.6; ymin<-  3; ymax<-  5
+    estaciones_in=data.frame(name="La Unión", Long=-76.062, Lat = 4.531)
+  }else if(dep=="santander"){
+    xmin<- -75; xmax<- -72; ymin<- 5; ymax<- 8
+    estaciones_in=data.frame(name="Villanueva", Long=-73.21, Lat = 6.64)
+  }
+  
+  
+  # Corte colombia de acuerdo a las coordenadas asignadas
+  col2=extent(xmin, xmax, ymin, ymax) # Coordenadas por departamento
+  colombia_1=crop(colombia,col2) #  realizar el coorte
+  colombia_1@data$id <- rownames(colombia_1@data) # cree una nueva variable en el shp
+  colombia_1@data$id <- as.numeric(colombia_1@data$id) # digale que es de caracter númerico
+  colombia2 <- fortify(colombia_1, region="id") # convierta el shp en una tabla de datos
+  
+  # Realice el gráfico de las correlaciones entre las estaciones y el modo 1 de y 
+  p <- ggplot(colombia2, aes(x=long,y=lat)) # gráfique el país
+  p <- p + geom_polygon(aes(fill=hole,group=group),fill="snow")
+  p <- p + scale_fill_manual(values=c("grey 80","grey 80"))
+  p <- p + geom_path(aes(long,lat,group=group,fill=hole),color="black",size=0.3)
+  
+  for(i in 1:length(a)){
+    
+    por_cat_est<-matrix(1:2,ncol=2, nrow = (length(data)-1) )
+    
+    w1<-read.table(paste(ruta_c, "/ForecastProbabilities_", a[i], "_", lead[i],"_precip_", dep,".txt", sep=""),sep="", skip =3, nrow=3, fill=TRUE)
+    w2<-read.table(paste(ruta_c, "/ForecastProbabilities_", a[i], "_", lead[i],"_precip_", dep,".txt", sep=""),sep="", skip =8, nrow=3, fill=TRUE)
+    w3<-read.table(paste(ruta_c, "/ForecastProbabilities_", a[i], "_", lead[i],"_precip_", dep,".txt", sep=""), sep="", skip =13, nrow=3, fill=TRUE)
+    
+    
+    setwd(paste(ruta, "results/", dep, sep = ""))
+    
+    h1<-data.frame(t(Reduce(function(x, y) merge(x, y, all=TRUE), list(w1, w2, w3))))
+    
+    
+    Trim<-0
+    
+    if(a[i]<11){
+      Trim <- paste0(substr(month.abb[a[i]:(a[i]+2)],1,1), collapse = "")
+    }else if(a[i]==11){
+      Trim <-  paste(paste0(substr(month.abb[11:12],1,1), collapse = ""), substr(month.abb[1],1,1), sep="")
+    }else if(a[i]==12){
+      Trim <- paste(substr(month.abb[12],1,1), paste0(substr(month.abb[1:2],1,1), collapse = ""), sep="")
+    }
+    
+    
+    o<-cbind.data.frame(Trim, a[i], lead[i],rownames(h1), h1, row.names=NULL)
+    names(o)<- c("Trimestre", "Mes_ini", "lead","Estaciones", "Lon", "Lat", "C1_below", "C2_Normal", "C3_Above")
+    
+    
+    
+    # Aqui se ingresan los datos de las estaciones
+    below <- p + geom_point(data=o, aes(x=Lon, y=Lat, map_id= Estaciones,colour=C1_below),size=2.5)
+    below <- below + scale_colour_gradientn(colours = colorRampPalette(c("aliceblue", "steelblue2" , "khaki", "orange1", "red", "firebrick4"))(10),limits=c(0,100))+ 
+      coord_equal() + theme(legend.key.height=unit(1,"cm"),legend.key.width=unit(0.5,"cm"),
+                            legend.text=element_text(size=8),
+                            panel.background=element_rect(fill="white",colour="black"),
+                            axis.text=element_text(colour="black",size=10),
+                            axis.title=element_text(colour="black",size=10,face="bold"),
+                            #legend.position = "bottom", 
+                            legend.title=element_blank()) 
+    # Aqui se colocan los nombres de las estaciones
+    below <- below + geom_text(data=estaciones_in,aes(label = substring(name,1,9), x = Long, y=Lat-0.05),size=3) 
+    below <- below + labs(title="Below")
+    
+    
+    # Aqui se ingresan los datos de las estaciones
+    normal <- p + geom_point(data=o, aes(x=Lon, y=Lat, map_id= Estaciones,colour=C2_Normal),size=2.5)
+    normal <- normal + scale_colour_gradientn(colours = colorRampPalette(c("aliceblue", "steelblue2" , "khaki", "orange1", "red", "firebrick4"))(10),limits=c(0,100))+ 
+      coord_equal() + theme(legend.key.height=unit(1,"cm"),legend.key.width=unit(0.5,"cm"),
+                            legend.text=element_text(size=8),
+                            panel.background=element_rect(fill="white",colour="black"),
+                            axis.text=element_text(colour="black",size=10),
+                            axis.title=element_text(colour="black",size=10,face="bold"),
+                            #legend.position = "bottom", 
+                            legend.title=element_blank()) 
+    # Aqui se colocan los nombres de las estaciones
+    normal <- normal + geom_text(data=estaciones_in,aes(label = substring(name,1,9), x = Long, y=Lat-0.05),size=3) 
+    normal <- normal + labs(title="Normal")
+    
+    
+    
+    
+    # Aqui se ingresan los datos de las estaciones
+    above <- p + geom_point(data=o, aes(x=Lon, y=Lat, map_id= Estaciones,colour=C3_Above),size=2.5)
+    above <- above + scale_colour_gradientn(colours = colorRampPalette(c("aliceblue", "steelblue2" , "khaki", "orange1", "red", "firebrick4"))(10),limits=c(0,100))+ 
+      coord_equal() + theme(legend.key.height=unit(1,"cm"),legend.key.width=unit(0.5,"cm"),
+                            legend.text=element_text(size=8),
+                            panel.background=element_rect(fill="white",colour="black"),
+                            axis.text=element_text(colour="black",size=10),
+                            axis.title=element_text(colour="black",size=10,face="bold"),
+                            #legend.position = "bottom", 
+                            legend.title=element_blank()) 
+    # Aqui se colocan los nombres de las estaciones
+    above <- above + geom_text(data=estaciones_in,aes(label = substring(name,1,9), x = Long, y=Lat-0.05),size=3) 
+    above <- above + labs(title="Above")
+    
+    
+    
+    tiff(filename = paste("Prob_", dep, "_", Trim, "_",lead[i],".tif", sep=""), height=400,width=1280,res=100)
+    print(grid.arrange(below, normal, above, ncol=3))
+    dev.off()
+    
+    
+    
+    
+    
+    max_C<-apply(o[,7:9], 1, max)
+    cat<-ifelse(o[,7]==max_C, "Below", ifelse(o[,8]==max_C, "Normal", ifelse(o[,9]==max_C, "Above",0)))
+    maximos<-cbind.data.frame(o$Estaciones, o$Lon, o$Lat, max_C, cat)
+    
+    # Aqui se ingresan los datos de las estaciones
+    maxi <- p + geom_point(data=maximos, aes(x=o$Lon, y=o$Lat, map_id= o$Estaciones,colour=max_C, shape=cat),size=2.5)
+    maxi <- maxi + scale_colour_gradientn(colours = colorRampPalette(c("aliceblue", "steelblue2" , "khaki", "orange1", "red", "firebrick4"))(10),limits=c(0,100))+ 
+      coord_equal() + theme( legend.key.height=unit(1,"cm"),legend.key.width=unit(0.5,"cm"),
+                             legend.text=element_text(size=8),
+                             panel.background=element_rect(fill="white",colour="black"),
+                             axis.text=element_text(colour="black",size=10),
+                             axis.title=element_text(colour="black",size=10,face="bold"),
+                             #legend.position = "bottom", 
+                             legend.title=element_blank()) 
+    # Aqui se colocan los nombres de las estaciones
+    maxi <- maxi + geom_text(data=estaciones_in,aes(label = substring(name,1,9), x = Long, y=Lat-0.05),size=3) 
+    maxi <- maxi + labs(title="Probabilistic Forecast")
+    
+    
+    
+    tiff(filename = paste("MaxiProb_", dep, "_", Trim, "_",lead[i],".tif", sep=""),  height=400,width=650,,res=100)
+    print(maxi)
+    dev.off()
+    
+    Total<-rbind(Total, o)
+    print(i)
+  }
+  
+  Total<-Total[-1,]
+  
+  write.csv(x =  Total, file = paste("ForecasProb_",dep,".csv", sep=""))
+return(Total)}
+  
+  
+### Para todas las regiones en caso que tenga 
+dep<-list("casanare", "cordoba", "santander", "tolima", "valle")
+sapply(dep, ForecastP, ruta_c,  a, lead, simplify = T)
 
