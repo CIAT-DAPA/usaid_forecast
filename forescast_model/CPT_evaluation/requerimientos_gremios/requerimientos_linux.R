@@ -1,4 +1,4 @@
-### Paquetes Necesarios
+### Paquetes Necesarios 
 library(raster) 
 library(ggplot2)
 library(grid)
@@ -9,8 +9,9 @@ library(gridExtra)
 library(margins)
 library(cowplot)
 
-# Predictor del cfsv2 que se desea analizar 
-prec <- "SST"
+
+# Predictor del cfsv2 que se desea analizar: 
+prec <- "SST" 
 
 # Estas son las variables para las que se puede utilizar, no olvidar 
 # utilizar los mismos nombres que estan aquí para que funcionen bien los codigos
@@ -22,7 +23,7 @@ prec <- "SST"
 setwd("C:/Users/AESQUIVEL/Desktop/CPT_Linux/cpt_requerimientos/")
 getwd()
 
-final_year<-2013
+final_year<-2013 # año final del periodo de entrenamiento. 
 
 
 
@@ -41,21 +42,36 @@ ruta <- "C:/Users/AESQUIVEL/Desktop/CPT_Linux/cpt_requerimientos/"
 
 
 ruta_l<-"C:/Users/AESQUIVEL/Desktop/CPT_Linux/cpt_requerimientos/"
-### Lectura del shp
+
+### Lectura del shp de colombia.
 colombia<-shapefile(paste(ruta_l,"/colombia/colombia_depts.shp",sep=""))
+### Lectura del shp del mundo (solo necesario para los nuevos predictores)
 shp<-shapefile(paste(ruta_l,"/shp/mapa_mundi.shp",sep=""))
 
 
 
 
 
-####### Organizar el directorio correctamente
-dep_f<-c("casanare",    "cordoba",    "tolima",    "valle", "santander")
+####### Organizar el directorio correctamente donde se almacenan los resultados. 
 
+# dep_f se refiere a los nombres de los departamentos (o regiones) con los que 
+# se hayan realizado las corridas de linux, se recomienda se usen lso mismos
+# nombres de los archivos. 
+dep_f<-c("casanare",    "cordoba",    "tolima",    "valle", "santander")
+depL<-list("casanare", "cordoba", "santander", "tolima", "valle")
+
+
+# Si el directorio de resultados y los departamentos ya fue creado, no es 
+# necesario volver a crearlo. 
+
+# Cree el directorio results donde se almacenan las carpetas de los resultados 
+# de cada departamento.
 if(dir.exists("results")==FALSE){dir.create("results")}
 setwd(paste( getwd(),"/results/" ,sep=""))
 print(getwd())
 
+# Solo es necesario correrlo la primera vez y se crearan tantas carpetas 
+# como departamentos se hayan corrido. 
 if(list.dirs()=="."){lapply(dep_f, dir.create)}
 
 #setwd(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp1/results_graphs_C/", prec, "/", sep=""))
@@ -66,12 +82,6 @@ getwd()
 
 ####################################################################
 ####################################################################
-
-
-
-
-
-
 ################################################################
 ################################################################
 
@@ -81,35 +91,41 @@ getwd()
 ################################################################
 
 
-#### Crea un raster a partir de la tabla .tsv, pero esta funcion es un apoyo de rasterize
-##
+#### En este condicionante se encuentran las funciones que permiten 
+#### convertir en stacks las tablas .tsv  para cada predictor 
+#### de acuerdo a la region teorica propuesta. 
 if(prec=="SST"){
   #####################################################
   #### Para la TSM 
-  #### Crea un raster a partir de la tabla .tsv, pero esta funcion es un apoyo de rasterize
-  transform_raster=function(x){
-    mapa_base=raster()
-    val=c(as.matrix(t(x),ncol=1,byrow = T))
-    val=as.numeric(val)
-    val[val==-999.000]=NA
-    values(mapa_base)=val
+  #### Crea un raster a partir de la tabla .tsv, pero esta funcion  
+  #### es un apoyo de rasterize
+  transform_raster <- function(x){
+    mapa_base <- raster()
+    val <- c(as.matrix(t(x),ncol=1,byrow = T))
+    val <- as.numeric(val)
+    val[val==-999.000] <- NA
+    values(mapa_base) <- val
     return(mapa_base)
   }
-  # Con esta función se depura y rasteriza la tabla .tsv
-  rasterize=function(dates, prec) { 
+  
+  # Esta función se depura y rasteriza la tabla .tsv
+  rasterize <- function(dates, prec) { 
     
+    # Instale el paquete raster en caso de ser necesario. 
     if(require(raster)==FALSE){install.packages("raster")}
-    library("raster")
-    pos_years=!is.na(dates[1,])
-    year_month=dates[1,][pos_years]
+    library("raster") # Cargue la libreria raster
+    pos_years=!is.na(dates[1,]) # Extraiga las posiciones de los años del archivo .tsv
+    year_month <- dates[1,][pos_years] # Extraiga los años del archivo
+    # No tocar esta linea
     if(substr(year_month[2],6,7)=="12"){year=as.numeric(substr(year_month[-1],1,4))+1
     }else{year=as.numeric(substr(year_month[-1],1,4))}
-    total_row_delete=c(-1,-3,-(which(dates[,1]=="90.0")-2),-which(dates[,1]=="-90.0"),-which(dates[,1]==""))
-    dates=dates[total_row_delete,-1]
-    list_dates=split(dates,sort(rep(year,180)))
-    all_raster=lapply(list_dates,transform_raster)
-    layers=stack(all_raster)
-    layers_crop=crop(layers,extent(-180, 180, -30, 30))
+    # Extraiga las posiciones de las filas a eliminar
+    total_row_delete <- c(-1,-3,-(which(dates[,1]=="90.0")-2),-which(dates[,1]=="-90.0"),-which(dates[,1]==""))
+    dates <- dates[total_row_delete,-1] # Elimine las filas y columnas
+    list_dates <- split(dates,sort(rep(year,180))) # divida el archivo cada 180 filas
+    all_raster <- lapply(list_dates,transform_raster) # transforme en raster cada tabla de la lista
+    layers <- stack(all_raster) # cree un stack con los rasters
+    layers_crop <- crop(layers,extent(-180, 180, -30, 30)) # corte los rasters
     
     return(layers_crop)
   }
@@ -117,49 +133,54 @@ if(prec=="SST"){
 } else if(prec!="SST"){
   ####################################################
   #### Para los nuevos predictores 
-  #### Crea un raster a partir de la tabla .tsv, pero esta funcion es un apoyo de rasterize
-  transform_raster=function(x){ 
+  #### Crea un raster a partir de la tabla .tsv, 
+  #### pero esta funcion es un apoyo de rasterize
+  #### esta funcion es similar a la del otro condicionante
+  transform_raster <- function(x){ 
     # Primero se crea un raster teniendo encuenta la resolución espacial de la tabla .tsv  
-    mapa_base=raster(nrows=180, ncols=360,xmn=0,xmx=359, ymn=-90,ymx=90) # Dimensiones del raster
-    val=c(as.matrix(t(x),ncol=1,byrow = T)) 
-    val=as.numeric(val)
-    val[val==-999.000]=NA
-    values(mapa_base)=val
+    mapa_base <- raster(nrows=180, ncols=360,xmn=0,xmx=359, ymn=-90,ymx=90) # Dimensiones del raster
+    val <- c(as.matrix(t(x),ncol=1,byrow = T)) 
+    val <- as.numeric(val)
+    val[val==-999.000] <- NA
+    values(mapa_base) <- val
     return(mapa_base)
   }
   # Con esta función se depura y rasteriza la tabla .tsv
   # El Argumento prec permite tener el cuenta el tipo de predictor
   # cuando se rasteriza el .tsv
-  rasterize=function(dates, prec) { 
+  # esta funcion es similar a la del otro condicionante se explicaran 
+  rasterize <- function(dates, prec) { 
     
     if(require(raster)==FALSE){install.packages("raster")}
     library("raster")
-    pos_years=!is.na(dates[1,]) # Muestra en que lugares de la fila 1 hay información
-    year_month=dates[1,][pos_years] # Muestra la información d ela fila
+    pos_years <- !is.na(dates[1,]) # Muestra en que lugares de la fila 1 hay información
+    year_month <- dates[1,][pos_years] # Muestra la información d ela fila
     
     
     if(substr(year_month[2],6,7)=="12"){year=as.numeric(substr(year_month[-1],1,4))+1
     }else{year=as.numeric(substr(year_month[-1],1,4))}
     
-    
+    # En esta linea sirve para  eliminar ciertas filas, de acuerdo al predictor. 
     if(prec=="U_wind_250" | prec=="U_wind_850"){
       
-      total_row_delete=c(-1,-3,-(which(dates[,1]=="90.0")-2),-which(dates[,1]=="-90.0"),-which(dates[,1]==""))
-      dates_1=dates[total_row_delete,-1] # Elimina la información no relevante
+      total_row_delete <- c(-1,-3,-(which(dates[,1]=="90.0")-2),-which(dates[,1]=="-90.0"),-which(dates[,1]==""))
+      dates_1 <- dates[total_row_delete,-1] # Elimina la información no relevante
       
     } else if(prec== "rhum_700" | prec=="vertical_vel_250"){
       
-      total_row_delete=c(-1,-3,-(which(dates[,1]=="90")-2),-which(dates[,1]=="-90"),-which(dates[,1]==""))
-      dates_1=dates[total_row_delete,-1] # Elimina la información no relevante
+      total_row_delete <- c(-1,-3,-(which(dates[,1]=="90")-2),-which(dates[,1]=="-90"),-which(dates[,1]==""))
+      dates_1 <- dates[total_row_delete,-1] # Elimina la información no relevante
       
     }
     
-    #
-    list_dates=split(dates_1,sort(rep(year,180))) # Se divide la tabla de datos por año
-    all_raster=lapply(list_dates,transform_raster) ## Transforma las tablas de datos en rasters
-    layers=stack(all_raster) # Crea un stack
+  
+    list_dates <- split(dates_1,sort(rep(year,180))) # Se divide la tabla de datos por año
+    all_raster <- lapply(list_dates,transform_raster) ## Transforma las tablas de datos en rasters
+    layers <- stack(all_raster) # Crea un stack
     
-    
+    # Estas lineas sirven para los cortes de las regiones predictoras de acuerdo
+    # a las areas teoricas definidas en el proyecto para los nuevos predictores. 
+    # dado que las regiones cambian predcitor 
     if(prec=="U_wind_250"){
       r1 <- crop(layers,extent(0, 50, -25, 25))
       r2 <- crop(layers,extent(220, 357.5, -25, 25))
@@ -168,14 +189,11 @@ if(prec=="SST"){
       x <- list(r1, r2)
       x$overwrite <- TRUE
       layers_crop <- do.call(merge, x)
-      names(layers_crop)<-  names(r1)
-      #plot(layers_crop)  
+      names(layers_crop) <- names(r1)
     }else if(prec=="U_wind_850"){
       layers_crop <- crop(layers,extent(0, 357.5, -45, 45))
-      #plot(layers_crop)  
     }else if(prec=="rhum_700"){
       layers_crop <- crop(layers,extent(0, 357.5, -30, 30))
-      #plot(layers_crop)  
     }else if(prec=="vertical_vel_250"){
       r1 <- crop(layers,extent(0, 45, -20, 20))
       r2 <- crop(layers,extent(135, 357.5, -20, 20))
@@ -185,17 +203,16 @@ if(prec=="SST"){
       x$overwrite <- TRUE
       layers_crop <- do.call(merge, x)
       names(layers_crop)<-  names(r1)
-      #plot(layers_crop)  
     }
     
-    return(layers_crop)
-  }
+    return(layers_crop)} # retorne el stack con los cortes de las regiones teoricas
 }
 
 
 
 ### Esta función convierte los datos de las estacines en datos trimestrales
-data_trim=function(Estaciones_C, a){ #Los argumentos son el conjunto de las estaciones 
+### Se supone que los datos solo se encuentran de 1982 al año objetivo (final_year). 
+data_trim <- function(Estaciones_C, a){ #Los argumentos son el conjunto de las estaciones 
   
   ## y el mes de incio del periodo (a)
   stations=Estaciones_C 
@@ -216,17 +233,19 @@ data_trim=function(Estaciones_C, a){ #Los argumentos son el conjunto de las esta
 
 
 
-#### Gráfico 1 - Correlación entre las componentes y la SST
+#### Gráfico 1 - Correlación entre las componentes y la variable de interes
 
 # var_oceanoAt= variable oceano atmosferica
-# y serie = el modo en y
-# xserie = el modo en x
-# Estaciones_C= archivo de estaciones en el cual se realizo CPT
-# Colombia= shp del país
 # names_file = nombre del trimestre pronosticado y su lag (DEF_DEF ó DEF_0)
-# a = mes de inicio del trimestre, b = segundo mes del trimestre, c = tercer mes del trimestre
-# length_periodo = Longitud del periodo de entrenamiento
-## cca_Maps función que realiza el gráfico cca_map de CPT, las imagenes se almacenan en la ruta
+# y serie = el modo en y
+# Estaciones_C= archivo de estaciones en el cual se realizo CPT
+# xserie = el modo en x
+# lead= nombre del archivo de la variable predictora o lead time 
+# ruta= ruta donde se van a guardar los archivos (mirar el manual de word)
+# a = mes de inicio del trimestre de las estaciones
+# xmin, xmax, ymin y ymax <- coordenadas del departamento o región a predecir.
+# estaciones_in <- nombre de las estaciones de interes
+# prec <- predictor a analizar
 cca_maps<-function(var_ocanoAt, names_file, yserie, Estaciones_C, xserie, lead, ruta,  a, xmin, xmax, ymin, ymax, estaciones_in, prec){
   
   ocean=which(!is.na(var_ocanoAt[[1]][])) # tome las posiciones en las que la variable sea diferente de NA
@@ -360,13 +379,23 @@ cca_maps<-function(var_ocanoAt, names_file, yserie, Estaciones_C, xserie, lead, 
 
 
 
+
 ruta_c <- "C:/Users/AESQUIVEL/Desktop/CPT_Linux/cpt_requerimientos/Cross_validated_15_5_10"
 
 
+## maps_dep: esta funcion permite correr la función cca_maps para todos los trimestres,
+## lead time... 
+## dep <- departamento o region en la cual se realizan las corridas
+## a <- mes de inicio del trimestre
+## lead <- lead time o nombre del archivo de la variable predictora
+## length_periodo <- tamaño del periodo de entrenamiento que se puso en CPT 
+
 maps_dep<-function(dep, a, lead, length_periodo){
 # Lectura d eas estaciones para cada departamento.
-Estaciones_C <- read.delim(paste(ruta_l,"dep/precip_",dep,".txt",sep=""),skip =3, header=T, sep="")
-# Determinación de los limites departamentales y estaciones a dibular en el cap >.<
+Estaciones_C <- read.delim(paste(ruta,"dep/precip_",dep,".txt",sep=""),skip =3, header=T, sep="")
+
+# Esta parte debe modificarse o ... revisar que hago
+# Determinación de los limites departamentales y estaciones >.<
 if(dep=="casanare"){
   xmin<- -73.5; xmax<- -71; ymin<-  4; ymax<-  6
   estaciones_in=data.frame(name="Yopal", Long=-72.388, Lat = 	5.320)
@@ -384,25 +413,33 @@ if(dep=="casanare"){
   estaciones_in=data.frame(name="Villanueva", Long=-73.21, Lat = 6.64)
 }
 
+
+
 #############
 if(prec=="SST"){
  
-  ##### Si la region es optimizada correr este for
+  #####  el archivo zone permite obtener los argumentos de los limites de las 
+  #####  regiones predictoras. 
   
   zone<-read.csv(paste(ruta,"zone.csv",sep=""), header=T, sep=",")  
   
   zone<-zone[which(zone$prec==prec),c("a", "Coord", dep)]
-  print(c("a", "Coord", dep))
+  print(zone)
   
-  lista<-split(zone, zone$a)
+  # Revisar esta seccion de acuerdo a los requerimientos
+  
+  # Esta parte sirve para crear las regiones predictoras, con las que se corta
+  # la SST o los otros posibles predictores. 
+
+  lista<-split(zone, zone$a) 
   lista<-rep(lista, length(a))
   
-   for(i in 1:length(a)){
+   for(i in 1:length(a)){ # lea todos los archivos 
     xserie <- read.csv(paste(ruta_c, "/X_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
     yserie <- read.csv(paste(ruta_c,"/Y_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
     names_file <- paste(a[i],"_",lead[i],"_", dep,sep="")
     
-    SST<-read.table(paste(ruta,"/",prec,"/",lead[i],".tsv",sep=""),sep="\t",dec=".",skip =2,fill=TRUE,na.strings =-999)
+    SST<-read.table(paste(ruta, prec,"/",lead[i],".tsv",sep=""),sep="\t",dec=".",skip =2,fill=TRUE,na.strings =-999)
     ## Conversión a raster
     SST<-rasterize(SST)
     
@@ -435,7 +472,7 @@ if(prec=="SST"){
     names_file <- paste(a[i],"_",lead[i],"_", dep,sep="")
     
     
-    SST<-read.table(paste(ruta,"/",prec,"/", lead[i],".tsv", sep=""),sep="\t",dec=".",skip =2,fill=TRUE,na.strings =-999)
+    SST<-read.table(paste(ruta, prec,"/", lead[i],".tsv", sep=""),sep="\t",dec=".",skip =2,fill=TRUE,na.strings =-999)
     ## Conversión a raster
     SST<-rasterize(SST, prec)
     var_ocanoAt <-SST[[1:length_periodo[i]]]
@@ -452,25 +489,29 @@ if(prec=="SST"){
 }
 }
 
+
+
+
 #### Declaración de las constantes
+
+# nombre de los archivos de las variable predictoras, deben ser iguales
+# que los que se ingreso en CPT. 
 lead<- c("DEF_Nov", "DEF_Aug", "DEF_Jun")
+# mes de inicio de los trimestres
 a<- rep(12,3)
-length_periodo<- rep(31,3)  # Ancho del periodo de estudio para cada trimestre
+# Ancho del periodo de estudio para cada trimestre
+length_periodo<- rep(31,3)
+
+# estos tres vectores deben ser de igual tamaño. 
 cbind.data.frame(a, lead, length_periodo)
 
-
-
-
-
-
-
-dep<-"valle"
-maps_dep(dep,a,lead,length_periodo)
+# En caso de que se desee coger solo una región 
+#dep<-"valle"
+#maps_dep(dep,a,lead,length_periodo)
 
 
 ### Para todas las regiones en caso que tenga 
-dep<-list("casanare", "cordoba", "santander", "tolima", "valle")
-sapply(dep, maps_dep, a, lead, length_periodo, simplify = T)
+sapply(depL, maps_dep, a, lead, length_periodo, simplify = T)
 
 
 
@@ -479,24 +520,13 @@ sapply(dep, maps_dep, a, lead, length_periodo, simplify = T)
 ###########################################################
 ###########################################################
 ###########################################################
-
-
-
-
-
-
-
-lead<- c("DEF_Nov", "DEF_Aug", "DEF_Jun")
-a<- rep(12,3)
-length_periodo<- rep(31,3)  # Ancho del periodo de estudio para cada trimestre
-cbind.data.frame(a, lead, length_periodo)
 
 
 
 
 ## Esta función devuelve las gráficas del goodness index, 
 ## ruta_c ruta donde se encuentran los archivos
-## dep_f son los departamentos que se van a gráficar
+## dep_f son los departamentos que se van tener encuenta en el archivo. 
 GoodnessIndex <- function(ruta_c, dep_f, a, lead){
 
   good_index=0 # inicialice el vector
@@ -523,6 +553,9 @@ GoodnessIndex <- function(ruta_c, dep_f, a, lead){
   # Cambie los nombres de las columnas
   names(GoodnessIndex)=c("Dep","Mes_ini_Trim", "lead", "modos_x", "modos_y", "modos_cca", "GoodnessIndex")
 
+  
+  # Cree el trimestre de interes (modificar para IDEAM)
+  # Esta seccion entrega el nombre del trimestre que se esta analizando
   Trim<-0
   for(i in 1:dim( GoodnessIndex)[1]){
     if(GoodnessIndex$Mes_ini_Trim[i]<11){
@@ -534,15 +567,14 @@ GoodnessIndex <- function(ruta_c, dep_f, a, lead){
     }
   }
   
-  
+  # Combine en un solo data.frame el trimestre y la tabla GI.
   GoodnessIndex<-cbind.data.frame(Trimestre=Trim, GoodnessIndex)
   
-  #######
-  
+  ####### Utilice como directorio principal el de resultados. 
   setwd(paste(ruta, "/results/", sep=""))
   ### Guarde todos los Goodness Index en un archivo .csv
   write.csv(x = GoodnessIndex, file = "GoodnessIndex.csv",sep = ",")
-  
+ # Retorne la tabla
  return(GoodnessIndex)}
 
 
@@ -578,6 +610,13 @@ ggsave("summary_GI.png", width = 7, height = 3)
 ###########################################################
 ###########################################################
 
+# ind <- esta función permite crear para una corrida de CPT una tabla 
+# que contenga un indicador especifico
+# tipo = indicador que se desea analizar
+# a <- mes de inicio del trimestre
+# lead <- nombre del archivo de la variable predictora
+# dep <-departamento a analizar
+# ruta_c <- ruta donde se encuentran las salidas del CPT
 ind<-function(tipo, a, lead, dep, ruta_c){
   
   datos<-NA # Creación de una trama de datos
@@ -600,7 +639,7 @@ ind<-function(tipo, a, lead, dep, ruta_c){
   datos[,6]<-round(datos[,6],3) # Redondear el número de decimales de la curva
   datos<-datos[datos[,6]!=-999,] # Eliminar los datos faltantes
   
-  
+  # Asignación del nombre del trimestre
   Trim<-0
   for(i in 1:dim(datos)[1]){
     if(datos$Mes_ini[i]<11){
@@ -612,13 +651,21 @@ ind<-function(tipo, a, lead, dep, ruta_c){
     }
   }
   
+  # cree un data frame con la columna trimestre y el data frame datos
   datos<-cbind.data.frame(Trimestre=Trim, datos)
-  
+
+  # entregue el data frame datos 
 return(datos)}
 
-
+# summary_ind <- Esta funcion guarda automaticamente los mapas de indicadores
+# y un archivo departamental resumen todos los indicadores. 
+# dep <- departamento a analizar
+# ruta_c <- ruta donde se encuentran las salidas del CPT
+# a <- mes de inicio del trimestre
+# lead <- nombre del archivo de la variable predictora
 summary_ind<-function(dep,  ruta_c,  a, lead){
   
+  # revisar como cambiar esta parte
   # Determinación de los limites departamentales y estaciones a dibular en el cap >.<
   if(dep=="casanare"){
     xmin<- -73.5; xmax<- -71; ymin<-  4; ymax<-  6
@@ -637,23 +684,26 @@ summary_ind<-function(dep,  ruta_c,  a, lead){
     estaciones_in=data.frame(name="Villanueva", Long=-73.21, Lat = 6.64)
   }
   
-  
+
+ # Indicadores a analizar
  tipo <- list("Pearsons_correlation", "Spearmans_correlation", "k_2AFC_Score",
                "Hit_Score", "Hit_Skill_Score", "LEPS_score", "Gerrity_Score",
                "k_2AFC_cat", "k_2AFC_cont", "ROC_below", "ROC_above")
   
- lista<-list()  
+ lista<-list()   # cree cree una lista
  for(i in 1:length(tipo)){
    lista[[i]] <- ind(tipo = tipo[[i]], a, lead, dep, ruta_c)
    names(lista)[i] <-tipo[[i]] 
- }
+ } # Aqui se repite la funcion ind para todos los indicadores, es decir
+ # que se crea una trama de datos para cada indicador y se alamacena en una lista
   
-
+ # Junte todos los indicadores en un solo data_frame
  summary<-Reduce(function(x, y) merge(x, y, all=TRUE), lista)
  
- 
+ # Ubiquese en el directorio de cada departamento en la carpeta results
  setwd(paste(ruta, "results/", dep, sep = ""))
  
+ # Guarde un archivo .csv con todos los indicadores
  write.csv(x = summary, file = paste("Perfomance_Measures_",dep,".csv", sep=""))
  
  
@@ -665,8 +715,8 @@ summary_ind<-function(dep,  ruta_c,  a, lead){
  colombia2 <- fortify(colombia_1, region="id") # convierta el shp en una tabla de datos
  
  
- 
- 
+ # De aquí en adelante se grafican algunos de los indicadores 
+ # almacenados en el archivo de excel
  
  # Realice el gráfico de las correlaciones entre las estaciones y el modo 1 de y 
  p <- ggplot(colombia2, aes(x=long,y=lat)) # gráfique el país
@@ -674,15 +724,10 @@ summary_ind<-function(dep,  ruta_c,  a, lead){
  p <- p + scale_fill_manual(values=c("grey 80","grey 80"))
  p <- p + geom_path(aes(long,lat,group=group,fill=hole),color="black",size=0.3)
  
- 
- 
- 
- 
  for(i in 1:length(a)){
  #############
  datos2<-summary[summary$Mes_ini==a[i] & summary$lead==lead[i],]
  
-
  # Aqui se ingresan los datos de las estaciones
  pe <- p + geom_point(data=datos2, aes(x=Lon, y=Lat, map_id=Estacion,colour=Pearsons_correlation),size=2.5)
  pe <- pe + scale_colour_gradientn(colours = colorRampPalette(c("midnightblue","#2166AC", "steelblue2" , "snow", "pink", "violetred4","#B2182B"))(20),limits=c(-1,1))+ 
@@ -775,9 +820,6 @@ summary_ind<-function(dep,  ruta_c,  a, lead){
  print(HSS)
  dev.off()
  
- 
- 
- 
  be<- p + geom_point(data=datos2, aes(x=Lon, y=Lat, map_id=Estacion,colour=ROC_below),size=2.5)
  be <-  be + scale_colour_gradientn(colours = colorRampPalette(c("midnightblue", "steelblue2" , "snow", "khaki", "orange1"))(20),limits=c(0,1))+
    coord_equal() + theme(legend.key.height=unit(1,"cm"),legend.key.width=unit(0.5,"cm"),
@@ -795,8 +837,6 @@ summary_ind<-function(dep,  ruta_c,  a, lead){
  tiff(filename = paste("ROC_below_", dep, "_", a[i], "_",lead[i], ".tif", sep=""), height=400,width=650,res=100)
  print(be)
  dev.off()
- 
- 
  
  
  ab<- p + geom_point(data=datos2, aes(x=Lon, y=Lat, map_id=Estacion,colour=ROC_above),size=2.5)
@@ -824,14 +864,11 @@ summary_ind<-function(dep,  ruta_c,  a, lead){
 
 cbind.data.frame(a,lead)
 
-
+# Con esto se puede hacer las corridas individuales
 #summary_ind("cordoba",  ruta_c,  a, lead)
 
-
-
-### Para todas las regiones en caso que tenga 
-dep<-list("casanare", "cordoba", "santander", "tolima", "valle")
-sapply(dep, summary_ind, ruta_c,  a, lead, simplify = T)
+### Para correr la funcion para todas las regiones en caso que tenga 
+sapply(depL, summary_ind, ruta_c,  a, lead, simplify = T)
 
 
 
@@ -849,20 +886,23 @@ sapply(dep, summary_ind, ruta_c,  a, lead, simplify = T)
 
 
 
-dep<- "casanare"
+#dep<- "casanare"
 ruta_c
 
 
-lead<- c("DEF_Nov", "DEF_Aug", "DEF_Jun")
-a<- rep(12,3)
 
 
 
+# ForecastP<-
+# dep <- departamento a analizar
+# ruta_c <- ruta donde se encuentran las salidas del CPT
+# a <- mes de inicio del trimestre
+# lead <- nombre del archivo de la variable predictora
 ForecastP<-function(dep, ruta_c, a, lead){
-  Total<-0
- 
+  Total<-0 # Inicialice un objeto
   
-   # Determinación de los limites departamentales y estaciones a dibular en el cap >.<
+  # Revisar como cambiar esta parte
+  # Determinación de los limites departamentales y estaciones a dibular en el cap >.<
   if(dep=="casanare"){
     xmin<- -73.5; xmax<- -71; ymin<-  4; ymax<-  6
     estaciones_in=data.frame(name="Yopal", Long=-72.388, Lat = 	5.320)
@@ -894,10 +934,9 @@ ForecastP<-function(dep, ruta_c, a, lead){
   p <- p + scale_fill_manual(values=c("grey 80","grey 80"))
   p <- p + geom_path(aes(long,lat,group=group,fill=hole),color="black",size=0.3)
   
-  for(i in 1:length(a)){
+  for(i in 1:length(a)){ # Corra para todas las corridas
     
-    por_cat_est<-matrix(1:2,ncol=2, nrow = (length(data)-1) )
-    
+    # Lea el archivo de probabilidades de acuerdo a 
     w1<-read.table(paste(ruta_c, "/ForecastProbabilities_", a[i], "_", lead[i],"_precip_", dep,".txt", sep=""),sep="", skip =3, nrow=3, fill=TRUE)
     w2<-read.table(paste(ruta_c, "/ForecastProbabilities_", a[i], "_", lead[i],"_precip_", dep,".txt", sep=""),sep="", skip =8, nrow=3, fill=TRUE)
     w3<-read.table(paste(ruta_c, "/ForecastProbabilities_", a[i], "_", lead[i],"_precip_", dep,".txt", sep=""), sep="", skip =13, nrow=3, fill=TRUE)
@@ -1017,4 +1056,29 @@ return(Total)}
 ### Para todas las regiones en caso que tenga 
 dep<-list("casanare", "cordoba", "santander", "tolima", "valle")
 sapply(dep, ForecastP, ruta_c,  a, lead, simplify = T)
+
+
+
+
+
+
+setwd(paste(ruta, "/results", sep=""))
+getwd()
+
+
+dep<-c("casanare", "cordoba", "santander", "tolima", "valle")
+
+for_files<-list()
+for(i in 1:length(dep)){
+  name<-list.files(paste(getwd(), "/", dep[i] ,sep=""), pattern = "ForecasProb_")
+  for_files[[i]]<-read.csv(paste(getwd(), "/", dep[i], "/", name ,sep=""))
+  for_files[[i]]<-cbind(dep= dep[i], for_files[[i]][,-1])
+  names(for_files)[i]<-dep[i]
+}
+
+
+
+for_files <-Reduce(function(x, y) rbind.data.frame(x, y),for_files)
+
+write.csv(x = for_files, file = "Forecast_Prob.csv")
 
