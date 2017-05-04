@@ -394,25 +394,21 @@ maps_dep<-function(dep, a, lead, length_periodo){
 # Lectura d eas estaciones para cada departamento.
 Estaciones_C <- read.delim(paste(ruta,"dep/precip_",dep,".txt",sep=""),skip =3, header=T, sep="")
 
-# Esta parte debe modificarse o ... revisar que hago
 # Determinación de los limites departamentales y estaciones >.<
 if(dep=="casanare"){
-  xmin<- -73.5; xmax<- -71; ymin<-  4; ymax<-  6
   estaciones_in=data.frame(name="Yopal", Long=-72.388, Lat = 	5.320)
 }else if(dep=="cordoba"){
-  xmin<- -76.6; xmax<- -74.6; ymin<-  7; ymax<-  10
   estaciones_in=data.frame(name=c("Lorica","Cereté"), Long=c(-75.913,-75.802), Lat = c(9.302,8.840))
 }else if(dep=="tolima"){
-  xmin<- -76.2; xmax<- -74; ymin<-  2.8; ymax<-  5.5
   estaciones_in=data.frame(name=c("Ibagué","Espinal"), Long=c(-75.148,-74.960), Lat = c(4.430,4.188))
 }else if(dep=="valle"){
-  xmin<- -77.5; xmax<- -75.6; ymin<-  3; ymax<-  5
   estaciones_in=data.frame(name="La Unión", Long=-76.062, Lat = 4.531)
 }else if(dep=="santander"){
-  xmin<- -75; xmax<- -72; ymin<- 5; ymax<- 8
   estaciones_in=data.frame(name="Villanueva", Long=-73.21, Lat = 6.64)
 }
 
+Coord<-read.csv(paste(ruta,"deps.csv",sep=""), header=T, sep=",")  
+xmin<-Coord[1,dep]; xmax<-Coord[2,dep]; ymin<-Coord[3,dep]; ymax<-Coord[4,dep]
 
 
 #############
@@ -668,21 +664,19 @@ summary_ind<-function(dep,  ruta_c,  a, lead){
   # revisar como cambiar esta parte
   # Determinación de los limites departamentales y estaciones a dibular en el cap >.<
   if(dep=="casanare"){
-    xmin<- -73.5; xmax<- -71; ymin<-  4; ymax<-  6
     estaciones_in=data.frame(name="Yopal", Long=-72.388, Lat = 	5.320)
   }else if(dep=="cordoba"){
-    xmin<- -76.6; xmax<- -74.6; ymin<-  7; ymax<-  10
     estaciones_in=data.frame(name=c("Lorica","Cereté"), Long=c(-75.913,-75.802), Lat = c(9.302,8.840))
   }else if(dep=="tolima"){
-    xmin<- -76.2; xmax<- -74; ymin<-  2.8; ymax<-  5.5
     estaciones_in=data.frame(name=c("Ibagué","Espinal"), Long=c(-75.148,-74.960), Lat = c(4.430,4.188))
   }else if(dep=="valle"){
-    xmin<- -77.5; xmax<- -75.6; ymin<-  3; ymax<-  5
     estaciones_in=data.frame(name="La Unión", Long=-76.062, Lat = 4.531)
   }else if(dep=="santander"){
-    xmin<- -75; xmax<- -72; ymin<- 5; ymax<- 8
     estaciones_in=data.frame(name="Villanueva", Long=-73.21, Lat = 6.64)
   }
+  
+  Coord<-read.csv(paste(ruta,"deps.csv",sep=""), header=T, sep=",")  
+  xmin<-Coord[1,dep]; xmax<-Coord[2,dep]; ymin<-Coord[3,dep]; ymax<-Coord[4,dep]
   
 
  # Indicadores a analizar
@@ -904,21 +898,19 @@ ForecastP<-function(dep, ruta_c, a, lead){
   # Revisar como cambiar esta parte
   # Determinación de los limites departamentales y estaciones a dibular en el cap >.<
   if(dep=="casanare"){
-    xmin<- -73.5; xmax<- -71; ymin<-  4; ymax<-  6
     estaciones_in=data.frame(name="Yopal", Long=-72.388, Lat = 	5.320)
   }else if(dep=="cordoba"){
-    xmin<- -76.6; xmax<- -74.6; ymin<-  7; ymax<-  10
     estaciones_in=data.frame(name=c("Lorica","Cereté"), Long=c(-75.913,-75.802), Lat = c(9.302,8.840))
   }else if(dep=="tolima"){
-    xmin<- -76.2; xmax<- -74; ymin<-  2.8; ymax<-  5.5
     estaciones_in=data.frame(name=c("Ibagué","Espinal"), Long=c(-75.148,-74.960), Lat = c(4.430,4.188))
   }else if(dep=="valle"){
-    xmin<- -77.5; xmax<- -75.6; ymin<-  3; ymax<-  5
     estaciones_in=data.frame(name="La Unión", Long=-76.062, Lat = 4.531)
   }else if(dep=="santander"){
-    xmin<- -75; xmax<- -72; ymin<- 5; ymax<- 8
     estaciones_in=data.frame(name="Villanueva", Long=-73.21, Lat = 6.64)
   }
+ 
+  Coord<-read.csv(paste(ruta,"deps.csv",sep=""), header=T, sep=",")  
+  xmin<-Coord[1,dep]; xmax<-Coord[2,dep]; ymin<-Coord[3,dep]; ymax<-Coord[4,dep]
   
   
   # Corte colombia de acuerdo a las coordenadas asignadas
