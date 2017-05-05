@@ -1,0 +1,10 @@
+mes_numero= Mes de inicio del periodo de interés.
+Len_season= tamaño del periodo a pronosticar 1- un solo mes, 2- bimestre
+mes_nombre= Nombre del trimestre de estudio.
+north=
+south=
+west=
+east=
+length= tamaño del periodo de entrenamiento, recuerden que en caso de ser mayor al sugerido por cpt no funciona. 
+start_year=  año en el que se comienza a pronosticar. 
+predictora=  mes_archivos=('' '' ''), máximo 3 además son los nombres de los archivos sin la extensión .tsv
