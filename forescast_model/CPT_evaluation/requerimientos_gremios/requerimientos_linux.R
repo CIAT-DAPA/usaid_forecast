@@ -421,14 +421,16 @@ if(prec=="SST"){
   
   zone<-zone[which(zone$prec==prec),c("a", "Coord", dep)]
   print(zone)
-  
   # Revisar esta seccion de acuerdo a los requerimientos
   
   # Esta parte sirve para crear las regiones predictoras, con las que se corta
   # la SST o los otros posibles predictores. 
 
   lista<-split(zone, zone$a) 
-  lista<-rep(lista, length(a))
+  count<-as.data.frame(table(a))
+  
+  lista<-rep(lista, count$Freq)
+  
   
    for(i in 1:length(a)){ # lea todos los archivos 
     xserie <- read.csv(paste(ruta_c, "/X_CCA_Map_Series_",a[i],"_",lead[i],"_precip_",dep,".txt",sep=""),skip =2, header=T, sep="")
@@ -492,11 +494,11 @@ if(prec=="SST"){
 
 # nombre de los archivos de las variable predictoras, deben ser iguales
 # que los que se ingreso en CPT. 
-lead<- c("DEF_Nov", "DEF_Aug", "DEF_Jun")
+lead<- c("JJA_May", "JJA_Feb","DEF_Nov", "DEF_Aug", "DEF_Jun")
 # mes de inicio de los trimestres
-a<- rep(12,3)
+a<- c(rep(6,2),rep(12,3))
 # Ancho del periodo de estudio para cada trimestre
-length_periodo<- rep(31,3)
+length_periodo<- c(rep(32,2), rep(31,3))
 
 # estos tres vectores deben ser de igual tamaño. 
 cbind.data.frame(a, lead, length_periodo)
