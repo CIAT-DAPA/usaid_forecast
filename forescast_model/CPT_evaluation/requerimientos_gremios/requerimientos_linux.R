@@ -1063,11 +1063,11 @@ getwd()
 dep<-c("casanare", "cordoba", "santander", "tolima", "valle")
 
 for_files<-list()
-for(i in 1:length(dep)){
-  name<-list.files(paste(getwd(), "/", dep[i] ,sep=""), pattern = "ForecasProb_")
-  for_files[[i]]<-read.csv(paste(getwd(), "/", dep[i], "/", name ,sep=""))
-  for_files[[i]]<-cbind(dep= dep[i], for_files[[i]][,-1])
-  names(for_files)[i]<-dep[i]
+for(i in 1:length(dep_f)){
+  name<-list.files(paste(getwd(), "/", dep_f[i] ,sep=""), pattern = "ForecasProb_")
+  for_files[[i]]<-read.csv(paste(getwd(), "/", dep_f[i], "/", name ,sep=""))
+  for_files[[i]]<-cbind(dep= dep_f[i], for_files[[i]][,-1])
+  names(for_files)[i]<-dep_f[i]
 }
 
 
