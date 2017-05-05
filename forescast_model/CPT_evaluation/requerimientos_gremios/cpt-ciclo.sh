@@ -15,7 +15,6 @@ do
   west=
   east=
   length=
-  number_forecasts= 
   start_year= 
   predictora=  
   declare -a mes_archivos=('' '' '');  
@@ -45,12 +44,9 @@ do
 	       length=$line
      elif  [ $i = 8 ]
      then
-	       number_forecasts=$line
-     elif  [ $i = 9 ]
-     then
 	       start_year=$line
      else
-         mes_archivos[$i-10]=$line
+         mes_archivos[$i-9]=$line
      fi
      i=$(($i+1))
   done
@@ -141,7 +137,7 @@ $mes_numero # Mes de inicio del trimestre # Pendiente
 7       #length of training period (defaults to 1982-2013)
 $length #fixed 32-year period
 9       #Number of forecasts
-$number_forecasts  #1 years
+1       #1 years
 6       #Forecast period settings
 $start_year        #Start year
 554     #Transformation settings

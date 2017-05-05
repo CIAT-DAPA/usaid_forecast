@@ -5,6 +5,5 @@ south
 west
 east
 length= tamaño del periodo de entrenamiento, recuerden que en caso de ser mayor al sugerido por cpt no correra el codigo bien. 
-number_forecasts= en cpt esta opción por defecto es uno y se refiere a cuantos años se desea pronosticar 
 start_year=  año en el que se comienza a pronosticar 
 predictora=  mes_archivos=('' '' '')
