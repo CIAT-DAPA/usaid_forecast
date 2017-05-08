@@ -39,8 +39,7 @@ final_year<-2013 # año final del periodo de entrenamiento.
 ## Ruta principal donde se encuentran las carpetas con los archivos  
 ruta <- "C:/Users/AESQUIVEL/Desktop/CPT_Linux/cpt_requerimientos/"
 
-
-
+# ruta donde se encuentran los shp
 ruta_l<-"C:/Users/AESQUIVEL/Desktop/CPT_Linux/cpt_requerimientos/"
 
 ### Lectura del shp de colombia.
@@ -377,18 +376,14 @@ cca_maps<-function(var_ocanoAt, names_file, yserie, Estaciones_C, xserie, lead, 
 }
 
 
-
-
-
-ruta_c <- "C:/Users/AESQUIVEL/Desktop/CPT_Linux/cpt_requerimientos/Cross_validated_15_5_10"
-
-
 ## maps_dep: esta funcion permite correr la función cca_maps para todos los trimestres,
 ## lead time... 
 ## dep <- departamento o region en la cual se realizan las corridas
 ## a <- mes de inicio del trimestre
 ## lead <- lead time o nombre del archivo de la variable predictora
 ## length_periodo <- tamaño del periodo de entrenamiento que se puso en CPT 
+
+# Aqui se debe modificar las estaciones de interes
 
 maps_dep<-function(dep, a, lead, length_periodo){
 # Lectura d eas estaciones para cada departamento.
@@ -492,6 +487,13 @@ if(prec=="SST"){
 
 #### Declaración de las constantes
 
+
+
+# ruta donde se encuentran los archivos de la cross validacion de CPT
+ruta_c <- "C:/Users/AESQUIVEL/Desktop/CPT_Linux/cpt_requerimientos/Cross_validated_15_5_10"
+
+
+
 # nombre de los archivos de las variable predictoras, deben ser iguales
 # que los que se ingreso en CPT. 
 lead<- c("JJA_May", "JJA_Feb","DEF_Nov", "DEF_Aug", "DEF_Jun")
@@ -576,10 +578,7 @@ GoodnessIndex <- function(ruta_c, dep_f, a, lead){
  return(GoodnessIndex)}
 
 
-
-
 ## Corrida para todos los archivos
-ruta_c
 table<-GoodnessIndex(ruta_c = ruta_c, dep_f = dep_f, a = a, lead = lead)
 
 
@@ -589,10 +588,6 @@ ggplot(table, aes(x = Trimestre, y= GoodnessIndex)) + geom_point(aes(colour=Trim
   geom_hline(yintercept = 0, colour = "black", linetype = "dotted")
 
 ggsave("summary_GI.png", width = 7, height = 3)
-
-
-
-
 
 
 
@@ -661,6 +656,8 @@ return(datos)}
 # ruta_c <- ruta donde se encuentran las salidas del CPT
 # a <- mes de inicio del trimestre
 # lead <- nombre del archivo de la variable predictora
+
+# Aqui se debe modificar las estaciones de interes
 summary_ind<-function(dep,  ruta_c,  a, lead){
   
   # revisar como cambiar esta parte
@@ -871,8 +868,6 @@ sapply(depL, summary_ind, ruta_c,  a, lead, simplify = T)
 
 
 
-
-
 #################################################################
 #################################################################
 #################################################################
@@ -880,20 +875,15 @@ sapply(depL, summary_ind, ruta_c,  a, lead, simplify = T)
 
 ###### Forecast
 
-
-
-#dep<- "casanare"
-ruta_c
-
-
-
-
-
-# ForecastP<-
+# ForecastP<- esta funcion permite obtener en un solo archivo las probabilidades 
+# de todas las corridas o regiones. 
 # dep <- departamento a analizar
 # ruta_c <- ruta donde se encuentran las salidas del CPT
 # a <- mes de inicio del trimestre
 # lead <- nombre del archivo de la variable predictora
+
+# Aqui se debe modificar las estaciones de interes
+
 ForecastP<-function(dep, ruta_c, a, lead){
   Total<-0 # Inicialice un objeto
   
@@ -1045,22 +1035,13 @@ ForecastP<-function(dep, ruta_c, a, lead){
   
   write.csv(x =  Total, file = paste("ForecasProb_",dep,".csv", sep=""))
 return(Total)}
-  
-  
+
 ### Para todas las regiones en caso que tenga 
-dep<-list("casanare", "cordoba", "santander", "tolima", "valle")
-sapply(dep, ForecastP, ruta_c,  a, lead, simplify = T)
-
-
-
-
+sapply(depL, ForecastP, ruta_c,  a, lead, simplify = T)
 
 
 setwd(paste(ruta, "/results", sep=""))
 getwd()
-
-
-dep<-c("casanare", "cordoba", "santander", "tolima", "valle")
 
 for_files<-list()
 for(i in 1:length(dep_f)){
@@ -1071,8 +1052,6 @@ for(i in 1:length(dep_f)){
 }
 
 
-
 for_files <-Reduce(function(x, y) rbind.data.frame(x, y),for_files)
-
 write.csv(x = for_files, file = "Forecast_Prob.csv")
 
