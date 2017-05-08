@@ -122,7 +122,7 @@ $YFile
 $mes_numero # Mes de inicio del trimestre # Pendiente
    
 $Len_season #Length of season to forecast
-3 #Length of SPI
+$Len_season #Length of SPI
 
     
 13      #North
