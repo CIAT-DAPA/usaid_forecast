@@ -1355,6 +1355,53 @@ ggsave("models.png",width =8 ,height =3.5,dpi=200)
 
 
 
+
+
+
+data<-read.table("clipboard",header = T)
+
+data$a[data$a==12]=0 # Cambiarle el número para que diciembre aparezca primero
+labels_d<-as_labeller(c("casanare"="Casanare","cordoba"="Cordoba","tolima"="Tolima", "valle"="Valle del Cauca", "santander"="Santander"))
+
+
+regT<-data[data$Region=="Teo",]
+
+
+T<-ggplot(regT, aes(x=a, y=GI, color=Predictor)) + ylim(min(data$GI), max(data$GI)) +
+  geom_line(aes(linetype=Predictor), size=1) + geom_point(aes(shape=Predictor)) +
+  scale_x_continuous(breaks = c(0,3,6,9), labels = c("DEF","MAM", "JJA", "SON"))+
+  facet_wrap(~dep, nrow=1, labeller = labeller(dep = labels_d)) +
+  labs(x="Trimestre", y=paste("Goodness Index", sep=""))+ theme_bw() +
+  geom_hline(yintercept = c(0, 0.3), colour = "black", linetype = "dotted")+
+  theme(axis.text.x  = element_text(angle=90, vjust=0.5), legend.position = "bottom") +
+  ggtitle("Theoretical region", subtitle = NULL)
+
+regOp<-data[data$Region=="Op",]
+
+
+Op<-ggplot(regOp, aes(x=a, y=GI, color=Predictor)) + ylim(min(data$GI), max(data$GI)) +
+  geom_line(aes(linetype=Predictor), size=1) + geom_point(aes(shape=Predictor)) +
+  scale_x_continuous(breaks = c(0,3,6,9), labels = c("DEF","MAM", "JJA", "SON"))+
+  facet_wrap(~dep, nrow=1, labeller = labeller(dep = labels_d)) +
+  labs(x="Trimestre", y=paste("Goodness Index", sep=""))+ theme_bw() +
+  geom_hline(yintercept = c(0, 0.3), colour = "black", linetype = "dotted")+
+  theme(axis.text.x  = element_text(angle=90, vjust=0.5), legend.position = "bottom")+
+  ggtitle("Optimized region", subtitle = NULL)
+
+
+
+
+grid.arrange(T,Op)
+
+
+
+setwd("C:/Users/AESQUIVEL/Google Drive/new_predictor/Exp1")
+tiff(paste(getwd(),"/cc.tif",sep=""), height=350,width=1000,res=80,
+     compression="lzw") # height=1280, width=2048, pointsize=2, res=200,
+print(grid.arrange(T,Op, ncol=2))
+dev.off()
+
+
 ##########################################################################
 
 

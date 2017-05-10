@@ -304,7 +304,7 @@ plots=function(prec, x,y){
 #####################
 #####################
 
-# Ruta donde 
+# Ruta donde se encuentran los archivos del predictor (modificar esta linea)
 rutes<-"C:/Users/AESQUIVEL/Desktop/CPT_Linux/cpt_requerimientos/SST/DEF_Aug.tsv"# guarde las rutas de los archivos
 rutes
 
@@ -318,11 +318,12 @@ years_predictor=data_raw[[2]]
 
 
 #########################################################
-dep="casanare"
+dep="casanare" # nombre del departamento (modificar esta linea)
 
+# Cargue el archivo del departamento (modificar esta linea)
 precp=read.table(paste("C:/Users/AESQUIVEL/Google Drive/new_predictor/optimizaciones/",dep,".csv", sep = ""),header=T,dec=".",sep=",")
 
-month_ini=12 # Mes de inicio del trimestre
+month_ini=12 # Mes de inicio del trimestre (modificar esta linea)
 
 sta_quar=lapply(month_ini,quarterly_data,precp)
 
@@ -343,7 +344,7 @@ Map(plots,prec, final,month_ini)
 
 
 #### En esta parte se realiza la seleccion del area predictora 
-x11()
+x11() # vizualizacion del grafico 
 if(prec=="SST"){
   plot(final[[1]]>quantile(rotate(final[[1]]),0.7,na.rm=T)
        , colNA="gray30", main=paste(dep,month_ini[1]))
@@ -353,8 +354,10 @@ if(prec=="SST"){
   plot(shp, add=T)
 }
 
-x<-drawExtent(col="red")
+# dibuje dos puntos en el mapa y automaticamente se creara un rectangulo
+# y esta funcion extraera las coordenadas
+x<-drawExtent(col="red") 
 x<-as.numeric(as.character(x))
 x<-cbind.data.frame(class=c("xmin", "xmax", "ymin", "ymax"), x=round(x,2))
-
+# guarda el archivo automaticamente en la 
 write.csv(x, paste(prec, "_coor_",dep,"_", month_ini,".csv", sep=""), sep = " ")

@@ -1514,6 +1514,36 @@ ggsave("best_model.png",width =12 ,height =6,dpi=200 )
 
 
 
+#### Boxplot comparando los dos experimentos 
+
+setwd("C:/Users/AESQUIVEL/Google Drive/new_predictor")
+
+dato<-read.table("clipboard",header = T)
+data<-read.table("clipboard",header = T)
+
+
+
+rea<-ggplot(data, aes(x=Predictor,y=GI)) + geom_boxplot(fill="gray")+
+  theme_bw()  + ylab("Goodness Index") +  xlab("") + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+  geom_hline(yintercept = c(0,0.3), colour = "black", linetype = "dotted")
+
+
+cfsv2<- ggplot(dato, aes(x=Predictor,y=GI)) + geom_boxplot(aes(fill=as.factor(lead))) +
+  theme_bw() +   scale_fill_brewer(palette="Set2") + ylab("Goodness Index") +
+  xlab("") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+  labs(fill="Lead Time") +
+  geom_hline(yintercept = c(0,0.3), colour = "black", linetype = "dotted")
+
+grid.arrange(rea,cfsv2,  layout_matrix = rbind(c(1,2,2)) ,ncol=3)
+
+
+
+tiff(paste(getwd(),"/retro.tif",sep=""), height=450,width=750,res=100,
+     compression="lzw") # height=1280, width=2048, pointsize=2, res=200,
+grid.arrange(rea,cfsv2,  layout_matrix = rbind(c(1,2,2)) ,ncol=3)
+dev.off()
+
 
 
 
