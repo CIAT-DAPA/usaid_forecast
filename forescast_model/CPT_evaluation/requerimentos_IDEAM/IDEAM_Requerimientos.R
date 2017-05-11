@@ -46,8 +46,10 @@ print(getwd())
 # nombre de los archivos de las variable predictoras, deben ser iguales
 # que los que se ingreso en CPT. 
 lead<- c("Aug", "Nov","Aug")
+
 # mes de inicio de los trimestres
 a<- c(9,12,12)
+
 # Ancho del periodo de estudio para cada trimestre
 length_periodo<- c(32,31,31)
 
