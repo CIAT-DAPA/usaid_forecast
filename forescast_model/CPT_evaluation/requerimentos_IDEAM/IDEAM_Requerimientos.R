@@ -18,14 +18,23 @@ getwd()
 ruta <- "C:/Users/AESQUIVEL/Desktop/CPT_Linux/cpt_requerimientos/"
 
 ### Lectura del shp de colombia.
-colombia<-shapefile("C:/Users/AESQUIVEL/Desktop/CPT_Linux/cpt_requerimientos/colombia/colombia_depts.shp")
+colombia<-shapefile("C:/Users/AESQUIVEL/Desktop/CPT_Linux/cpt_requerimientos/Regimen pluviometrico/regimen_pluviometrico.shp")
 
 
 # dep_f se refiere a los nombres de los departamentos (o regiones) con los que 
 # se hayan realizado las corridas de linux, se recomienda se usen lso mismos
 # nombres de los archivos. 
-dep_f<-c("casanare",    "cordoba",    "tolima",    "valle", "santander")
-depL<-list("casanare", "cordoba", "santander", "tolima", "valle")
+list.files(paste(getwd(), "/dep/", sep=""))
+dep_f<-c("Caribe_Cesar",    "Catatumbo",    "Isla_Pacifico",    "Medellin_Carare",
+         "Norte_Amazonia", "Orinoquia_Occidental", "Orinoquia_Oriental", 
+         "PacificoNorteyCentral", "PatiayMira", "Risaralda_Saldana", 
+         "SanAndres_Providencia", "Sinu_SanJorge_Porce", "Sogamoso_Lebrija_Altiplano",
+         "SurMagdalena_Cauca", "Trapecio_Amazonico")
+depL<-list("Caribe_Cesar",    "Catatumbo",    "Isla_Pacifico",    "Medellin_Carare",
+           "Norte_Amazonia", "Orinoquia_Occidental", "Orinoquia_Oriental", 
+           "PacificoNorteyCentral", "PatiayMira", "Risaralda_Saldana", 
+           "SanAndres_Providencia", "Sinu_SanJorge_Porce", "Sogamoso_Lebrija_Altiplano",
+           "SurMagdalena_Cauca", "Trapecio_Amazonico")
 
 
 # Si el directorio de resultados y los departamentos ya fue creado, no es 
@@ -38,7 +47,7 @@ setwd(paste( getwd(),"/results/" ,sep=""))
 print(getwd())
 
 
-
+files_ext<-"_CHIRPS_-_"
 
 
 #### Declaración de las constantes
@@ -51,7 +60,7 @@ lead<- c("Aug", "Nov","Aug")
 a<- c(9,12,12)
 
 # Ancho del periodo de estudio para cada trimestre
-length_periodo<- c(32,31,31)
+length_periodo<- c(34,34,34)
 
 
 # periodo
@@ -82,7 +91,7 @@ GoodnessIndex <- function(ruta_c, dep_f, a, lead, period){
   for(j in 1:length(dep_f)) # realice esto para todos los departamentos
     for(i in 1:length(a)){ # barra para todos los periodos con sus respectivos lead time
       # Lea la tabla 
-      goodnex<-read.table(paste(ruta_c,"/GoodnessIndex_",a[i],"_",lead[i],"_precip_",dep_f[j],".txt", sep=""),  skip=6, colClasses=c(rep("numeric",3),"character",rep("numeric",4)))
+      goodnex<-read.table(paste(ruta_c,"/GoodnessIndex_",a[i],"_",lead[i],files_ext,dep_f[j],".txt", sep=""),  skip=6, colClasses=c(rep("numeric",3),"character",rep("numeric",4)))
       # Cambie los nombres del archivo 
       names(goodnex)<-c("x1","y1","cca1","index1", "x2", "y2","cca2", "index2")
       # Encuentre el maximo
@@ -115,10 +124,10 @@ ruta_c
 table<-GoodnessIndex(ruta_c = ruta_c, dep_f = dep_f, a = a, lead = lead, period= period)
 
 ggplot(table, aes(x = Periodo, y= GoodnessIndex)) + geom_point(aes(colour=Periodo)) +
-  facet_grid(~Dep) + theme_bw() + theme(legend.position = "none")+
+  facet_grid(~Dep) + theme_bw() + theme(legend.position = "none", strip.text.x = element_text(size = 8, angle = 90))+
   geom_hline(yintercept = 0, colour = "black", linetype = "dotted")
 
-ggsave("summary_GI.png", width = 7, height = 3)
+ggsave("summary_GI.png", width =11, height = 5)
 
 
 
@@ -142,7 +151,7 @@ ind<-function(tipo, a, lead, dep, ruta_c, period){
   
   # lea los datos y apilelos en una tabla de datos
   for(j in 1:length(a)){
-    names_below<-list.files(ruta_c, pattern = paste(tipo, "_", a[j], "_", lead[j], "_precip_", dep, sep=""))
+    names_below<-list.files(ruta_c, pattern = paste(tipo, "_", a[j], "_", lead[j], files_ext, dep, sep=""))
     
     # Ciclo for que barre el número de departamentos que existan 
     # En caso de desear más departamentos modificar este argumento
@@ -189,10 +198,7 @@ summary_ind<-function(dep,  ruta_c,  a, lead, period){
   
   # Ubiquese en el directorio de cada departamento en la carpeta results
   setwd(paste(ruta, "results/",  sep = ""))
-  
   dir.create(paste(getwd(), "/Perfomance_Measures", sep=""))
-  
-  
   setwd(paste(ruta, "results/Perfomance_Measures",  sep = ""))
   
   
@@ -240,20 +246,22 @@ ForecastP<-function(dep, ruta_c, a, lead, period){
   for(i in 1:length(a)){ # Corra para todas las corridas
     
     # Lea el archivo de probabilidades de acuerdo a 
-    file<-paste(ruta_c, "/ForecastProbabilities_", a[i], "_", lead[i],"_precip_", dep,".txt", sep="")
+    file<-paste(ruta_c, "/ForecastProbabilities_", a[i], "_", lead[i],files_ext, dep,".txt", sep="")
     
     w1<-read.table(file,sep="", skip =3, nrow=3,  fill=TRUE)
     w2<-read.table(file,sep="", skip =8, nrow=3, fill=TRUE)
     w3<-read.table(file, sep="", skip =13, nrow=3, fill=TRUE)
     
-    h1<-data.frame(t(Reduce(function(x, y) merge(x, y, all=TRUE), list(w1, w2, w3))))
+    
+    rownames(w1)[3] <- "below" ; rownames(w2)[3] <- "normal";  rownames(w3)[3] <- "Above"
+    
+    h1<-data.frame(names(w1), Reduce(function(x, y) merge(x, y), list(t(w1), t(w2), t(w3) )))
     
     
-    o<-cbind.data.frame(period[i], a[i], lead[i],rownames(h1), h1, row.names=NULL)
-    names(o)<- c("Periodo", "Mes_ini", "lead","Estaciones", "Lon", "Lat", "C1_below", "C2_Normal", "C3_Above")
+    o<-cbind.data.frame(period[i], a[i], lead[i], h1, row.names=NULL)
+    names(o)<- c("Periodo", "Mes_ini", "lead","Estaciones",  "Lat", "Lon", "C1_below", "C2_Normal", "C3_Above")
     
-    
-    
+  
     Total<-rbind(Total, o)
     print(i)
   }
@@ -304,7 +312,6 @@ setwd(paste(ruta, "results/ForecasProb",  sep = ""))
 for(i in 1:length(a)){
   o<-subset(for_files, Periodo==period[i] & lead== lead[i])
 
-  
   # Aqui se ingresan los datos de las estaciones
   below <- p + geom_point(data=o, aes(x=Lon, y=Lat, map_id= Estaciones,colour=C1_below))
   below <- below + scale_colour_gradientn(colours = colorRampPalette(c("aliceblue", "steelblue2" , "khaki", "orange1", "red", "firebrick4"))(10),limits=c(0,100))+ 
