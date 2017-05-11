@@ -125,9 +125,9 @@ $Len_season #Length of season to forecast
 $Len_season #Length of SPI
 
     
-13      #North
+14      #North
 -4      #South
--79     #West
+-82     #West
 -67     #East
 1       #Minimum modes (Y)
 5       #Maximum modes (Y)
