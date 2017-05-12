@@ -11,30 +11,37 @@ library(cowplot)
 
 
 ### Directorio de trabajo
-setwd("C:/Users/AESQUIVEL/Desktop/CPT_Linux/cpt_requerimientos/")
+setwd("C:/Users/AESQUIVEL/Desktop/CPT_Linux/cpt_requerimientos/") # Modificar
 getwd()
 
 
-ruta <- "C:/Users/AESQUIVEL/Desktop/CPT_Linux/cpt_requerimientos/"
+ruta <- "C:/Users/AESQUIVEL/Desktop/CPT_Linux/cpt_requerimientos/" # Modificar
 
-### Lectura del shp de colombia.
+### Lectura del shp de colombia. # Modificar
 colombia<-shapefile("C:/Users/AESQUIVEL/Desktop/CPT_Linux/cpt_requerimientos/Regimen pluviometrico/regimen_pluviometrico.shp")
 
 
 # dep_f se refiere a los nombres de los departamentos (o regiones) con los que 
 # se hayan realizado las corridas de linux, se recomienda se usen lso mismos
 # nombres de los archivos. 
-list.files(paste(getwd(), "/dep/", sep=""))
+# list.files(paste(getwd(), "/dep/", sep=""))
+
 dep_f<-c("Caribe_Cesar",    "Catatumbo",    "Isla_Pacifico",    "Medellin_Carare",
          "Norte_Amazonia", "Orinoquia_Occidental", "Orinoquia_Oriental", 
          "PacificoNorteyCentral", "PatiayMira", "Risaralda_Saldana", 
          "SanAndres_Providencia", "Sinu_SanJorge_Porce", "Sogamoso_Lebrija_Altiplano",
-         "SurMagdalena_Cauca", "Trapecio_Amazonico")
+         "SurMagdalena_Cauca", "Trapecio_Amazonico") # Modificar
 depL<-list("Caribe_Cesar",    "Catatumbo",    "Isla_Pacifico",    "Medellin_Carare",
            "Norte_Amazonia", "Orinoquia_Occidental", "Orinoquia_Oriental", 
            "PacificoNorteyCentral", "PatiayMira", "Risaralda_Saldana", 
            "SanAndres_Providencia", "Sinu_SanJorge_Porce", "Sogamoso_Lebrija_Altiplano",
-           "SurMagdalena_Cauca", "Trapecio_Amazonico")
+           "SurMagdalena_Cauca", "Trapecio_Amazonico") # Modificar
+
+
+
+
+
+
 
 
 # Si el directorio de resultados y los departamentos ya fue creado, no es 
@@ -47,25 +54,25 @@ setwd(paste( getwd(),"/results/" ,sep=""))
 print(getwd())
 
 
-files_ext<-"_CHIRPS_-_"
+files_ext<-"CHIRPS_-_" # *("PPT_-_"   ,"CHIRPS_-_")
 
 
 #### Declaración de las constantes
 
 # nombre de los archivos de las variable predictoras, deben ser iguales
 # que los que se ingreso en CPT. 
-lead<- c("Aug", "Nov","Aug")
+lead<- c("Aug", "Nov","Aug") # Modificar
 
 # mes de inicio de los trimestres
-a<- c(9,12,12)
+a<- c(9,12,12) # Modificar
 
 # Ancho del periodo de estudio para cada trimestre
-length_periodo<- c(34,34,34)
+length_periodo<- c(34,34,34) # Modificar
 
 
 # periodo
 # solo puede tomar dos valores "Mes" o "bim"
-per<-rep("bim",3)
+per<-rep("bim",3) # Modificar
 
 # estos tres vectores deben ser de igual tamaño. 
 cbind.data.frame(a, lead, length_periodo, per)
@@ -77,7 +84,7 @@ for(i in 1:length(a)){
   }else if(per=="Mes"){ period[i]<-paste0(substr(month.abb[a[i]],1,1))}
 }
 
-
+# Modificar
 ruta_c<- "C:/Users/AESQUIVEL/Desktop/CPT_Linux/cpt_requerimientos/Cross_val_IDEAM"
 
 
@@ -91,7 +98,7 @@ GoodnessIndex <- function(ruta_c, dep_f, a, lead, period){
   for(j in 1:length(dep_f)) # realice esto para todos los departamentos
     for(i in 1:length(a)){ # barra para todos los periodos con sus respectivos lead time
       # Lea la tabla 
-      goodnex<-read.table(paste(ruta_c,"/GoodnessIndex_",a[i],"_",lead[i],files_ext,dep_f[j],".txt", sep=""),  skip=6, colClasses=c(rep("numeric",3),"character",rep("numeric",4)))
+      goodnex<-read.table(paste(ruta_c,"/GoodnessIndex_",a[i],"_",lead[i],"_",files_ext,dep_f[j],".txt", sep=""),  skip=6, colClasses=c(rep("numeric",3),"character",rep("numeric",4)))
       # Cambie los nombres del archivo 
       names(goodnex)<-c("x1","y1","cca1","index1", "x2", "y2","cca2", "index2")
       # Encuentre el maximo
@@ -151,7 +158,7 @@ ind<-function(tipo, a, lead, dep, ruta_c, period){
   
   # lea los datos y apilelos en una tabla de datos
   for(j in 1:length(a)){
-    names_below<-list.files(ruta_c, pattern = paste(tipo, "_", a[j], "_", lead[j], files_ext, dep, sep=""))
+    names_below<-list.files(ruta_c, pattern = paste(tipo, "_", a[j], "_", lead[j], "_",files_ext, dep, sep=""))
     
     # Ciclo for que barre el número de departamentos que existan 
     # En caso de desear más departamentos modificar este argumento
@@ -213,7 +220,7 @@ sapply(depL, summary_ind, ruta_c,  a, lead, period, simplify = T)
 for_files<-list()
 for(i in 1:length(dep_f)){
   name<-list.files(paste(getwd(), "/" ,sep=""), pattern = paste("Perfomance_Measures_",dep_f[i], sep=""))
-  for_files[[i]]<-read.csv(paste(getwd(), "/" , "/", name ,sep=""))
+  for_files[[i]]<-read.csv(paste(getwd(), "/" ,  name ,sep=""))
   for_files[[i]]<-cbind(dep= dep_f[i], for_files[[i]][,-1])
   names(for_files)[i]<-dep_f[i]
 }
@@ -246,7 +253,7 @@ ForecastP<-function(dep, ruta_c, a, lead, period){
   for(i in 1:length(a)){ # Corra para todas las corridas
     
     # Lea el archivo de probabilidades de acuerdo a 
-    file<-paste(ruta_c, "/ForecastProbabilities_", a[i], "_", lead[i],files_ext, dep,".txt", sep="")
+    file<-paste(ruta_c, "/ForecastProbabilities_", a[i], "_", lead[i], "_",files_ext, dep,".txt", sep="")
     
     w1<-read.table(file,sep="", skip =3, nrow=3,  fill=TRUE)
     w2<-read.table(file,sep="", skip =8, nrow=3, fill=TRUE)
