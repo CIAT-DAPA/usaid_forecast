@@ -15,6 +15,9 @@ do
   south=
   west=
   east=
+  xm=
+  ym=
+  ccam=
   length=
   start_year= 
   predictora=  
@@ -45,12 +48,21 @@ do
 	       east=$line
      elif  [ $i = 8 ]
      then
-	       length=$line
+	       xm=$line
      elif  [ $i = 9 ]
+     then
+	       ym=$line
+     elif  [ $i = 10 ]
+     then
+	       ccam=$line          
+     elif  [ $i = 11 ]
+     then
+	       length=$line
+     elif  [ $i = 12 ]
      then
 	       start_year=$line
      else
-         mes_archivos[$i-10]=$line
+         mes_archivos[$i-13]=$line
      fi
      i=$(($i+1))
   done
@@ -114,7 +126,7 @@ $west      #West
 $east      #East
 # X Mode Options
 1       #Minimum modes (X)
-5      #Maximum modes (X)
+$xm     #Maximum modes (X)
 		
 2       #Open Y file
 $YFile
@@ -130,11 +142,11 @@ $Len_season #Length of SPI
 -82     #West
 -67     #East
 1       #Minimum modes (Y)
-5       #Maximum modes (Y)
+$ym     #Maximum modes (Y)
        	
 # CCA Options
 1       #Minimum modes (CCA)
-3       #Maximum modes (CCA)
+$ccam       #Maximum modes (CCA)
 
 
 #Other options

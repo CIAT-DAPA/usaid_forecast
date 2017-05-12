@@ -5,6 +5,9 @@ north=
 south=
 west=
 east=
+xm= numero de modos en x
+ym= numero de modos en y (no mayor al numero de estaciones en el archivo de datos)
+ccam= numero de modos en cca (no mayor al numero de estaciones en el archivo de datos)
 length= tamaño del periodo de entrenamiento, recuerden que en caso de ser mayor al sugerido por cpt no funciona. 
 start_year=  año en el que se comienza a pronosticar. 
 predictora=  mes_archivos=('' '' ''), máximo 3 además son los nombres de los archivos sin la extensión .tsv
