@@ -167,6 +167,24 @@ $start_year        #Start year
 ###
 
 
+# Requerimiento datos faltantes 
+544    # Missing Values
+#  Explanatory (X) Variables (se deja igual que en CPT windows)
+-999   # Missing value flag
+10     # Maximum p. of missing values
+10     # Maximum p. of missing variables  
+1      # Number of near-neighbours
+# Missing value Replacement
+1      # Long term means
+# Response (Y) Variables  (se remplaza por lo valores datos por julieta)
+-999   # Missing value flag
+25     # Maximum p. of missing values
+25     # Maximum p. of missing variables
+1      # Number of near neighbours
+# Missing value Replacement
+1      # Long term means
+
+
 #Cross-validation
 112     #Save goodness index
 $GoodnessIndex
