@@ -1,0 +1,133 @@
+# Ciclo para cada localidad
+workspace="/home/aesquivel/requerimientos/CPT.15.5.10/15.5.10"
+conf_file=$1
+echo $conf_file
+for localidad in `ls /home/aesquivel/requerimientos/CPT.15.5.10/15.5.10/predictando`
+do
+	echo "Localidad: $localidad"
+  
+  # Ciclo para leer variables de predictoras
+  i=1
+  mes_nombre=
+  xm=
+  ym=
+  ccam=
+  predictora=   
+  declare -a mes_archivos=('' '' '');  
+  for line in $(cat $conf_file); 
+  do 
+     
+     if  [ $i = 1 ]
+     then
+	       mes_nombre=$line
+     elif  [ $i = 2 ]
+     then
+	       xm=$line
+     elif  [ $i = 3 ]
+     then
+	       ym=$line
+     elif  [ $i = 4 ]
+     then
+	       ccam=$line          
+     else
+         mes_archivos[$i-5]=$line
+     fi
+     i=$(($i+1))
+  done
+  echo "Corridad: $mes_numero $mes_nombre"
+  #echo  ${mes_archivos[@]}
+  
+  # Ciclo para las variables predictoras
+  for p in ${mes_archivos[@]}
+  do
+    predictora=$p
+
+    echo "Mes: $predictora"
+        
+    YFile="$workspace/predictando/$localidad"
+    echo "Archivo Y $YFile"
+    XFile="$workspace/predictores/$predictora.tsv"
+    echo "Archivo X $XFile"
+    salidas="$workspace/salidas/Cross_validated"
+    GoodnessIndex="$salidas/GoodnessIndex_"$mes_numero"_"$predictora"_$localidad"
+    Pearsons_correlation="$salidas/Pearsons_correlation_"$mes_numero"_"$predictora"_$localidad"
+    k_2AFC_Score="$salidas/k_2AFC_Score_"$mes_numero"_"$predictora"_$localida
+    
+    CanonicalCorrelations="$salidas/CanonicalCorrelations_"$mes_numero"_"$predictora"_$localidad"
+    ForecastProbabilities="$salidas/ForecastProbabilities_"$mes_numero"_"$predictora"_$localidad"
+C:\Users\AESQUIVEL\Desktop\DEF_J.tsv
+    # Abrir cpt
+./CPT.x <<EOF
+611
+
+1       #Open X file
+$XFile
+   
+# X Domain
+90    #North
+-90   #South
+0     #West
+359   #East
+# X Mode Options
+1       #Minimum modes (X)
+$xm     #Maximum modes (X)
+		
+2       #Open Y file
+$YFile
+    
+13      #North
+-4      #South
+-79     #West
+-67     #East
+1       #Minimum modes (Y)
+$ym     #Maximum modes (Y)
+       	
+# CCA Options
+1       #Minimum modes (CCA)
+$ccam   #Maximum modes (CCA)
+
+    
+#Other options
+9       #Number of forecasts
+1       #1 years
+554     #Transformation settings
+2       #Gamma distributions
+###
+
+### Revisar si se estan prendiendo o apagando cuando se llaman
+541    #Transform Y data (mirar como se modifica)
+###
+
+#Cross-validation
+112     #Save goodness index
+$GoodnessIndex
+311     #Run cross-validation analysis
+#Run pronosticos
+451     #Forecast series
+452     #Forecast ensembles
+454     #Forecast values
+455     #Forecast probabilities
+
+#####   Save results of cross-validation --- skill maps
+413     #Cross-validated skill maps
+1       #Pearson's correlation
+$Pearsons_correlation
+413     #Cross-validated skill maps
+3       #2AFC Score
+$k_2AFC_Score
+
+
+111     # Output Results
+## CCA Results
+401 #Save canonical correlations
+$CanonicalCorrelations
+
+#Forecast 
+501	#Save forecast probabilities
+$ForecastProbabilities
+0
+
+EOF
+  done
+  
+done
